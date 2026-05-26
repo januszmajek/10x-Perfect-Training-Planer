@@ -1,0 +1,4 @@
+# local agent skills and tooling
+.agents/
+.10x-cli.json
+skills-lock.json
