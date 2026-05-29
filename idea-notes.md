@@ -1,42 +1,28 @@
-# CraftMatch - MVP Ideas
-
 ### Główny problem
 
-Tworzenie CV pod konkretne oferty pracy jest czasochłonne i wymaga analizy własnego doświadczenia, umiejętności oraz osiągnięć. Wielu specjalistów nie dokumentuje na bieżąco zdobywanej wiedzy i nowych kompetencji, przez co później trudno im:
-- przygotować dobre CV,
-- dopasować się do oferty,
-- przypomnieć sobie konkretne doświadczenia,
-- zauważyć własny rozwój zawodowy.
-
-Celem produktu jest systematyczne budowanie bazy doświadczenia zawodowego oraz wykorzystanie jej do szybkiego generowania dopasowanych CV z pomocą AI.
+Po treningu siłowym ciężko jest dobrać na następny dzień odpowiednie ćwiczenia aby się nie przeciążać i zachować odpowiedni czas na regeneracje dla poszczególnych grup mięśniowych. Problemem jest też fakt, że ciężko znaleść różnorodne ćwiczenia na ten sam mięsień tak aby trening się nie nudził lub znaleść zamiennik jeżeli maszyną lub ciężary na siłowni są cały czas zajęte. 
 
 ### Najmniejszy zestaw funkcjonalności
 
-- system kont użytkowników umożliwiający przechowywanie danych i historii doświadczenia
-- możliwość ręcznego dodawania doświadczeń, umiejętności, rozwiązanych problemów lub zdobytych kompetencji
-- możliwość rozwijania istniejących wpisów o nowe use case’y, wiedzę, problemy lub rozwiązania
-- przeglądanie, edycja i usuwanie zapisanych doświadczeń
-- manualne tworzenie CV na podstawie zapisanych doświadczeń
-- generowanie CV z pomocą AI na podstawie:
-  - zapisanej bazy doświadczenia,
-  - podanej oferty pracy
-- prosty system przypomnień zachęcający użytkownika do regularnego uzupełniania swojej bazy doświadczeń
-- system pytań/challenge’y prowokujących użytkownika do refleksji nad nowymi kompetencjami zdobytymi podczas pracy
-
+- system kont użytkowników umożliwiający przechowywanie danych i historii treningów
+- Możliwość przeglądania gotowych ćwiczeń
+- przeglądanie, dodawanie, edycja i usuwanie autorskich ćwiczeń użytkownika
+- Dodawanie, edytowanie i usuwanie treningów z historii. 
+- Otrzymanie propozycji treningu od AI biorąc pod uwagę poprzedni trening (lub jego brak) z podziałem na grupy mięśni
+- Przy ręcznym dodawaniu ćwiczeń do treningu jest możliwość odfiltrowania ćwiczeń na poprzednio wykonywane grupy mięśni 
+- dodanie ćwiczeń do ulubionych
+- edycja ćwiczeń i grupy mięśni z zaproponowanego treningu
+- eksport swojej historii treningowej do formatu csv 
 ### Co NIE wchodzi w zakres MVP
 
-- automatyczne dodawanie doświadczenia na podstawie commitów, historii konwersacji z agentami AI lub innych źródeł
-- WŁASNY zaawansowany algorytm przypomnień i personalizacji powiadomień
-- wiele kanałów powiadomień (SMS, push, popupy itp.)
-- import ofert pracy z wielu formatów (PDF, PNG, JPG itd.)
-- integracje z portalami ofert pracy (LinkedIn, pracuj.pl itd.)
-- udostępnianie CV innym użytkownikom
-- aplikacja mobilna
-- zaawansowane analizy rynku pracy lub scoring kandydatów
+- zbieranie danych z fit opasek lub Smart Watchy, smartfonów 
+- aplikacje mobilne na urządzenia android i iOS 
+- import historii e wielu formatach (PDF, PNG, JPG, DOC itd.)
+- integracje z innymi aplikacjami (Fitatu, Garmin, Strava itd.) i zbieranie danych z telefonów, fit opasek, smartwatchy
+- udostępnianie treningów innym użytkownikom
+- analiza danych treningowych 
 
 ### Kryteria sukcesu
 
-- użytkownik dodaje nowe doświadczenie lub rozwija istniejący wpis minimum raz w tygodniu
-- minimum 75% challenge’y/reflection prompts kończy się dodaniem lub rozszerzeniem doświadczenia
-- minimum 75% challenge’y nie jest pomijanych przez użytkowników
-- minimum 75% generowanych CV powstaje z użyciem AI
+- generowane treningi są minimum 3  razy w tygodniu 
+- minimum 75% generowanych treningów powstaje z użyciem AI
