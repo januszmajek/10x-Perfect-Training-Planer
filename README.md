@@ -16,7 +16,18 @@ A modern, opinionated starter template for building fast, accessible web applica
 ## Prerequisites
 
 - Node.js v22.14.0 (as specified in `.nvmrc`)
-- npm (comes with Node.js)
+- Corepack (comes with Node.js)
+- pnpm v10 (managed by Corepack from `package.json`)
+
+Use the same dependency flow on Windows and Linux/Omarchy. Install the Node.js version from `.nvmrc`, then enable Corepack once per machine or Node.js installation:
+
+```bash
+corepack enable
+corepack prepare pnpm@10.24.0 --activate
+pnpm -v
+```
+
+After that, normal project work only needs `pnpm install`, `pnpm dev`, and the other scripts below. Run `pnpm install` separately on each OS. Do not copy or share `node_modules` between Windows and Linux because several dependencies install OS-specific binaries.
 
 ## Getting Started
 
@@ -30,7 +41,7 @@ cd 10x-astro-starter
 2. Install dependencies:
 
 ```bash
-npm install
+pnpm install
 ```
 
 3. Set up Supabase and configure environment variables — see [Supabase Configuration](#supabase-configuration) below.
@@ -44,17 +55,17 @@ cp .env.example .dev.vars
 5. Run the development server:
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 ## Available Scripts
 
-- `npm run dev` - Start development server (Cloudflare workerd runtime)
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint with type-checked rules
-- `npm run lint:fix` - Auto-fix ESLint issues
-- `npm run format` - Run Prettier
+- `pnpm dev` - Start development server (Cloudflare workerd runtime)
+- `pnpm build` - Build for production
+- `pnpm preview` - Preview production build
+- `pnpm lint` - Run ESLint with type-checked rules
+- `pnpm lint:fix` - Auto-fix ESLint issues
+- `pnpm format` - Run Prettier
 
 ## Project Structure
 
@@ -87,13 +98,13 @@ cp .env.example .env
 2. Initialize the local Supabase project (creates a `supabase/` config folder):
 
 ```bash
-npx supabase init
+pnpm exec supabase init
 ```
 
 3. Start the local stack (downloads Docker images on first run):
 
 ```bash
-npx supabase start
+pnpm exec supabase start
 ```
 
 4. Copy the credentials printed by the CLI into your `.env` and `.dev.vars`:
@@ -106,7 +117,7 @@ SUPABASE_KEY=<anon key from CLI output>
 5. To stop the stack when done:
 
 ```bash
-npx supabase stop
+pnpm exec supabase stop
 ```
 
 The local Studio UI is available at `http://localhost:54323`.
@@ -155,16 +166,16 @@ This project deploys to [Cloudflare Workers](https://workers.cloudflare.com/).
 1. Build the project:
 
 ```bash
-npm run build
+pnpm build
 ```
 
 2. Deploy with Wrangler:
 
 ```bash
-npx wrangler deploy
+pnpm exec wrangler deploy
 ```
 
-Set `SUPABASE_URL` and `SUPABASE_KEY` as secrets in your Cloudflare dashboard or via `npx wrangler secret put`.
+Set `SUPABASE_URL` and `SUPABASE_KEY` as secrets in your Cloudflare dashboard or via `pnpm exec wrangler secret put`.
 
 ## CI
 

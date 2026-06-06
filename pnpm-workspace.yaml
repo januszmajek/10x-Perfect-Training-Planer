@@ -1,3 +1,7 @@
+# pnpm-workspace.yaml
+packages:
+  - "."
+
 allowBuilds:
   esbuild: true
   sharp: true
