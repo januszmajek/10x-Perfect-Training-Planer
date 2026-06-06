@@ -5,7 +5,7 @@ project_name: perfect-training-planner
 hints:
   language_family: js
   team_size: solo
-  deployment_target: cloudflare-pages
+  deployment_target: cloudflare-workers
   ci_provider: github-actions
   ci_default_flow: auto-deploy-on-merge
   bootstrapper_confidence: first-class
@@ -21,4 +21,4 @@ hints:
 
 ## Why this stack
 
-10x Astro Starter (Astro 6 + React 19 + Supabase + Cloudflare) extended with shadcn fits Perfect Training Planner because: the PRD demands auth + database (Supabase ships both out of the box), the BYOK AI proposer is a straightforward server-side HTTP call from an Astro API route, the 3-week after-hours timeline favors a batteries-included starter over assembling pieces, and the solo builder profile benefits from the starter's opinionated TypeScript-first conventions that keep an AI coding agent on-rails. Cloudflare Pages deployment is free-tier friendly for a small-scale MVP and edge-fast for the mobile-viewport users planning workouts on their phones.
+10x Astro Starter (Astro 6 + React 19 + Supabase + Cloudflare) extended with shadcn fits Perfect Training Planner because: the PRD demands auth + database (Supabase ships both out of the box), the BYOK AI proposer is a straightforward server-side HTTP call from an Astro API route, the 3-week after-hours timeline favors a batteries-included starter over assembling pieces, and the solo builder profile benefits from the starter's opinionated TypeScript-first conventions that keep an AI coding agent on-rails. Cloudflare Workers deployment is free-tier friendly for a small-scale MVP, matches the current `@astrojs/cloudflare` + `wrangler.jsonc` configuration, and is edge-fast for the mobile-viewport users planning workouts on their phones.
