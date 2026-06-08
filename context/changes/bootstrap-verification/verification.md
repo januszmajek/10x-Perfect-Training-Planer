@@ -42,10 +42,10 @@ hints:
 
 ## Pre-scaffold verification
 
-| Signal | Value | Severity | Notes |
-| --- | --- | --- | --- |
-| npm package | not run | n/a | `cmd_template` starts with `git clone`; no `create-*` npm package to verify |
-| GitHub repo | `przeprogramowani/10x-astro-starter` last pushed 2026-05-17T10:33:39Z | fresh | from card.docs_url |
+| Signal      | Value                                                                 | Severity | Notes                                                                       |
+| ----------- | --------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------- |
+| npm package | not run                                                               | n/a      | `cmd_template` starts with `git clone`; no `create-*` npm package to verify |
+| GitHub repo | `przeprogramowani/10x-astro-starter` last pushed 2026-05-17T10:33:39Z | fresh    | from card.docs_url                                                          |
 
 ## Scaffold log
 
@@ -70,10 +70,10 @@ hints:
 
 ### Resolved dependency graph
 
-| Package | Resolved version | Reason |
-| --- | --- | --- |
-| `vite` | `7.3.3` | Preserved starter override in PNPM's active configuration |
-| `yaml` | `2.9.0` | Forced patched transitive version for `yaml-language-server` path |
+| Package | Resolved version | Reason                                                            |
+| ------- | ---------------- | ----------------------------------------------------------------- |
+| `vite`  | `7.3.3`          | Preserved starter override in PNPM's active configuration         |
+| `yaml`  | `2.9.0`          | Forced patched transitive version for `yaml-language-server` path |
 
 #### CRITICAL findings
 
@@ -93,27 +93,28 @@ None.
 
 ## Hints recorded but not acted on
 
-| Hint | Value |
-| --- | --- |
-| bootstrapper_confidence | first-class |
-| quality_override | false |
-| path_taken | standard |
-| self_check_answers | null |
-| team_size | solo |
-| deployment_target | cloudflare-pages |
-| ci_provider | github-actions |
-| ci_default_flow | auto-deploy-on-merge |
-| has_auth | true |
-| has_payments | false |
-| has_realtime | false |
-| has_ai | true |
-| has_background_jobs | false |
+| Hint                    | Value                |
+| ----------------------- | -------------------- |
+| bootstrapper_confidence | first-class          |
+| quality_override        | false                |
+| path_taken              | standard             |
+| self_check_answers      | null                 |
+| team_size               | solo                 |
+| deployment_target       | cloudflare-pages     |
+| ci_provider             | github-actions       |
+| ci_default_flow         | auto-deploy-on-merge |
+| has_auth                | true                 |
+| has_payments            | false                |
+| has_realtime            | false                |
+| has_ai                  | true                 |
+| has_background_jobs     | false                |
 
 ## Next steps
 
 Next: a future skill will set up agent context (CLAUDE.md, AGENTS.md). For now, your project is scaffolded and verified.
 
 Useful manual steps in the meantime:
+
 - `git init` is not needed here because this directory already has a `.git/` directory.
 - Keep using `pnpm install` and `pnpm audit`; do not regenerate `package-lock.json`.
 - Review the starter-provided `CLAUDE.md` against the existing `AGENTS.md` before relying on either as agent context.

@@ -38,7 +38,7 @@ The end-to-end planning loop works:
 
 1. User logs in.
 2. User chooses **AI proposer** OR **manual builder**:
-   - **AI proposer**: app reads the user's recent *completed* history (or treats "no history" as a balanced-starter cold-start) and returns a proposed workout (exercises + sets/reps) that respects muscle-recovery windows vs the last session.
+   - **AI proposer**: app reads the user's recent _completed_ history (or treats "no history" as a balanced-starter cold-start) and returns a proposed workout (exercises + sets/reps) that respects muscle-recovery windows vs the last session.
    - **Manual builder**: user browses the seeded exercise catalogue with a smart filter that hides muscle groups trained in the recent session(s), and composes a workout manually.
 3. The result is saved as a **planned workout** (NOT yet history). User can edit it (swap an exercise for another, add an exercise, remove an exercise, change sets/reps).
 4. When the user trains, they mark the planned workout **done** — it then moves into **history** and becomes input for the next AI proposal.
@@ -111,7 +111,7 @@ The end-to-end planning loop works:
 - FR-006: User can manually compose a workout by picking exercises from the catalogue. Priority: must-have
   > Socrates: stands as written. Manual builder is the fallback when the
   > user disagrees with AI; cutting it removes user agency.
-- FR-007: Manual builder smart filter hides (or visually demotes) exercises whose muscle groups are still within a per-muscle-group recovery window (default 48h; 72h for legs/back) based on the user's recent *completed* history — not based on a single "last session". Priority: must-have
+- FR-007: Manual builder smart filter hides (or visually demotes) exercises whose muscle groups are still within a per-muscle-group recovery window (default 48h; 72h for legs/back) based on the user's recent _completed_ history — not based on a single "last session". Priority: must-have
   > Socrates: refined — "most recent session" is too narrow; a fixed recovery
   > window per muscle group is the right primitive.
 
@@ -182,7 +182,7 @@ Given the user's recent completed-workout history, the app selects a set of exer
 
 - **Auth model**: email + password login. Persistent accounts so workout history and custom exercises persist across devices.
 - **Role model**: flat — one user role. Every user sees only their own workouts, custom exercises, and favorites.
-- **Preset exercise catalogue**: ships seeded with the app. Users can browse and favorite presets but cannot edit them. Users add/edit/delete only their *own* custom exercises. (No admin role in MVP — the seed catalogue is curated outside the app, e.g., a data migration.)
+- **Preset exercise catalogue**: ships seeded with the app. Users can browse and favorite presets but cannot edit them. Users add/edit/delete only their _own_ custom exercises. (No admin role in MVP — the seed catalogue is curated outside the app, e.g., a data migration.)
 
 ## Non-Goals
 
@@ -191,7 +191,7 @@ Given the user's recent completed-workout history, the app selects a set of exer
 - **No history import from external formats** (PDF, PNG, JPG, DOC, CSV-in). History is built by using the app from day one.
 - **No sharing of workouts between users**. No social/community features in MVP.
 - **No analytics dashboards** (volume curves, PR tracking, progress trends). History is a list, not a chart.
-- **No in-gym real-time exercise substitution** when equipment is busy. This is a *planning* tool, not an in-session companion.
+- **No in-gym real-time exercise substitution** when equipment is busy. This is a _planning_ tool, not an in-session companion.
 - **No hosted/paid AI** — BYOK only. The app does not pay for or proxy any AI inference.
 - **No custom exercise CRUD in MVP** — deferred to v1.1. MVP uses the seeded preset catalogue only.
 - **No favorites in MVP** — deferred to v1.1.

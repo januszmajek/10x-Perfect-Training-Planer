@@ -3,6 +3,7 @@
 ### Główny problem
 
 Tworzenie CV pod konkretne oferty pracy jest czasochłonne i wymaga analizy własnego doświadczenia, umiejętności oraz osiągnięć. Wielu specjalistów nie dokumentuje na bieżąco zdobywanej wiedzy i nowych kompetencji, przez co później trudno im:
+
 - przygotować dobre CV,
 - dopasować się do oferty,
 - przypomnieć sobie konkretne doświadczenia,

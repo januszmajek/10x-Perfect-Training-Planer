@@ -20,14 +20,14 @@ The foundation contract now uses `cloudflare-workers`, matching the live starter
 
 ## Platform Comparison
 
-| Platform | CLI-first | Managed/Serverless | Agent-readable docs | Stable deploy API | MCP / Integration | Total |
-|---|---|---|---|---|---|---|
-| Cloudflare Workers | Pass | Pass | Pass | Pass | Pass | 5.0 |
-| Vercel | Pass | Pass | Pass | Pass | Pass (beta) | 4.8 |
-| Netlify | Pass | Pass | Pass | Pass | Pass | 4.6 |
-| Railway | Pass | Partial | Pass | Pass | Partial | 3.8 |
-| Render | Partial | Partial | Partial | Partial | Partial | 2.8 |
-| Fly.io | Pass | Partial | Pass | Pass | Partial | 3.6 |
+| Platform           | CLI-first | Managed/Serverless | Agent-readable docs | Stable deploy API | MCP / Integration | Total |
+| ------------------ | --------- | ------------------ | ------------------- | ----------------- | ----------------- | ----- |
+| Cloudflare Workers | Pass      | Pass               | Pass                | Pass              | Pass              | 5.0   |
+| Vercel             | Pass      | Pass               | Pass                | Pass              | Pass (beta)       | 4.8   |
+| Netlify            | Pass      | Pass               | Pass                | Pass              | Pass              | 4.6   |
+| Railway            | Pass      | Partial            | Pass                | Pass              | Partial           | 3.8   |
+| Render             | Partial   | Partial            | Partial             | Partial           | Partial           | 2.8   |
+| Fly.io             | Pass      | Partial            | Pass                | Pass              | Partial           | 3.6   |
 
 Cloudflare Workers scores highest because it matches the existing Astro adapter and Wrangler configuration. Current Astro Cloudflare docs state that Astro 6 with the Cloudflare adapter runs dev and preview through the real Workers runtime (`workerd`), which improves local-production parity. Cloudflare docs also expose agent-friendly markdown/docs flows, Workers observability, Workers Logs, and an observability MCP server. Sources: [Astro Cloudflare adapter](https://docs.astro.build/en/guides/integrations-guide/cloudflare/), [Cloudflare Astro guide](https://developers.cloudflare.com/workers/framework-guides/web-apps/astro/), [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/), [Workers observability](https://developers.cloudflare.com/workers/observability/).
 
@@ -83,15 +83,15 @@ Six months later, the decision failed because the team treated "Cloudflare-suppo
 
 ## Risk Register
 
-| Risk | Source | Likelihood | Impact | Mitigation |
-|---|---|---|---|---|
-| Older Cloudflare Pages terminology leaks into the deploy plan | Devil's advocate | M | M | Keep `context/foundation/tech-stack.md` on `cloudflare-workers` and use only Workers/Wrangler commands in the deploy plan. |
-| Dependency fails under `workerd` despite working in Node-style local assumptions | Devil's advocate | M | M | Keep `pnpm dev` and `pnpm preview` on Astro 6 Cloudflare runtime; test AI/Supabase API routes before production. |
-| Supabase RLS is incomplete, allowing cross-user data access | Unknown unknowns | M | H | Treat RLS policy tests as deployment blockers before public use, especially for workouts, history, and BYOK keys. |
-| Worker rollback does not revert Supabase schema/data changes | Pre-mortem | M | H | Separate app deploys from database migrations; document every migration and prepare forward-fix scripts. |
-| Logs are split across Cloudflare and Supabase | Pre-mortem | M | M | Add request IDs around auth/API flows and record a simple incident checklist for checking both systems. |
-| Cloudflare product boundaries cause wrong command usage | Research finding | M | M | Use only Workers/Wrangler commands in `context/deployment/deploy-plan.md`; avoid Pages CLI/API references. |
-| Vercel MCP is beta while Cloudflare observability MCP is an additional setup path | Research finding | L | L | Start with CLI and official docs; add MCP only after repeated log/status lookup needs appear. |
+| Risk                                                                              | Source           | Likelihood | Impact | Mitigation                                                                                                                 |
+| --------------------------------------------------------------------------------- | ---------------- | ---------- | ------ | -------------------------------------------------------------------------------------------------------------------------- |
+| Older Cloudflare Pages terminology leaks into the deploy plan                     | Devil's advocate | M          | M      | Keep `context/foundation/tech-stack.md` on `cloudflare-workers` and use only Workers/Wrangler commands in the deploy plan. |
+| Dependency fails under `workerd` despite working in Node-style local assumptions  | Devil's advocate | M          | M      | Keep `pnpm dev` and `pnpm preview` on Astro 6 Cloudflare runtime; test AI/Supabase API routes before production.           |
+| Supabase RLS is incomplete, allowing cross-user data access                       | Unknown unknowns | M          | H      | Treat RLS policy tests as deployment blockers before public use, especially for workouts, history, and BYOK keys.          |
+| Worker rollback does not revert Supabase schema/data changes                      | Pre-mortem       | M          | H      | Separate app deploys from database migrations; document every migration and prepare forward-fix scripts.                   |
+| Logs are split across Cloudflare and Supabase                                     | Pre-mortem       | M          | M      | Add request IDs around auth/API flows and record a simple incident checklist for checking both systems.                    |
+| Cloudflare product boundaries cause wrong command usage                           | Research finding | M          | M      | Use only Workers/Wrangler commands in `context/deployment/deploy-plan.md`; avoid Pages CLI/API references.                 |
+| Vercel MCP is beta while Cloudflare observability MCP is an additional setup path | Research finding | L          | L      | Start with CLI and official docs; add MCP only after repeated log/status lookup needs appear.                              |
 
 ## Getting Started
 
