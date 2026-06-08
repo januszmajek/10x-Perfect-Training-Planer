@@ -12,6 +12,7 @@ import tseslint from "typescript-eslint";
 const gitignorePath = path.resolve(import.meta.dirname, ".gitignore");
 
 const baseConfig = tseslint.config({
+  files: ["**/*.{js,jsx,ts,tsx,mjs,cjs}"],
   extends: [eslint.configs.recommended, tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
   languageOptions: {
     parserOptions: {
