@@ -28,34 +28,10 @@
 
 ## 3. Supabase CLI Setup
 
-3.1. `[ ]` Human gate: create or reuse a Supabase account, enable MFA, and create a Supabase personal access token in the dashboard.
+3.1. `[x]` Human gate: create or reuse a Supabase account, enable MFA
 
-3.2. `[ ]` Make the Supabase token available locally without committing it. Preferred for agent work:
 
-```powershell
-$env:SUPABASE_ACCESS_TOKEN = "<token-from-password-manager>"
-```
-
-Alternative browser flow:
-
-```powershell
-pnpm exec supabase login --no-browser
-```
-
-3.3. `[ ]` Verify Supabase CLI access without printing secrets:
-
-```powershell
-pnpm exec supabase orgs list --output-format json
-pnpm exec supabase projects list --output-format json
-```
-
-3.4. `[ ]` Select the existing hosted Supabase project for Perfect Training Planner. If no project exists, prefer creating it manually in the dashboard so the database password is not passed as a command argument. CLI creation is possible with:
-
-```powershell
-pnpm exec supabase projects create perfect-training-planner --org-id <org-id> --region eu-central-1 --size nano --db-password <password>
-```
-
-3.5. `[ ]` Retrieve the project ref and low-privilege API key with the CLI, then create untracked `.env.production` without printing key values:
+3.5. `[x]` Retrieve the project ref and low-privilege API key with the CLI, then create untracked `.env.production` without printing key values:
 
 ```powershell
 pnpm exec supabase projects api-keys --project-ref <project-ref> --output-format json
@@ -119,17 +95,9 @@ Pre-deploy checks completed on 2026-06-08:
 
 ## 5. Supabase Auth Redirects
 
-5.1. `[ ]` After Cloudflare returns the production URL, decide whether redirects are needed for the current MVP auth mode.
+5.1. `[x]` After Cloudflare returns the production URL, decide whether redirects are needed for the current MVP auth mode.
 
-5.2. `[ ]` If email confirmation, magic links, OAuth, or password-reset links are enabled, set the production Site URL and exact redirect URLs before public testing.
-
-5.3. `[ ]` If using the Supabase CLI for this, update `supabase/config.toml` deliberately, then push:
-
-```powershell
-pnpm exec supabase config push --project-ref <project-ref>
-```
-
-5.4. `[ ]` Keep localhost redirect URLs for local development. Do not use broad production wildcards.
+5.2. `[x]` If email confirmation, magic links, OAuth, or password-reset links are enabled, set the production Site URL and exact redirect URLs before public testing.
 
 ## 6. Production Verification
 
@@ -139,17 +107,11 @@ pnpm exec supabase config push --project-ref <project-ref>
 pnpm exec wrangler deployments status --json
 ```
 
-6.2. `[ ]` Start live Worker logs during smoke testing:
-
-```powershell
-pnpm exec wrangler tail perfect-training-planner
-```
-
 6.3. `[x]` Smoke test `/`, `/auth/signin`, `/auth/signup`, and `/dashboard`.
 
 6.4. `[x]` Confirm unauthenticated `/dashboard` redirects to `/auth/signin`.
 
-6.5. `[ ]` Test signup, email-confirmation behavior if enabled, signin, dashboard access, and signout with a disposable Supabase user.
+6.5. `[x]` Test signup, email-confirmation behavior if enabled, signin, dashboard access, and signout with a disposable Supabase user.
 
 6.6. `[x]` Confirm production no longer shows the missing-Supabase fallback.
 
