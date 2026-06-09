@@ -111,7 +111,8 @@ pnpm exec wrangler deployments status --json
 
 6.4. `[x]` Confirm unauthenticated `/dashboard` redirects to `/auth/signin`.
 
-6.5. `[x]` Test signup, email-confirmation behavior if enabled, signin, dashboard access, and signout with a disposable Supabase user.
+6.5. `[x]` Test signup, email-confirmat/
+ion behavior if enabled, signin, dashboard access, and signout with a disposable Supabase user.
 
 6.6. `[x]` Confirm production no longer shows the missing-Supabase fallback.
 

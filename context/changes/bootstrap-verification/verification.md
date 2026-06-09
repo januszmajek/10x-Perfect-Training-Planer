@@ -1,4 +1,4 @@
----
+q---
 bootstrapped_at: 2026-05-31T21:53:07Z
 starter_id: 10x-astro-starter
 starter_name: "10x Astro Starter (Astro + Supabase + Cloudflare)"
