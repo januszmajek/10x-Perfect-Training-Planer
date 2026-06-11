@@ -46,26 +46,9 @@ pnpm install
 
 3. Set up Supabase and configure environment variables — see [Supabase Configuration](#supabase-configuration) below.
 
-4. Create a `.dev.vars` file for local Cloudflare dev secrets:
-
-```bash
-cp .env.example .dev.vars
-```
-
-5. Run the development server:
-
 ```bash
 pnpm dev
 ```
-
-## Available Scripts
-
-- `pnpm dev` - Start development server (Cloudflare workerd runtime)
-- `pnpm build` - Build for production
-- `pnpm preview` - Preview production build
-- `pnpm lint` - Run ESLint with type-checked rules
-- `pnpm lint:fix` - Auto-fix ESLint issues
-- `pnpm format` - Run Prettier
 
 ## Project Structure
 
