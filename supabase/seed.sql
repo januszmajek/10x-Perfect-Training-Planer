@@ -1,0 +1,4 @@
+-- Reserved for non-sensitive local development fixtures.
+--
+-- Production catalogue data belongs in versioned migrations. Do not add real
+-- users, credentials, provider keys, or data required by production here.
