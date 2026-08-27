@@ -3,6 +3,39 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      ai_provider_keys: {
+        Row: {
+          ciphertext: string;
+          created_at: string;
+          encryption_key_version: number;
+          iv: string;
+          key_hint: string;
+          provider: Database["public"]["Enums"]["ai_provider"];
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          ciphertext: string;
+          created_at?: string;
+          encryption_key_version: number;
+          iv: string;
+          key_hint: string;
+          provider?: Database["public"]["Enums"]["ai_provider"];
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          ciphertext?: string;
+          created_at?: string;
+          encryption_key_version?: number;
+          iv?: string;
+          key_hint?: string;
+          provider?: Database["public"]["Enums"]["ai_provider"];
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       exercise_muscle_groups: {
         Row: {
           exercise_id: string;
@@ -155,6 +188,7 @@ export type Database = {
       [_ in never]: never;
     };
     Enums: {
+      ai_provider: "openrouter";
       equipment_type: "barbell" | "dumbbell" | "cable" | "machine" | "bodyweight" | "kettlebell" | "resistance_band";
       exercise_muscle_role: "primary" | "secondary";
       muscle_category: "upper_body" | "lower_body" | "core";
@@ -279,6 +313,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ai_provider: ["openrouter"],
       equipment_type: ["barbell", "dumbbell", "cable", "machine", "bodyweight", "kettlebell", "resistance_band"],
       exercise_muscle_role: ["primary", "secondary"],
       muscle_category: ["upper_body", "lower_body", "core"],
