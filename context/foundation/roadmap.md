@@ -3,7 +3,7 @@ project: Perfect Training Planner
 version: 1
 status: draft
 created: 2026-06-13
-updated: 2026-06-13
+updated: 2026-08-27
 prd_version: 1
 main_goal: speed
 top_blocker: time
@@ -34,7 +34,7 @@ without waiting for completed workout history, which keeps the shortest path to 
 
 | ID   | Change ID                      | Outcome (user can ...)                                                                          | Prerequisites | PRD refs                                                                 | Status   |
 | ---- | ------------------------------ | ----------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------ | -------- |
-| F-01 | domain-data-and-seed-catalogue | (foundation) minimal workout data contracts and seeded preset catalogue are in place            | -             | FR-003, FR-008, FR-010, FR-012, Privacy, Data durability, Access Control | ready    |
+| F-01 | domain-data-and-seed-catalogue | (foundation) minimal workout data contracts and seeded preset catalogue are in place            | -             | FR-003, FR-008, FR-010, FR-012, Privacy, Data durability, Access Control | done     |
 | S-01 | private-account-and-ai-key     | sign in to a private planner workspace and manage a masked AI provider key                      | F-01          | FR-001, FR-002, FR-015                                                   | proposed |
 | S-02 | cold-start-ai-planned-workout  | generate, re-roll, and save a cold-start AI workout as planned                                  | F-01, S-01    | US-02, FR-004, FR-005, FR-008, AI responsiveness, Data durability        | proposed |
 | S-03 | planned-workout-editing        | edit and delete a saved planned workout                                                         | S-02          | FR-009, FR-011                                                           | proposed |
@@ -81,7 +81,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Unknowns:** -
 - **Risk:** This foundation is intentionally narrow; if it grows into a full data layer project, it delays the first
   AI planning proof point.
-- **Status:** ready
+- **Status:** done
 
 ## Slices
 
@@ -222,3 +222,5 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **FR-014 do again from history** - Why parked: nice-to-have that may compete with the AI proposer success metric.
 
 ## Done
+
+- **F-01: (foundation) minimal workout data contracts, user ownership boundaries, and seeded preset exercise catalogue are in place for planned workouts, completed history, and catalogue browsing.** — Archived 2026-08-27 → `context/archive/2026-08-19-domain-data-and-seed-catalogue/`. Lesson: —.
