@@ -448,29 +448,29 @@ indexes.
 
 #### Automated
 
-- [x] 2.1 Clean reset applies all catalogue and workout migrations in order
-- [x] 2.2 Public-schema SQL passes database lint
-- [x] 2.3 Workout lifecycle and RLS pgTAP tests pass
-- [x] 2.4 Full database test suite passes
+- [x] 2.1 Clean reset applies all catalogue and workout migrations in order — 6a4d073
+- [x] 2.2 Public-schema SQL passes database lint — 6a4d073
+- [x] 2.3 Workout lifecycle and RLS pgTAP tests pass — 6a4d073
+- [x] 2.4 Full database test suite passes — 6a4d073
 
 #### Manual
 
-- [x] 2.5 Two local users are isolated from each other's workout data
-- [x] 2.6 Planned-to-completed transition is immutable and frees the planned slot
+- [x] 2.5 Two local users are isolated from each other's workout data — 6a4d073
+- [x] 2.6 Planned-to-completed transition is immutable and frees the planned slot — 6a4d073
 
 ### Phase 3: Typed Integration and Continuous Verification
 
 #### Automated
 
-- [ ] 3.1 Clean local database reset succeeds
-- [ ] 3.2 Database lint and full pgTAP suite pass
-- [ ] 3.3 Generated and Prettier-normalized local public-schema types have no drift
-- [ ] 3.4 Astro types synchronize successfully
-- [ ] 3.5 Repository lint passes
-- [ ] 3.6 Production SSR build passes under the Cloudflare adapter
+- [x] 3.1 Clean local database reset succeeds
+- [x] 3.2 Database lint and full pgTAP suite pass
+- [x] 3.3 Generated and Prettier-normalized local public-schema types have no drift
+- [x] 3.4 Astro types synchronize successfully
+- [x] 3.5 Repository lint passes
+- [x] 3.6 Production SSR build passes under the Cloudflare adapter
 
 #### Manual
 
-- [ ] 3.7 CI exposes every database and application verification gate
-- [ ] 3.8 README workflow succeeds without a hosted project
-- [ ] 3.9 No hosted database migration or Cloudflare deployment occurred
+- [x] 3.7 CI exposes every database and application verification gate
+- [x] 3.8 README workflow succeeds without a hosted project
+- [x] 3.9 No hosted database migration or Cloudflare deployment occurred

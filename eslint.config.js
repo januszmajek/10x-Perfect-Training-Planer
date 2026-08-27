@@ -62,10 +62,24 @@ const reactConfig = tseslint.config({
 
 const astroConfig = tseslint.config({
   files: ["**/*.astro"],
+  languageOptions: {
+    parserOptions: {
+      parser: tseslint.parser,
+    },
+  },
   rules: {
     "astro/no-set-html-directive": "error",
     "astro/no-unused-css-selector": "warn",
     "astro/prefer-class-list-directive": "warn",
+  },
+});
+
+const generatedDatabaseTypesConfig = tseslint.config({
+  files: ["src/types/database.types.ts"],
+  rules: {
+    "@typescript-eslint/consistent-indexed-object-style": "off",
+    "@typescript-eslint/consistent-type-definitions": "off",
+    "@typescript-eslint/no-redundant-type-constituents": "off",
   },
 });
 
@@ -76,5 +90,6 @@ export default tseslint.config(
   eslintPluginAstro.configs["flat/recommended"],
   ...eslintPluginAstro.configs["flat/jsx-a11y-recommended"],
   astroConfig,
+  generatedDatabaseTypesConfig,
   eslintPluginPrettier,
 );

@@ -18,10 +18,31 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm astro sync
-      - run: pnpm lint
-      - run: pnpm build
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Start local Supabase
+        run: pnpm exec supabase start > /dev/null
+      - name: Reset local database
+        run: pnpm exec supabase db reset --local
+      - name: Lint public database schema
+        run: pnpm exec supabase db lint --local --schema public --fail-on error
+      - name: Run database tests
+        run: pnpm exec supabase test db --local supabase/tests/database
+      - name: Check generated database types
+        run: |
+          database_types_file="$(mktemp --suffix=.ts)"
+          pnpm exec supabase gen types typescript --local --schema public > "$database_types_file"
+          pnpm exec prettier --config .prettierrc.json --write "$database_types_file"
+          diff --unified src/types/database.types.ts "$database_types_file"
+      - name: Synchronize Astro types
+        run: pnpm astro sync
+      - name: Lint repository
+        run: pnpm lint
+      - name: Build Cloudflare Worker
+        run: pnpm build
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      - name: Stop local Supabase
+        if: always()
+        run: pnpm exec supabase stop --no-backup
