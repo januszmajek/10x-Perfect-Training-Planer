@@ -462,15 +462,15 @@ indexes.
 
 #### Automated
 
-- [x] 3.1 Clean local database reset succeeds
-- [x] 3.2 Database lint and full pgTAP suite pass
-- [x] 3.3 Generated and Prettier-normalized local public-schema types have no drift
-- [x] 3.4 Astro types synchronize successfully
-- [x] 3.5 Repository lint passes
-- [x] 3.6 Production SSR build passes under the Cloudflare adapter
+- [x] 3.1 Clean local database reset succeeds — 46e3505
+- [x] 3.2 Database lint and full pgTAP suite pass — 46e3505
+- [x] 3.3 Generated and Prettier-normalized local public-schema types have no drift — 46e3505
+- [x] 3.4 Astro types synchronize successfully — 46e3505
+- [x] 3.5 Repository lint passes — 46e3505
+- [x] 3.6 Production SSR build passes under the Cloudflare adapter — 46e3505
 
 #### Manual
 
-- [x] 3.7 CI exposes every database and application verification gate
-- [x] 3.8 README workflow succeeds without a hosted project
-- [x] 3.9 No hosted database migration or Cloudflare deployment occurred
+- [x] 3.7 CI exposes every database and application verification gate — 46e3505
+- [x] 3.8 README workflow succeeds without a hosted project — 46e3505
+- [x] 3.9 No hosted database migration or Cloudflare deployment occurred — 46e3505
