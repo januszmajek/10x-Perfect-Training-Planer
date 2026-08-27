@@ -434,29 +434,29 @@ indexes.
 
 #### Automated
 
-- [x] 1.1 Local Supabase starts successfully
-- [x] 1.2 Clean local rebuild applies catalogue schema and reference data
-- [x] 1.3 Catalogue SQL passes database lint
-- [x] 1.4 Catalogue pgTAP tests pass
+- [x] 1.1 Local Supabase starts successfully — 1b75290
+- [x] 1.2 Clean local rebuild applies catalogue schema and reference data — 1b75290
+- [x] 1.3 Catalogue SQL passes database lint — 1b75290
+- [x] 1.4 Catalogue pgTAP tests pass — 1b75290
 
 #### Manual
 
-- [x] 1.5 Complete exercise catalogue has useful variety and bounded taxonomy
-- [x] 1.6 Compound-lift tags and equipment classifications are accurate
+- [x] 1.5 Complete exercise catalogue has useful variety and bounded taxonomy — 1b75290
+- [x] 1.6 Compound-lift tags and equipment classifications are accurate — 1b75290
 
 ### Phase 2: Private Workout Lifecycle
 
 #### Automated
 
-- [ ] 2.1 Clean reset applies all catalogue and workout migrations in order
-- [ ] 2.2 Public-schema SQL passes database lint
-- [ ] 2.3 Workout lifecycle and RLS pgTAP tests pass
-- [ ] 2.4 Full database test suite passes
+- [x] 2.1 Clean reset applies all catalogue and workout migrations in order
+- [x] 2.2 Public-schema SQL passes database lint
+- [x] 2.3 Workout lifecycle and RLS pgTAP tests pass
+- [x] 2.4 Full database test suite passes
 
 #### Manual
 
-- [ ] 2.5 Two local users are isolated from each other's workout data
-- [ ] 2.6 Planned-to-completed transition is immutable and frees the planned slot
+- [x] 2.5 Two local users are isolated from each other's workout data
+- [x] 2.6 Planned-to-completed transition is immutable and frees the planned slot
 
 ### Phase 3: Typed Integration and Continuous Verification
 
