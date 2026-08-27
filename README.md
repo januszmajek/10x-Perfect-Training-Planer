@@ -97,10 +97,23 @@ must not be duplicated there.
 ```bash
 SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_KEY=<local publishable or anon key>
+AI_KEY_ENCRYPTION_KEY_V1=<unpadded-base64url-encoding-of-32-random-bytes>
 ```
 
 Never use a `service_role` or `sb_secret_...` key in the application. Both local environment files are ignored by
 git.
+
+`AI_KEY_ENCRYPTION_KEY_V1` is optional for builds and read-only pages, but AI-key save and replacement operations
+fail closed when it is missing or malformed. Its value must be the unpadded base64url encoding of exactly 32 random
+bytes. To generate it directly into the ignored `.dev.vars` file without printing it, run this once:
+
+```bash
+node -e 'const { randomBytes } = require("node:crypto"); const { appendFileSync } = require("node:fs"); appendFileSync(".dev.vars", `\nAI_KEY_ENCRYPTION_KEY_V1=${randomBytes(32).toString("base64url")}\n`, { mode: 0o600 })'
+```
+
+Use only placeholder text in committed examples. Never print, log, or commit the generated value. Losing the V1
+secret makes existing encrypted provider keys unrecoverable, so production backup and future rotation require an
+explicit operational procedure.
 
 4. Verify the database contract:
 
@@ -181,6 +194,14 @@ pnpm exec wrangler deploy
 ```
 
 Set `SUPABASE_URL` and `SUPABASE_KEY` as secrets in your Cloudflare dashboard or via `pnpm exec wrangler secret put`.
+After explicit approval for hosted setup, configure the credential-encryption secret separately:
+
+```bash
+pnpm exec wrangler secret put AI_KEY_ENCRYPTION_KEY_V1
+```
+
+Paste the 32-byte unpadded-base64url value only into Wrangler's hidden prompt. Do not pass it as a command-line
+argument or store it in `wrangler.jsonc`.
 
 ## CI
 

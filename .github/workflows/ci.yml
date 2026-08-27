@@ -36,6 +36,8 @@ jobs:
           pnpm exec supabase gen types typescript --local --schema public > "$database_types_file"
           pnpm exec prettier --config .prettierrc.json --write "$database_types_file"
           diff --unified src/types/database.types.ts "$database_types_file"
+      - name: Test AI provider key cryptography
+        run: pnpm test:crypto
       - name: Synchronize Astro types
         run: pnpm astro sync
       - name: Lint repository

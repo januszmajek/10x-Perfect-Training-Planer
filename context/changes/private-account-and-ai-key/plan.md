@@ -532,34 +532,34 @@ multi-provider requirement exists.
 
 #### Automated
 
-- [x] 1.1 Clean local reset applies the credential migration
-- [x] 1.2 Public schema passes database lint
-- [x] 1.3 Credential pgTAP tests pass
-- [x] 1.4 Full database suite passes
-- [x] 1.5 Generated and normalized public database types have no drift
+- [x] 1.1 Clean local reset applies the credential migration — 2888b31
+- [x] 1.2 Public schema passes database lint — 2888b31
+- [x] 1.3 Credential pgTAP tests pass — 2888b31
+- [x] 1.4 Full database suite passes — 2888b31
+- [x] 1.5 Generated and normalized public database types have no drift — 2888b31
 
 #### Manual
 
-- [x] 1.6 Migration and fixtures contain no plaintext or real provider credential
-- [x] 1.7 Two disposable users are isolated to their own encrypted rows
+- [x] 1.6 Migration and fixtures contain no plaintext or real provider credential — 2888b31
+- [x] 1.7 Two disposable users are isolated to their own encrypted rows — 2888b31
 
 ### Phase 2: Server-Only Credential Lifecycle
 
 #### Automated
 
-- [ ] 2.1 Astro types synchronize successfully
-- [ ] 2.2 Repository lint passes
-- [ ] 2.3 Cloudflare Worker build passes without an encryption secret
-- [ ] 2.4 Existing database and generated-type gates remain green
-- [ ] 2.9 Built-in crypto contract tests pass
+- [x] 2.1 Astro types synchronize successfully
+- [x] 2.2 Repository lint passes
+- [x] 2.3 Cloudflare Worker build passes without an encryption secret
+- [x] 2.4 Existing database and generated-type gates remain green
+- [x] 2.9 Built-in crypto contract tests pass
 
 #### Manual
 
-- [ ] 2.5 Save and replacement store fresh ciphertext and never plaintext
-- [ ] 2.6 Encryption misconfiguration fails closed and preserves the prior row
-- [ ] 2.7 URLs, responses, and logs contain no submitted key text
-- [ ] 2.8 Unauthenticated and cross-user credential operations are denied
-- [ ] 2.10 Request-local Supabase client is reused after authentication and cookie refresh
+- [x] 2.5 Save and replacement store fresh ciphertext and never plaintext
+- [x] 2.6 Encryption misconfiguration fails closed and preserves the prior row
+- [x] 2.7 URLs, responses, and logs contain no submitted key text
+- [x] 2.8 Unauthenticated and cross-user credential operations are denied
+- [x] 2.10 Request-local Supabase client is reused after authentication and cookie refresh
 
 ### Phase 3: Private Workspace and Account Experience
 
