@@ -4,7 +4,7 @@
 # Examples for specific file types (optional):
 *.bat text eol=crlf
 *.cmd text eol=crlf
-*.sh text eol=crlf
+*.sh text eol=lf
 *.ps1 text eol=crlf
 
 # Keep these as is (binary):
