@@ -28,6 +28,8 @@ jobs:
         run: pnpm exec supabase db lint --local --schema public --fail-on error
       - name: Run database tests
         run: pnpm exec supabase test db --local supabase/tests/database
+      - name: Test workout lifecycle concurrency
+        run: bash supabase/tests/database/workout_lifecycle_concurrency.test.sh
       - name: Check generated database types
         run: |
           database_types_file="$(mktemp --suffix=.ts)"

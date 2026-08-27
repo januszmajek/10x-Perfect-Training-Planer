@@ -107,6 +107,7 @@ git.
 ```bash
 pnpm exec supabase db lint --local --schema public --fail-on error
 pnpm exec supabase test db --local supabase/tests/database
+bash supabase/tests/database/workout_lifecycle_concurrency.test.sh
 ```
 
 5. Regenerate and normalize TypeScript database types after any schema change:
@@ -183,10 +184,10 @@ Set `SUPABASE_URL` and `SUPABASE_KEY` as secrets in your Cloudflare dashboard or
 
 ## CI
 
-GitHub Actions starts an isolated local Supabase stack and runs reset, database lint, pgTAP tests, generated-type
-drift detection, Astro sync, repository lint, and the Cloudflare Worker build as separate gates on every push and PR
-to `master`. Configure `SUPABASE_URL` and `SUPABASE_KEY` as repository secrets for the build step; use only a
-publishable or anon key.
+GitHub Actions starts an isolated local Supabase stack and runs reset, database lint, pgTAP tests, a two-session
+workout lifecycle concurrency test, generated-type drift detection, Astro sync, repository lint, and the Cloudflare
+Worker build as separate gates on every push and PR to `master`. Configure `SUPABASE_URL` and `SUPABASE_KEY` as
+repository secrets for the build step; use only a publishable or anon key.
 
 ## License
 

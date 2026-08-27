@@ -1,7 +1,7 @@
 ---
 change_id: domain-data-and-seed-catalogue
 title: Domain data and seed catalogue
-status: implemented
+status: impl_reviewed
 created: 2026-08-19
 updated: 2026-08-27
 archived_at: null
