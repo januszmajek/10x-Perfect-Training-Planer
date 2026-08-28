@@ -565,16 +565,16 @@ multi-provider requirement exists.
 
 #### Automated
 
-- [x] 3.1 Final database and generated-type gates pass
-- [x] 3.2 Astro types synchronize successfully
-- [x] 3.3 Repository lint passes
-- [x] 3.4 Production Cloudflare Worker build passes
-- [x] 3.10 Built-in crypto contract tests pass
+- [x] 3.1 Final database and generated-type gates pass — 7bb8bc3
+- [x] 3.2 Astro types synchronize successfully — 7bb8bc3
+- [x] 3.3 Repository lint passes — 7bb8bc3
+- [x] 3.4 Production Cloudflare Worker build passes — 7bb8bc3
+- [x] 3.10 Built-in crypto contract tests pass — 7bb8bc3
 
 #### Manual
 
-- [x] 3.5 Authentication enters and protects the private workspace
-- [x] 3.6 Masked add, replace, cancel-remove, confirm-remove, and persistence flows work
-- [x] 3.7 Two account pages remain isolated to their owners
-- [x] 3.8 Workspace and account interactions are usable at 360px and desktop widths
-- [x] 3.9 No OpenRouter request, hosted migration, secret mutation, or deployment occurs
+- [x] 3.5 Authentication enters and protects the private workspace — 7bb8bc3
+- [x] 3.6 Masked add, replace, cancel-remove, confirm-remove, and persistence flows work — 7bb8bc3
+- [x] 3.7 Two account pages remain isolated to their owners — 7bb8bc3
+- [x] 3.8 Workspace and account interactions are usable at 360px and desktop widths — 7bb8bc3
+- [x] 3.9 No OpenRouter request, hosted migration, secret mutation, or deployment occurs — 7bb8bc3
