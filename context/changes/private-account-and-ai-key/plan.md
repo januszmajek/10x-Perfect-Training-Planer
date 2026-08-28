@@ -547,34 +547,34 @@ multi-provider requirement exists.
 
 #### Automated
 
-- [x] 2.1 Astro types synchronize successfully
-- [x] 2.2 Repository lint passes
-- [x] 2.3 Cloudflare Worker build passes without an encryption secret
-- [x] 2.4 Existing database and generated-type gates remain green
-- [x] 2.9 Built-in crypto contract tests pass
+- [x] 2.1 Astro types synchronize successfully — 96537ff
+- [x] 2.2 Repository lint passes — 96537ff
+- [x] 2.3 Cloudflare Worker build passes without an encryption secret — 96537ff
+- [x] 2.4 Existing database and generated-type gates remain green — 96537ff
+- [x] 2.9 Built-in crypto contract tests pass — 96537ff
 
 #### Manual
 
-- [x] 2.5 Save and replacement store fresh ciphertext and never plaintext
-- [x] 2.6 Encryption misconfiguration fails closed and preserves the prior row
-- [x] 2.7 URLs, responses, and logs contain no submitted key text
-- [x] 2.8 Unauthenticated and cross-user credential operations are denied
-- [x] 2.10 Request-local Supabase client is reused after authentication and cookie refresh
+- [x] 2.5 Save and replacement store fresh ciphertext and never plaintext — 96537ff
+- [x] 2.6 Encryption misconfiguration fails closed and preserves the prior row — 96537ff
+- [x] 2.7 URLs, responses, and logs contain no submitted key text — 96537ff
+- [x] 2.8 Unauthenticated and cross-user credential operations are denied — 96537ff
+- [x] 2.10 Request-local Supabase client is reused after authentication and cookie refresh — 96537ff
 
 ### Phase 3: Private Workspace and Account Experience
 
 #### Automated
 
-- [ ] 3.1 Final database and generated-type gates pass
-- [ ] 3.2 Astro types synchronize successfully
-- [ ] 3.3 Repository lint passes
-- [ ] 3.4 Production Cloudflare Worker build passes
-- [ ] 3.10 Built-in crypto contract tests pass
+- [x] 3.1 Final database and generated-type gates pass
+- [x] 3.2 Astro types synchronize successfully
+- [x] 3.3 Repository lint passes
+- [x] 3.4 Production Cloudflare Worker build passes
+- [x] 3.10 Built-in crypto contract tests pass
 
 #### Manual
 
-- [ ] 3.5 Authentication enters and protects the private workspace
-- [ ] 3.6 Masked add, replace, cancel-remove, confirm-remove, and persistence flows work
-- [ ] 3.7 Two account pages remain isolated to their owners
-- [ ] 3.8 Workspace and account interactions are usable at 360px and desktop widths
-- [ ] 3.9 No OpenRouter request, hosted migration, secret mutation, or deployment occurs
+- [x] 3.5 Authentication enters and protects the private workspace
+- [x] 3.6 Masked add, replace, cancel-remove, confirm-remove, and persistence flows work
+- [x] 3.7 Two account pages remain isolated to their owners
+- [x] 3.8 Workspace and account interactions are usable at 360px and desktop widths
+- [x] 3.9 No OpenRouter request, hosted migration, secret mutation, or deployment occurs

@@ -1,27 +1,23 @@
 ---
-import Layout from "@/layouts/Layout.astro";
+import AuthenticatedLayout from "@/layouts/AuthenticatedLayout.astro";
 
 const { user } = Astro.locals;
 ---
 
-<Layout title="Dashboard">
-  <div class="bg-cosmic flex min-h-screen items-center justify-center p-4">
-    <div class="rounded-2xl border border-white/10 bg-white/10 p-8 text-center text-white backdrop-blur-xl">
-      <h1 class="mb-4 bg-gradient-to-r from-blue-200 to-purple-200 bg-clip-text text-3xl font-bold text-transparent">
-        Dashboard
-      </h1>
-      <p class="text-blue-100/80">
-        Welcome, <span class="font-semibold text-white">{user?.email}</span>
-      </p>
-      <p class="mt-2 text-sm text-blue-100/50">This page is only for authenticated users.</p>
-      <form method="POST" action="/api/auth/signout" class="mt-6">
-        <button
-          type="submit"
-          class="rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm transition-colors hover:bg-white/20"
-        >
-          Sign out
-        </button>
-      </form>
+<AuthenticatedLayout title="Dashboard | Perfect Training Planner">
+  <div class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl sm:p-8">
+    <p class="text-sm font-medium tracking-wide text-purple-300 uppercase">Private workspace</p>
+    <h1 class="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">Dashboard</h1>
+    <p class="mt-4 max-w-2xl text-blue-100/70">
+      Welcome, <span class="font-semibold text-white">{user?.email}</span>. Your private planner workspace is ready.
+    </p>
+    <div class="mt-6">
+      <a
+        href="/account"
+        class="inline-flex min-h-10 items-center justify-center rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-purple-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
+      >
+        Configure AI key
+      </a>
     </div>
   </div>
-</Layout>
+</AuthenticatedLayout>

@@ -1,0 +1,74 @@
+---
+import Layout from "@/layouts/Layout.astro";
+
+interface Props {
+  title?: string;
+}
+
+const { title = "Perfect Training Planner" } = Astro.props;
+const { user } = Astro.locals;
+
+if (!user) {
+  return Astro.redirect("/auth/signin");
+}
+
+const navigation = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/account", label: "Account" },
+];
+
+function isActivePath(href: string): boolean {
+  return Astro.url.pathname === href || Astro.url.pathname.startsWith(`${href}/`);
+}
+---
+
+<Layout title={title}>
+  <div class="bg-cosmic min-h-screen text-white">
+    <header class="border-b border-white/10 bg-slate-950/60 backdrop-blur-xl">
+      <div class="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0">
+          <a
+            href="/dashboard"
+            class="inline-flex rounded-sm text-base font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-purple-300"
+          >
+            Perfect Training Planner
+          </a>
+          <p class="mt-1 max-w-full truncate text-xs text-blue-100/60" title={user.email ?? undefined}>
+            {user.email}
+          </p>
+        </div>
+
+        <nav class="flex flex-wrap items-center gap-1" aria-label="Private workspace">
+          {
+            navigation.map(({ href, label }) => (
+              <a
+                href={href}
+                aria-current={isActivePath(href) ? "page" : undefined}
+                class:list={[
+                  "rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300",
+                  isActivePath(href)
+                    ? "bg-purple-500/20 text-purple-100"
+                    : "text-blue-100/70 hover:bg-white/10 hover:text-white",
+                ]}
+              >
+                {label}
+              </a>
+            ))
+          }
+          <form method="POST" action="/api/auth/signout">
+            <button
+              type="submit"
+              class="rounded-lg px-3 py-2 text-sm font-medium text-blue-100/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
+            >
+              Sign out
+            </button>
+          </form>
+        </nav>
+      </div>
+    </header>
+
+    <main class="mx-auto w-full max-w-5xl px-4 py-8 sm:py-12">
+      <slot />
+    </main>
+  </div>
+</Layout>
