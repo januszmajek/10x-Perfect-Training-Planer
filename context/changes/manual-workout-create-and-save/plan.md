@@ -574,33 +574,33 @@ Saving is one RPC/database transaction; do not add application retries that coul
 
 #### Automated
 
-- [x] 2.1 Manual builder logic and request-schema tests pass
-- [x] 2.2 Astro types synchronize successfully
-- [x] 2.3 Repository lint passes
-- [x] 2.4 Production Cloudflare Worker build passes
-- [x] 2.5 Database, concurrency, and generated-type regression gates remain green
+- [x] 2.1 Manual builder logic and request-schema tests pass — b2d82d5
+- [x] 2.2 Astro types synchronize successfully — b2d82d5
+- [x] 2.3 Repository lint passes — b2d82d5
+- [x] 2.4 Production Cloudflare Worker build passes — b2d82d5
+- [x] 2.5 Database, concurrency, and generated-type regression gates remain green — b2d82d5
 
 #### Manual
 
-- [x] 2.6 Endpoint enforces Origin, media type, body, schema, authentication, and ownership bounds
-- [x] 2.7 Endpoint exposes safe code/request-ID failures and sanitized logs while preserving database state
+- [x] 2.6 Endpoint enforces Origin, media type, body, schema, authentication, and ownership bounds — b2d82d5
+- [x] 2.7 Endpoint exposes safe code/request-ID failures and sanitized logs while preserving database state — b2d82d5
 
 ### Phase 3: Responsive Manual Builder and Dashboard Outcome
 
 #### Automated
 
-- [ ] 3.1 Final database, concurrency, and generated-type gates pass
-- [ ] 3.2 Manual builder logic and request-schema tests pass
-- [ ] 3.3 Existing crypto tests pass
-- [ ] 3.4 Astro types synchronize successfully
-- [ ] 3.5 Repository lint passes
-- [ ] 3.6 Production Cloudflare Worker build passes
+- [x] 3.1 Final database, concurrency, and generated-type gates pass
+- [x] 3.2 Manual builder logic and request-schema tests pass
+- [x] 3.3 Existing crypto tests pass
+- [x] 3.4 Astro types synchronize successfully
+- [x] 3.5 Repository lint passes
+- [x] 3.6 Production Cloudflare Worker build passes
 
 #### Manual
 
-- [ ] 3.7 Catalogue search and combined filters work responsively
-- [ ] 3.8 Draft prescriptions, removal, and accessible reordering work
-- [ ] 3.9 Cancel always discards the unsaved draft without persistent restoration
-- [ ] 3.10 Existing-plan composition and compare-and-swap atomic replacement work
-- [ ] 3.11 Client, network, stale-plan, API, and database failures preserve durable state and the exact draft
-- [ ] 3.12 Dashboard success status and durable ordered summary remain correct after refresh
+- [x] 3.7 Catalogue search and combined filters work responsively
+- [x] 3.8 Draft prescriptions, removal, and accessible reordering work
+- [x] 3.9 Cancel always discards the unsaved draft without persistent restoration
+- [x] 3.10 Existing-plan composition and compare-and-swap atomic replacement work
+- [x] 3.11 Client, network, stale-plan, API, and database failures preserve durable state and the exact draft
+- [x] 3.12 Dashboard success status and durable ordered summary remain correct after refresh
