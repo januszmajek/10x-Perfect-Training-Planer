@@ -1,9 +1,9 @@
 ---
 project: Perfect Training Planner
-version: 1
+version: 3
 status: draft
 created: 2026-06-13
-updated: 2026-08-28
+updated: 2026-09-01
 prd_version: 1
 main_goal: speed
 top_blocker: time
@@ -11,60 +11,57 @@ top_blocker: time
 
 # Roadmap: Perfect Training Planner
 
-> Derived from `context/foundation/prd.md` (v1) + auto-researched codebase baseline.
-> Edit-in-place; archive when superseded.
+> Derived from `context/foundation/prd.md` (v1), the auto-researched codebase baseline, and
+> `context/changes/manual-first-workout-sequencing/frame.md`.
+> Edit in place; archive only when fully superseded.
 > Slices below are listed in dependency order. The "At a glance" table is the index.
 
 ## Vision recap
 
-Recreational solo lifters need a faster way to decide their next workout without remembering recent
-muscle-group load or repeating the same familiar exercises. Perfect Training Planner proves value when a user can
-save a planned workout from either an AI proposal or a manual builder, mark it done, and have that completed history
-inform the next recommendation.
+Recreational solo lifters need a faster way to decide their next workout without remembering recent muscle-group
+load or repeating the same familiar exercises. The product first establishes a complete manual planning loop: build
+and save a workout, edit it, mark it done, review the resulting history, and use that history to guide the next manual
+plan. AI generation follows this shared lifecycle instead of owning it.
 
 ## North star
 
-Here, **north star** means the smallest end-to-end slice whose delivery proves the product's main bet well enough to
-guide what gets built next.
+Here, **north star** means the smallest end-to-end slice whose delivery proves the product's central promise well
+enough to guide what gets built next.
 
-**S-02: User can generate and save a cold-start AI workout** — this is first because it proves the AI planning loop
-without waiting for completed workout history, which keeps the shortest path to an MVP.
+**S-07: User can generate, edit, and save a cold-start AI workout** — this is the first slice that proves the PRD's
+AI speed-and-variety promise, while the manual-first sequence deliberately places it after the complete manual path.
 
 ## At a glance
 
-| ID   | Change ID                      | Outcome (user can ...)                                                                          | Prerequisites | PRD refs                                                                 | Status   |
-| ---- | ------------------------------ | ----------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------ | -------- |
-| F-01 | domain-data-and-seed-catalogue | (foundation) minimal workout data contracts and seeded preset catalogue are in place            | -             | FR-003, FR-008, FR-010, FR-012, Privacy, Data durability, Access Control | done     |
-| S-01 | private-account-and-ai-key     | sign in to a private planner workspace and manage a masked AI provider key                      | F-01          | FR-001, FR-002, FR-015                                                   | done     |
-| S-02 | cold-start-ai-planned-workout  | generate, re-roll, and save a cold-start AI workout as planned                                  | F-01, S-01    | US-02, FR-004, FR-005, FR-008, AI responsiveness, Data durability        | proposed |
-| S-03 | planned-workout-editing        | edit and delete a saved planned workout                                                         | S-02          | FR-009, FR-011                                                           | proposed |
-| S-04 | mark-planned-workout-done      | mark a planned workout done so it becomes completed history                                     | S-02          | US-04, FR-010, Data durability                                           | proposed |
-| S-05 | history-list-and-filters       | view completed workout history with date and muscle-group filters                               | S-04          | FR-012                                                                   | proposed |
-| S-06 | history-aware-ai-proposal      | generate an AI workout that respects recent completed history and recovery windows              | S-04          | US-01, FR-004, FR-005, AI responsiveness                                 | proposed |
-| S-07 | manual-builder-smart-filter    | build a workout manually from a filtered catalogue and use it when no valid AI key is available | S-01, S-04    | US-03, FR-003, FR-006, FR-007, FR-008, FR-016                            | proposed |
-
-## Streams
-
-Navigation aid - groups items that share a Prerequisites chain. Canonical ordering still lives in the dependency
-graph below; this table is the proposed reading order across parallel tracks.
-
-| Stream | Theme                   | Chain                                          | Note                                                         |
-| ------ | ----------------------- | ---------------------------------------------- | ------------------------------------------------------------ |
-| A      | AI planning path        | `F-01` -> `S-01` -> `S-02` -> `S-04` -> `S-06` | Shortest route from setup to history-aware AI planning.      |
-| B      | Planned workout control | `S-03`                                         | Branches after `S-02`; can run beside the done/history path. |
-| C      | History and fallback    | `S-05` / `S-07`                                | Joins Stream A at `S-04`; fills required MVP support flows.  |
+| ID   | Change ID                      | Outcome (user can ...)                                                                                | Prerequisites | PRD refs                                                                 | Status   |
+| ---- | ------------------------------ | ----------------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------ | -------- |
+| F-01 | domain-data-and-seed-catalogue | (foundation) minimal workout data contracts and seeded preset catalogue are in place                  | —             | FR-003, FR-008, FR-010, FR-012, Privacy, Data durability, Access Control | done     |
+| S-01 | private-account-and-ai-key     | sign in to a private planner workspace and manage a masked AI provider key                            | F-01          | FR-001, FR-002, FR-015                                                   | done     |
+| S-02 | manual-workout-create-and-save | browse the seeded catalogue, compose sets and reps, and save a manual workout as planned              | F-01, S-01    | FR-003, FR-006, FR-008, Data durability, Access Control                  | ready    |
+| S-03 | planned-workout-editing        | edit and delete a saved planned workout                                                               | S-02          | FR-009, FR-011                                                           | proposed |
+| S-04 | mark-planned-workout-done      | mark a planned workout done so it becomes completed history                                           | S-02          | US-04, FR-010, Data durability                                           | proposed |
+| S-05 | history-list-and-filters       | view completed workout history with date and muscle-group filters                                     | S-04          | FR-012                                                                   | proposed |
+| S-06 | recovery-aware-manual-builder  | build and save a manual workout while recovery-aware filtering guides catalogue choices               | S-04          | US-03, FR-003, FR-006, FR-007, FR-008                                    | proposed |
+| S-07 | cold-start-ai-planned-workout  | generate, re-roll, edit, and save a cold-start AI workout, with the completed manual path as fallback | S-03, S-06    | US-02, FR-004, FR-005, FR-008, FR-016, AI responsiveness                 | proposed |
+| S-08 | history-aware-ai-proposal      | generate, re-roll, edit, and save an AI workout that respects recent history and recovery windows     | S-07          | US-01, FR-004, FR-005, FR-008, AI responsiveness, Data durability        | proposed |
 
 ## Baseline
 
-What's already in place in the codebase as of `2026-06-13` (auto-researched + user-confirmed).
-Foundations below assume these are present and do NOT re-scaffold them.
+What's already in place in the codebase as of `2026-09-01` (auto-researched and consistent with the user-supplied
+sequencing frame). Foundations below assume these capabilities are present and do not re-scaffold them.
 
-- **Frontend:** present - Astro SSR, React islands, Tailwind, and shadcn-style primitives are present.
-- **Backend / API:** partial - API routes exist for authentication; workout, catalogue, and AI routes are absent.
-- **Data:** partial - Supabase is configured; domain schema, migrations, and seed catalogue are absent.
-- **Auth:** present - Supabase auth, signup/signin/signout endpoints, middleware, and protected dashboard are present.
-- **Deploy / infra:** present - Cloudflare Workers adapter, Wrangler config, and GitHub Actions CI are present.
-- **Observability:** partial - platform observability is enabled; app-level AI timing/error signals are absent.
+- **Frontend:** partial — Astro SSR, React islands, Tailwind, and shared UI primitives are present; workout and
+  catalogue screens are absent.
+- **Backend / API:** partial — authentication and AI-key handlers are present; workout, catalogue, and AI-generation
+  handlers are absent.
+- **Data:** present — the seeded catalogue, private planned/completed workout lifecycle, mutation locking, and typed
+  database contracts are present.
+- **Auth:** present — Supabase email/password auth, persistent sessions, protected routes, and encrypted AI-key
+  management are present.
+- **Deploy / infra:** present — Cloudflare Worker configuration, CI verification, and a manual deployment path are
+  present; automated deployment remains deferred.
+- **Observability:** partial — platform observability is enabled; application-level logging and AI timing/error signals
+  are absent.
 
 ## Foundations
 
@@ -74,13 +71,13 @@ Foundations below assume these are present and do NOT re-scaffold them.
   catalogue are in place for planned workouts, completed history, and catalogue browsing.
 - **Change ID:** domain-data-and-seed-catalogue
 - **PRD refs:** FR-003, FR-008, FR-010, FR-012, Privacy, Data durability, Access Control
-- **Unlocks:** S-01, S-02, S-04, S-05, S-06, S-07
-- **Prerequisites:** -
-- **Parallel with:** -
-- **Blockers:** -
-- **Unknowns:** -
-- **Risk:** This foundation is intentionally narrow; if it grows into a full data layer project, it delays the first
-  AI planning proof point.
+- **Unlocks:** S-02, S-03, S-04, S-05, S-06, S-07, S-08
+- **Prerequisites:** —
+- **Parallel with:** —
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** This completed foundation stays narrow; each user-facing slice still integrates and verifies its own
+  catalogue and workout behavior.
 - **Status:** done
 
 ## Slices
@@ -92,27 +89,26 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Change ID:** private-account-and-ai-key
 - **PRD refs:** FR-001, FR-002, FR-015
 - **Prerequisites:** F-01
-- **Parallel with:** -
-- **Blockers:** -
-- **Unknowns:** -
-- **Risk:** Existing auth is present, so the risk is overbuilding account settings before the first AI planning flow
-  needs only BYOK storage.
+- **Parallel with:** —
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** This completed slice establishes the private workspace used by both manual and AI planning without making
+  generation a prerequisite for workout ownership.
 - **Status:** done
 
-### S-02: Cold-start AI planned workout
+### S-02: Manual workout create and save
 
-- **Outcome:** User with no completed history can generate an AI starter workout, re-roll it, and save it as a planned
-  workout.
-- **Change ID:** cold-start-ai-planned-workout
-- **PRD refs:** US-02, FR-004, FR-005, FR-008, AI responsiveness, Data durability
+- **Outcome:** User can browse and filter the seeded exercise catalogue, compose a workout with sets and reps, and
+  save it as a planned manual workout.
+- **Change ID:** manual-workout-create-and-save
+- **PRD refs:** FR-003, FR-006, FR-008, Data durability, Access Control
 - **Prerequisites:** F-01, S-01
-- **Parallel with:** -
-- **Blockers:** -
-- **Unknowns:**
-  - Which supported AI provider shape is allowed for MVP BYOK? - Owner: user. Block: no.
-- **Risk:** This is sequenced early because it proves the AI loop fastest; the main risk is spending time on
-  history-aware rules before the cold-start path works.
-- **Status:** proposed
+- **Parallel with:** —
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** This is the first unfinished slice because it creates a real, durable plan that every later manual
+  lifecycle capability can exercise without AI coupling.
+- **Status:** ready
 
 ### S-03: Planned workout editing
 
@@ -122,10 +118,10 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **PRD refs:** FR-009, FR-011
 - **Prerequisites:** S-02
 - **Parallel with:** S-04
-- **Blockers:** -
-- **Unknowns:** -
-- **Risk:** Editing comes after the first saved plan so it stays tied to a real planned workout, not a standalone
-  editor.
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** Editing follows manual save so it is verified against a real planned workout and remains independent of
+  how that workout was originally created.
 - **Status:** proposed
 
 ### S-04: Mark planned workout done
@@ -135,10 +131,10 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **PRD refs:** US-04, FR-010, Data durability
 - **Prerequisites:** S-02
 - **Parallel with:** S-03
-- **Blockers:** -
-- **Unknowns:** -
-- **Risk:** This creates the completed-history input needed by both recovery filtering and history-aware AI; delaying
-  it would block the real planning loop.
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** This follows manual save because it creates the real completed-history input required by recovery-aware
+  manual filtering and later AI recommendations.
 - **Status:** proposed
 
 ### S-05: History list and filters
@@ -147,79 +143,94 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Change ID:** history-list-and-filters
 - **PRD refs:** FR-012
 - **Prerequisites:** S-04
-- **Parallel with:** S-06, S-07
-- **Blockers:** -
-- **Unknowns:** -
-- **Risk:** History display follows mark-done so filters are exercised against real completed workouts rather than
+- **Parallel with:** S-03, S-06, S-07
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** History display follows completion so its list and filters are exercised against real workouts instead of
   static examples.
 - **Status:** proposed
 
-### S-06: History-aware AI proposal
+### S-06: Recovery-aware manual builder
 
-- **Outcome:** User with completed history can generate and re-roll an AI workout that respects recent muscle-group
-  recovery windows.
-- **Change ID:** history-aware-ai-proposal
-- **PRD refs:** US-01, FR-004, FR-005, AI responsiveness
+- **Outcome:** User can compose and save another manual workout while exercises for recovering muscle groups are
+  hidden or visually demoted using recent completed history.
+- **Change ID:** recovery-aware-manual-builder
+- **PRD refs:** US-03, FR-003, FR-006, FR-007, FR-008
 - **Prerequisites:** S-04
-- **Parallel with:** S-05, S-07
-- **Blockers:** -
+- **Parallel with:** S-03, S-05
+- **Blockers:** —
 - **Unknowns:**
-  - Should recovery windows remain fixed at 48h general and 72h legs/back for MVP? - Owner: user. Block: no.
-- **Risk:** This is the main recovery-rule proof; it waits until completed history exists so the AI can read real
-  prior sessions.
+  - Should recovery-aware filtering hide exercises completely or visually demote them by default? — Owner: user.
+    Block: no.
+- **Risk:** Smart filtering waits for a real completion event so recovery behavior is validated with genuine history,
+  while basic manual creation remains available earlier.
 - **Status:** proposed
 
-### S-07: Manual builder smart filter
+### S-07: Cold-start AI planned workout
 
-- **Outcome:** User can compose a planned workout manually from the seeded catalogue, with recently trained muscle
-  groups hidden or visually demoted, and is routed here when no valid AI key is configured.
-- **Change ID:** manual-builder-smart-filter
-- **PRD refs:** US-03, FR-003, FR-006, FR-007, FR-008, FR-016
-- **Prerequisites:** S-01, S-04
-- **Parallel with:** S-05, S-06
-- **Blockers:** -
-- **Unknowns:**
-  - Should smart filtering hide exercises completely or visually demote them by default? - Owner: user. Block: no.
-- **Risk:** Manual planning is required for MVP fallback, but placing it after the AI cold-start path keeps the roadmap
-  biased toward the fastest AI-led launch path.
+- **Outcome:** User with no completed history can generate, re-roll, and edit an AI starter workout before saving it
+  as planned, and reach the completed manual builder when no valid AI key is available.
+- **Change ID:** cold-start-ai-planned-workout
+- **PRD refs:** US-02, FR-004, FR-005, FR-008, FR-016, AI responsiveness
+- **Prerequisites:** S-03, S-06
+- **Parallel with:** S-05
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** S-03 and S-06 provide the shared editing and fallback capabilities this slice consumes; S-05 remains
+  sequenced before AI as a manual-first delivery decision rather than a false functional dependency.
+- **Status:** proposed
+
+### S-08: History-aware AI proposal
+
+- **Outcome:** User with completed history can generate, re-roll, edit, and save an AI workout that respects recent
+  muscle-group recovery windows.
+- **Change ID:** history-aware-ai-proposal
+- **PRD refs:** US-01, FR-004, FR-005, FR-008, AI responsiveness, Data durability
+- **Prerequisites:** S-07
+- **Parallel with:** —
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** This is the final MVP planning capability because it reuses the completed manual lifecycle, the
+  proposal-review path, and the recovery behavior already proven through the manual builder.
 - **Status:** proposed
 
 ## Backlog Handoff
 
-| Roadmap ID | Change ID                      | Suggested issue title                                 | Ready for `/10x-plan` | Notes                                   |
-| ---------- | ------------------------------ | ----------------------------------------------------- | --------------------- | --------------------------------------- |
-| F-01       | domain-data-and-seed-catalogue | Establish domain data contracts and seed catalogue    | yes                   | Run first; unlocks the north star path. |
-| S-01       | private-account-and-ai-key     | Add private planner account surface and BYOK settings | no                    | Wait for F-01.                          |
-| S-02       | cold-start-ai-planned-workout  | Generate and save a cold-start AI planned workout     | no                    | Wait for F-01 and S-01.                 |
-| S-03       | planned-workout-editing        | Edit and delete planned workouts                      | no                    | Wait for S-02.                          |
-| S-04       | mark-planned-workout-done      | Mark planned workouts done into completed history     | no                    | Wait for S-02.                          |
-| S-05       | history-list-and-filters       | View completed workout history with filters           | no                    | Wait for S-04.                          |
-| S-06       | history-aware-ai-proposal      | Generate AI proposals from completed workout history  | no                    | Wait for S-04.                          |
-| S-07       | manual-builder-smart-filter    | Build workouts manually with recovery-aware filtering | no                    | Wait for S-01 and S-04.                 |
+| Roadmap ID | Change ID                      | Suggested issue title                                   | Ready for `/10x-plan` | Notes                                           |
+| ---------- | ------------------------------ | ------------------------------------------------------- | --------------------- | ----------------------------------------------- |
+| F-01       | domain-data-and-seed-catalogue | Establish domain data contracts and seed catalogue      | no                    | Already done and archived.                      |
+| S-01       | private-account-and-ai-key     | Add private planner account surface and BYOK settings   | no                    | Already done and archived.                      |
+| S-02       | manual-workout-create-and-save | Build and save the first manual planned workout         | yes                   | Run `/10x-plan manual-workout-create-and-save`. |
+| S-03       | planned-workout-editing        | Edit and delete planned workouts                        | no                    | Wait for S-02.                                  |
+| S-04       | mark-planned-workout-done      | Mark planned workouts done into completed history       | no                    | Wait for S-02.                                  |
+| S-05       | history-list-and-filters       | View completed workout history with filters             | no                    | Wait for S-04.                                  |
+| S-06       | recovery-aware-manual-builder  | Add recovery-aware filtering to manual workout planning | no                    | Wait for S-04.                                  |
+| S-07       | cold-start-ai-planned-workout  | Generate, edit, and save a cold-start AI workout        | no                    | Requires S-03 and S-06; sequence after S-05.    |
+| S-08       | history-aware-ai-proposal      | Generate, edit, and save a history-aware AI workout     | no                    | Wait for S-07.                                  |
 
 ## Open Roadmap Questions
 
-1. **FR-013 (delete history entry) - include in MVP or defer?** - Owner: user. Block: no; nice-to-have and MVP works
+1. **FR-013 (delete history entry) — include in MVP or defer?** — Owner: user. Block: no; nice-to-have and MVP works
    without it.
-2. **FR-014 (do again from history) - include in MVP or defer?** - Owner: user. Block: no; nice-to-have and MVP works
+2. **FR-014 (do again from history) — include in MVP or defer?** — Owner: user. Block: no; nice-to-have and MVP works
    without it.
-3. **Recovery window defaults - should they become user-tunable?** - Owner: user. Block: no; fixed defaults are
+3. **Recovery window defaults — should they become user-tunable?** — Owner: user. Block: no; fixed defaults are
    sufficient for MVP.
 
 ## Parked
 
-- **Native mobile apps** - Why parked: PRD Non-Goals; web-only responsive MVP.
-- **Fitness tracker and health-app integrations** - Why parked: PRD Non-Goals; workouts are entered in-app.
-- **History import from external formats** - Why parked: PRD Non-Goals; history starts from app usage.
-- **Workout sharing and social features** - Why parked: PRD Non-Goals; no sharing between users in MVP.
-- **Analytics dashboards** - Why parked: PRD Non-Goals; history is a list, not progress analytics.
-- **In-gym real-time substitution** - Why parked: PRD Non-Goals; this is a planning tool, not an in-session companion.
-- **Hosted or paid AI** - Why parked: PRD Non-Goals; BYOK keeps inference cost outside the app.
-- **Custom exercise CRUD** - Why parked: PRD Non-Goals; seeded preset catalogue is enough for MVP.
-- **Favorites** - Why parked: PRD Non-Goals; deferred to v1.1.
-- **CSV export** - Why parked: PRD Non-Goals; deferred to v1.1.
-- **FR-013 delete history entry** - Why parked: nice-to-have with data-quality risk for AI reasoning.
-- **FR-014 do again from history** - Why parked: nice-to-have that may compete with the AI proposer success metric.
+- **Native mobile apps** — Why parked: PRD Non-Goals; web-only responsive MVP.
+- **Fitness tracker and health-app integrations** — Why parked: PRD Non-Goals; workouts are entered in-app.
+- **History import from external formats** — Why parked: PRD Non-Goals; history starts from app usage.
+- **Workout sharing and social features** — Why parked: PRD Non-Goals; no sharing between users in MVP.
+- **Analytics dashboards** — Why parked: PRD Non-Goals; history is a list, not progress analytics.
+- **In-gym real-time substitution** — Why parked: PRD Non-Goals; this is a planning tool, not an in-session companion.
+- **Hosted or paid AI** — Why parked: PRD Non-Goals; BYOK keeps inference cost outside the app.
+- **Custom exercise CRUD** — Why parked: PRD Non-Goals; seeded preset catalogue is enough for MVP.
+- **Favorites** — Why parked: PRD Non-Goals; deferred to v1.1.
+- **CSV export** — Why parked: PRD Non-Goals; deferred to v1.1.
+- **FR-013 delete history entry** — Why parked: nice-to-have with data-quality risk for AI reasoning.
+- **FR-014 do again from history** — Why parked: nice-to-have that may compete with the AI proposer success metric.
 
 ## Done
 
