@@ -1,10 +1,10 @@
 ---
 change_id: manual-workout-create-and-save
 title: Manual workout create and save
-status: implemented
+status: archived
 created: 2026-09-01
 updated: 2026-09-01
-archived_at: null
+archived_at: 2026-09-01T21:11:23Z
 ---
 
 ## Notes

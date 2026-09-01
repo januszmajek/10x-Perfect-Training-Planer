@@ -37,7 +37,7 @@ AI speed-and-variety promise, while the manual-first sequence deliberately place
 | ---- | ------------------------------ | ----------------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------ | -------- |
 | F-01 | domain-data-and-seed-catalogue | (foundation) minimal workout data contracts and seeded preset catalogue are in place                  | —             | FR-003, FR-008, FR-010, FR-012, Privacy, Data durability, Access Control | done     |
 | S-01 | private-account-and-ai-key     | sign in to a private planner workspace and manage a masked AI provider key                            | F-01          | FR-001, FR-002, FR-015                                                   | done     |
-| S-02 | manual-workout-create-and-save | browse the seeded catalogue, compose sets and reps, and save a manual workout as planned              | F-01, S-01    | FR-003, FR-006, FR-008, Data durability, Access Control                  | ready    |
+| S-02 | manual-workout-create-and-save | browse the seeded catalogue, compose sets and reps, and save a manual workout as planned              | F-01, S-01    | FR-003, FR-006, FR-008, Data durability, Access Control                  | done     |
 | S-03 | planned-workout-editing        | edit and delete a saved planned workout                                                               | S-02          | FR-009, FR-011                                                           | proposed |
 | S-04 | mark-planned-workout-done      | mark a planned workout done so it becomes completed history                                           | S-02          | US-04, FR-010, Data durability                                           | proposed |
 | S-05 | history-list-and-filters       | view completed workout history with date and muscle-group filters                                     | S-04          | FR-012                                                                   | proposed |
@@ -108,7 +108,7 @@ sequencing frame). Foundations below assume these capabilities are present and d
 - **Unknowns:** —
 - **Risk:** This is the first unfinished slice because it creates a real, durable plan that every later manual
   lifecycle capability can exercise without AI coupling.
-- **Status:** ready
+- **Status:** done
 
 ### S-03: Planned workout editing
 
@@ -236,3 +236,4 @@ sequencing frame). Foundations below assume these capabilities are present and d
 
 - **F-01: (foundation) minimal workout data contracts, user ownership boundaries, and seeded preset exercise catalogue are in place for planned workouts, completed history, and catalogue browsing.** — Archived 2026-08-27 → `context/archive/2026-08-19-domain-data-and-seed-catalogue/`. Lesson: —.
 - **S-01: User can sign in to a private planner workspace and manage a masked AI provider key** — Archived 2026-08-28 → `context/archive/2026-08-27-private-account-and-ai-key/`. Lesson: —.
+- **S-02: User can browse and filter the seeded exercise catalogue, compose a workout with sets and reps, and save it as a planned manual workout.** — Archived 2026-09-01 → `context/archive/2026-09-01-manual-workout-create-and-save/`. Lesson: —.
