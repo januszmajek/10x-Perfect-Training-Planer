@@ -589,18 +589,18 @@ Saving is one RPC/database transaction; do not add application retries that coul
 
 #### Automated
 
-- [x] 3.1 Final database, concurrency, and generated-type gates pass
-- [x] 3.2 Manual builder logic and request-schema tests pass
-- [x] 3.3 Existing crypto tests pass
-- [x] 3.4 Astro types synchronize successfully
-- [x] 3.5 Repository lint passes
-- [x] 3.6 Production Cloudflare Worker build passes
+- [x] 3.1 Final database, concurrency, and generated-type gates pass — 22caca1
+- [x] 3.2 Manual builder logic and request-schema tests pass — 22caca1
+- [x] 3.3 Existing crypto tests pass — 22caca1
+- [x] 3.4 Astro types synchronize successfully — 22caca1
+- [x] 3.5 Repository lint passes — 22caca1
+- [x] 3.6 Production Cloudflare Worker build passes — 22caca1
 
 #### Manual
 
-- [x] 3.7 Catalogue search and combined filters work responsively
-- [x] 3.8 Draft prescriptions, removal, and accessible reordering work
-- [x] 3.9 Cancel always discards the unsaved draft without persistent restoration
-- [x] 3.10 Existing-plan composition and compare-and-swap atomic replacement work
-- [x] 3.11 Client, network, stale-plan, API, and database failures preserve durable state and the exact draft
-- [x] 3.12 Dashboard success status and durable ordered summary remain correct after refresh
+- [x] 3.7 Catalogue search and combined filters work responsively — 22caca1
+- [x] 3.8 Draft prescriptions, removal, and accessible reordering work — 22caca1
+- [x] 3.9 Cancel always discards the unsaved draft without persistent restoration — 22caca1
+- [x] 3.10 Existing-plan composition and compare-and-swap atomic replacement work — 22caca1
+- [x] 3.11 Client, network, stale-plan, API, and database failures preserve durable state and the exact draft — 22caca1
+- [x] 3.12 Dashboard success status and durable ordered summary remain correct after refresh — 22caca1
