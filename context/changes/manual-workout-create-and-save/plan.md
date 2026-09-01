@@ -558,32 +558,32 @@ Saving is one RPC/database transaction; do not add application retries that coul
 
 #### Automated
 
-- [x] 1.1 Clean reset applies the manual workout RPC migration
-- [x] 1.2 Public schema passes database lint
-- [x] 1.3 Manual mutation pgTAP contract passes
-- [x] 1.4 Full database suite remains green
-- [x] 1.5 Atomic replacement, stale-plan, completion, and child-mutation concurrency regressions pass
-- [x] 1.6 Generated and normalized public database types have no drift
+- [x] 1.1 Clean reset applies the manual workout RPC migration — 01c9174
+- [x] 1.2 Public schema passes database lint — 01c9174
+- [x] 1.3 Manual mutation pgTAP contract passes — 01c9174
+- [x] 1.4 Full database suite remains green — 01c9174
+- [x] 1.5 Atomic replacement, stale-plan, completion, and child-mutation concurrency regressions pass — 01c9174
+- [x] 1.6 Generated and normalized public database types have no drift — 01c9174
 
 #### Manual
 
-- [x] 1.7 Stale or failed replacement preserves the newer/original plan and prescriptions
-- [x] 1.8 Two authenticated users remain isolated through the RPC
+- [x] 1.7 Stale or failed replacement preserves the newer/original plan and prescriptions — 01c9174
+- [x] 1.8 Two authenticated users remain isolated through the RPC — 01c9174
 
 ### Phase 2: Builder Application Boundary
 
 #### Automated
 
-- [ ] 2.1 Manual builder logic and request-schema tests pass
-- [ ] 2.2 Astro types synchronize successfully
-- [ ] 2.3 Repository lint passes
-- [ ] 2.4 Production Cloudflare Worker build passes
-- [ ] 2.5 Database, concurrency, and generated-type regression gates remain green
+- [x] 2.1 Manual builder logic and request-schema tests pass
+- [x] 2.2 Astro types synchronize successfully
+- [x] 2.3 Repository lint passes
+- [x] 2.4 Production Cloudflare Worker build passes
+- [x] 2.5 Database, concurrency, and generated-type regression gates remain green
 
 #### Manual
 
-- [ ] 2.6 Endpoint enforces Origin, media type, body, schema, authentication, and ownership bounds
-- [ ] 2.7 Endpoint exposes safe code/request-ID failures and sanitized logs while preserving database state
+- [x] 2.6 Endpoint enforces Origin, media type, body, schema, authentication, and ownership bounds
+- [x] 2.7 Endpoint exposes safe code/request-ID failures and sanitized logs while preserving database state
 
 ### Phase 3: Responsive Manual Builder and Dashboard Outcome
 

@@ -1,10 +1,14 @@
 import { defineMiddleware } from "astro:middleware";
 import { createClient } from "@/lib/supabase";
 
-const PROTECTED_ROUTES = ["/dashboard", "/account", "/api/account"];
+const PROTECTED_ROUTES = ["/dashboard", "/account", "/api/account", "/workouts", "/api/workouts"];
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
+
+function isWorkoutApiPath(pathname: string): boolean {
+  return pathname === "/api/workouts" || pathname.startsWith("/api/workouts/");
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
@@ -21,7 +25,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   if (isProtectedPath(context.url.pathname)) {
-    if (!context.locals.user) {
+    if (!context.locals.user && !isWorkoutApiPath(context.url.pathname)) {
       return context.redirect("/auth/signin");
     }
   }

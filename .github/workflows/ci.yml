@@ -30,6 +30,8 @@ jobs:
         run: pnpm exec supabase test db --local supabase/tests/database
       - name: Test workout lifecycle concurrency
         run: bash supabase/tests/database/workout_lifecycle_concurrency.test.sh
+      - name: Test manual workout mutation concurrency
+        run: bash supabase/tests/database/manual_workout_mutation_concurrency.test.sh
       - name: Check generated database types
         run: |
           database_types_file="$(mktemp --suffix=.ts)"
@@ -38,6 +40,8 @@ jobs:
           diff --unified src/types/database.types.ts "$database_types_file"
       - name: Test AI provider key cryptography
         run: pnpm test:crypto
+      - name: Test manual workout builder logic
+        run: pnpm test:manual-workout
       - name: Synchronize Astro types
         run: pnpm astro sync
       - name: Lint repository
