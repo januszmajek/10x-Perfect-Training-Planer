@@ -20,6 +20,9 @@ pnpm-debug.log*
 .dev.vars
 .wrangler/
 
+# local Codex configuration
+.codex/
+
 # jetbrains setting folder
 .idea/
 
