@@ -10,6 +10,7 @@ of truth; generated TypeScript types expose that schema to application code.
 3. `supabase/migrations/20260820090200_create_workout_lifecycle.sql`
 4. `supabase/migrations/20260827120000_serialize_workout_exercise_mutations.sql`
 5. `supabase/migrations/20260827130000_create_ai_provider_keys.sql`
+6. `supabase/migrations/20260901120000_create_manual_workout_mutation.sql`
 
 Production catalogue data belongs in the second migration. `supabase/seed.sql` is only for non-sensitive local
 fixtures and must not contain data required by production.
@@ -61,6 +62,27 @@ Recovery is 72 hours for `lats`, `upper_back`, `lower_back`, `quads`, `hamstring
 - RLS restricts workout and workout-exercise reads and writes to the owning authenticated user; child writes also
   require a `planned` parent.
 
+## Manual planned-workout save RPC
+
+- `public.save_manual_planned_workout(p_exercises jsonb, p_replace_existing boolean, p_expected_workout_id uuid)`
+  returns the newly saved workout UUID. It is `SECURITY INVOKER`, has an empty `search_path`, and only
+  `authenticated` may execute it.
+- Ownership, `origin = 'manual'`, `status = 'planned'`, and zero-based exercise positions are derived server-side.
+  The input JSON may contain only ordered `exercise_id`, `sets`, and `reps` values; it cannot set user, origin,
+  status, timestamps, a workout ID, or positions.
+- The function acquires the transaction-scoped advisory lock
+  `hashtextextended('perfect-training-planner:planned-workout:' || auth.uid()::text, 0)` before locking the
+  caller's current planned parent with `FOR UPDATE`. Future planned-workout edit and completion RPCs must reuse this
+  lock namespace and ordering.
+- Compare-and-swap outcomes are fixed: expected `null` plus no current plan and `replace = false` creates; expected
+  `null` plus a current plan raises `MW001` (`confirmation_required`); a non-null expected ID with no matching
+  current plan raises `MW002` (`stale_plan`); an exact expected ID with `replace = true` replaces atomically; every
+  other flag/state combination and malformed input raises `MW003` (`validation_failed`). Missing authentication
+  raises `MW004` (`unauthenticated`).
+- Replacement deletes only the caller's locked planned parent and inserts the new parent and prescriptions in one
+  transaction. Any error rolls back the deletion and every child mutation, leaving completed history and other users'
+  data untouched.
+
 ## AI provider credential invariants
 
 - `ai_provider_keys.user_id` is both the primary key and a cascading reference to `auth.users.id`, enforcing one
@@ -83,6 +105,8 @@ Recovery is 72 hours for `lats`, `upper_back`, `lower_back`, `quads`, `hamstring
 - Catalogue pgTAP contract: `supabase/tests/database/catalogue.test.sql`
 - Workout/RLS pgTAP contract: `supabase/tests/database/workout_lifecycle.test.sql`
 - Workout lifecycle concurrency contract: `supabase/tests/database/workout_lifecycle_concurrency.test.sh`
+- Manual-workout RPC pgTAP contract: `supabase/tests/database/manual_workout_mutation.test.sql`
+- Manual-workout RPC concurrency contract: `supabase/tests/database/manual_workout_mutation_concurrency.test.sh`
 - AI provider key pgTAP contract: `supabase/tests/database/ai_provider_keys.test.sql`
 - Full local suite: `pnpm exec supabase test db --local supabase/tests/database`
 

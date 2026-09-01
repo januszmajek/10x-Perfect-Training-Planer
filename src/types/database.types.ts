@@ -185,7 +185,14 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      save_manual_planned_workout: {
+        Args: {
+          p_exercises: Json;
+          p_expected_workout_id: string;
+          p_replace_existing: boolean;
+        };
+        Returns: string;
+      };
     };
     Enums: {
       ai_provider: "openrouter";
