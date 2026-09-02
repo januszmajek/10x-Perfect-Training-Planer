@@ -1,10 +1,10 @@
 ---
 change_id: planned-workout-editing
 title: Planned workout editing
-status: implemented
+status: archived
 created: 2026-09-02
 updated: 2026-09-02
-archived_at: null
+archived_at: 2026-09-02T14:32:19Z
 ---
 
 ## Notes
