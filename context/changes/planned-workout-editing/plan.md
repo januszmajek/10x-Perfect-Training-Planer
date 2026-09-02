@@ -570,19 +570,19 @@ are single RPC transactions with no application retry loop; a reviewed overwrite
 
 #### Automated
 
-- [x] 3.1 Final database, concurrency, and generated-type gates pass
-- [x] 3.2 Manual and planned-workout pure TypeScript tests pass
-- [x] 3.3 Existing cryptography tests pass
-- [x] 3.4 Astro types synchronize successfully
-- [x] 3.5 Repository lint passes
-- [x] 3.6 Production Cloudflare Worker build passes
+- [x] 3.1 Final database, concurrency, and generated-type gates pass — 4b8a5c8
+- [x] 3.2 Manual and planned-workout pure TypeScript tests pass — 4b8a5c8
+- [x] 3.3 Existing cryptography tests pass — 4b8a5c8
+- [x] 3.4 Astro types synchronize successfully — 4b8a5c8
+- [x] 3.5 Repository lint passes — 4b8a5c8
+- [x] 3.6 Production Cloudflare Worker build passes — 4b8a5c8
 
 #### Manual
 
-- [x] 3.7 Manual- and AI-origin plans open with exact ordered prescriptions and preserve parent identity/provenance after save
-- [x] 3.8 Replace preserves position and sets/reps; add/remove/reorder and numeric validation work by keyboard and touch
-- [x] 3.9 Clean Cancel exits immediately, while dirty Cancel/navigation protects the draft and confirmed discard restores no draft
-- [x] 3.10 Concurrent edits preserve the local draft and support load-latest or reviewed overwrite without silent loss
-- [x] 3.11 A plan deleted, replaced, or completed during editing cannot be silently recreated or overwritten
-- [x] 3.12 Confirmed dashboard deletion removes only the matching plan; cancellation and stale deletion change nothing
-- [x] 3.13 Editing, conflict, and deletion remain usable at 360px and desktop widths with correct focus, labels, live status, and wrapping
+- [x] 3.7 Manual- and AI-origin plans open with exact ordered prescriptions and preserve parent identity/provenance after save — 4b8a5c8
+- [x] 3.8 Replace preserves position and sets/reps; add/remove/reorder and numeric validation work by keyboard and touch — 4b8a5c8
+- [x] 3.9 Clean Cancel exits immediately, while dirty Cancel/navigation protects the draft and confirmed discard restores no draft — 4b8a5c8
+- [x] 3.10 Concurrent edits preserve the local draft and support load-latest or reviewed overwrite without silent loss — 4b8a5c8
+- [x] 3.11 A plan deleted, replaced, or completed during editing cannot be silently recreated or overwritten — 4b8a5c8
+- [x] 3.12 Confirmed dashboard deletion removes only the matching plan; cancellation and stale deletion change nothing — 4b8a5c8
+- [x] 3.13 Editing, conflict, and deletion remain usable at 360px and desktop widths with correct focus, labels, live status, and wrapping — 4b8a5c8
