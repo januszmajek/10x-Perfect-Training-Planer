@@ -44,6 +44,8 @@ jobs:
         run: pnpm test:crypto
       - name: Test manual workout builder logic
         run: pnpm test:manual-workout
+      - name: Test planned workout mutation contracts
+        run: pnpm test:planned-workout
       - name: Synchronize Astro types
         run: pnpm astro sync
       - name: Lint repository

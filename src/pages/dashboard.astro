@@ -1,7 +1,7 @@
 ---
 import PlannedWorkoutSummary from "@/components/workouts/PlannedWorkoutSummary.astro";
 import AuthenticatedLayout from "@/layouts/AuthenticatedLayout.astro";
-import { loadCurrentPlannedWorkout } from "@/lib/manual-workouts";
+import { loadCurrentPlannedWorkout } from "@/lib/planned-workouts";
 
 const { user, supabase } = Astro.locals;
 

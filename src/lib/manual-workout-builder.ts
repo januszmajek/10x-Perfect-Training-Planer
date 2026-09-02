@@ -33,6 +33,13 @@ export interface ManualWorkoutDraftItem {
   reps: number;
 }
 
+export interface OrderedPlannedWorkoutExercise {
+  exerciseId: string;
+  position: number;
+  sets: number;
+  reps: number;
+}
+
 export interface CatalogueFilters {
   search: string;
   muscleGroups: readonly string[];
@@ -83,6 +90,14 @@ export function createDraftItem(exerciseId: string): ManualWorkoutDraftItem {
   return { exerciseId, sets: 3, reps: 10 };
 }
 
+export function createDraftFromCurrentPlan(
+  exercises: readonly OrderedPlannedWorkoutExercise[],
+): ManualWorkoutDraftItem[] {
+  return [...exercises]
+    .sort((left, right) => left.position - right.position)
+    .map(({ exerciseId, sets, reps }) => ({ exerciseId, sets, reps }));
+}
+
 export function addDraftItem(draft: readonly ManualWorkoutDraftItem[], exerciseId: string): ManualWorkoutDraftItem[] {
   if (draft.some((item) => item.exerciseId === exerciseId)) {
     return [...draft];
@@ -118,6 +133,39 @@ export function moveDraftItem(
   const next = [...draft];
   [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
   return next;
+}
+
+export function replaceDraftItem(
+  draft: readonly ManualWorkoutDraftItem[],
+  index: number,
+  exerciseId: string,
+): ManualWorkoutDraftItem[] {
+  if (
+    !Number.isInteger(index) ||
+    index < 0 ||
+    index >= draft.length ||
+    !isCanonicalUuid(exerciseId) ||
+    draft.some((item, itemIndex) => itemIndex !== index && item.exerciseId === exerciseId)
+  ) {
+    return [...draft];
+  }
+
+  return draft.map((item, itemIndex) => (itemIndex === index ? { ...item, exerciseId } : item));
+}
+
+export function areDraftsEqual(
+  left: readonly ManualWorkoutDraftItem[],
+  right: readonly ManualWorkoutDraftItem[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every(
+      (item, index) =>
+        item.exerciseId === right[index]?.exerciseId &&
+        item.sets === right[index]?.sets &&
+        item.reps === right[index]?.reps,
+    )
+  );
 }
 
 export function validateDraftItems(

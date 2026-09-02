@@ -14,6 +14,7 @@
     "astro": "astro",
     "test:crypto": "node --experimental-strip-types --test src/lib/ai-provider-key-crypto.test.ts",
     "test:manual-workout": "node --experimental-strip-types --test src/lib/manual-workout-builder.test.ts",
+    "test:planned-workout": "node --experimental-strip-types --test src/lib/planned-workout-mutation.test.ts src/lib/planned-workout-client.test.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write ."

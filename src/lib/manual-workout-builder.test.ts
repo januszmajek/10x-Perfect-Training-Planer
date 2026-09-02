@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   addDraftItem,
+  areDraftsEqual,
+  createDraftFromCurrentPlan,
   createDraftItem,
   filterCatalogue,
   MAX_REPS,
@@ -9,6 +11,7 @@ import {
   MAX_WORKOUT_EXERCISES,
   moveDraftItem,
   parseManualWorkoutRequest,
+  replaceDraftItem,
   removeDraftItem,
   validateDraftItems,
   type CatalogueExercise,
@@ -91,6 +94,30 @@ void test("moves items stably and leaves first/last boundary moves unchanged", (
     moveDraftItem(draft, 1, "down").map(({ exerciseId }) => exerciseId),
     [IDS[0], IDS[2], IDS[1]],
   );
+});
+
+void test("creates an ordered draft and replaces one exercise without changing its prescription", () => {
+  const draft = createDraftFromCurrentPlan([
+    { exerciseId: IDS[1], position: 1, sets: 5, reps: 5 },
+    { exerciseId: IDS[0], position: 0, sets: 3, reps: 10 },
+  ]);
+
+  assert.deepEqual(draft, [
+    { exerciseId: IDS[0], sets: 3, reps: 10 },
+    { exerciseId: IDS[1], sets: 5, reps: 5 },
+  ]);
+  assert.deepEqual(replaceDraftItem(draft, 0, IDS[2]), [
+    { exerciseId: IDS[2], sets: 3, reps: 10 },
+    { exerciseId: IDS[1], sets: 5, reps: 5 },
+  ]);
+  assert.deepEqual(replaceDraftItem(draft, 0, IDS[1]), draft);
+});
+
+void test("compares complete drafts for dirty state", () => {
+  const draft = [createDraftItem(IDS[0]), { exerciseId: IDS[1], sets: 5, reps: 8 }];
+  assert.equal(areDraftsEqual(draft, [...draft]), true);
+  assert.equal(areDraftsEqual(draft, [...draft].reverse()), false);
+  assert.equal(areDraftsEqual(draft, [{ ...draft[0], reps: 9 }, draft[1]]), false);
 });
 
 void test("validates known, unique draft exercises and numeric bounds", () => {

@@ -534,37 +534,37 @@ are single RPC transactions with no application retry loop; a reviewed overwrite
 
 #### Automated
 
-- [x] 1.1 Clean local reset applies the revision and planned-workout mutation migration
-- [x] 1.2 Public schema database lint passes with no errors
-- [x] 1.3 Planned-workout and revised manual-mutation pgTAP contracts pass
-- [x] 1.4 The complete database suite remains green
-- [x] 1.5 Manual and planned-workout concurrency regressions pass without partial state
-- [x] 1.6 Regenerated and Prettier-normalized public database types have no drift
-- [x] 1.9 Manual request parsing and replacement regression tests pass against the revision-aware contract
-- [x] 1.10 Astro types synchronize, repository lint passes, and the production SSR build succeeds after the RPC cutover
-- [x] 1.12 Edit/completion and delete/completion races produce one valid winner and an explicit stale loser
+- [x] 1.1 Clean local reset applies the revision and planned-workout mutation migration — d53c1ab
+- [x] 1.2 Public schema database lint passes with no errors — d53c1ab
+- [x] 1.3 Planned-workout and revised manual-mutation pgTAP contracts pass — d53c1ab
+- [x] 1.4 The complete database suite remains green — d53c1ab
+- [x] 1.5 Manual and planned-workout concurrency regressions pass without partial state — d53c1ab
+- [x] 1.6 Regenerated and Prettier-normalized public database types have no drift — d53c1ab
+- [x] 1.9 Manual request parsing and replacement regression tests pass against the revision-aware contract — d53c1ab
+- [x] 1.10 Astro types synchronize, repository lint passes, and the production SSR build succeeds after the RPC cutover — d53c1ab
+- [x] 1.12 Edit/completion and delete/completion races produce one valid winner and an explicit stale loser — d53c1ab
 
 #### Manual
 
-- [x] 1.7 Forced edit failure and stale replacement preserve the original/newer workout, revision, origin, and prescriptions
-- [x] 1.8 Two disposable users cannot observe, edit, or delete each other's planned workouts through supplied identifiers
-- [x] 1.11 The existing S-02 create and confirmed-replacement flow succeeds through the revised endpoint and RPC contract
+- [x] 1.7 Forced edit failure and stale replacement preserve the original/newer workout, revision, origin, and prescriptions — d53c1ab
+- [x] 1.8 Two disposable users cannot observe, edit, or delete each other's planned workouts through supplied identifiers — d53c1ab
+- [x] 1.11 The existing S-02 create and confirmed-replacement flow succeeds through the revised endpoint and RPC contract — d53c1ab
 
 ### Phase 2: Shared Editor and Application Boundary
 
 #### Automated
 
-- [ ] 2.1 Manual and planned-workout pure TypeScript tests pass
-- [ ] 2.2 Astro types synchronize successfully
-- [ ] 2.3 Repository lint passes
-- [ ] 2.4 Production SSR build passes under the Cloudflare adapter
-- [ ] 2.5 Database, generated-type, and both workout concurrency regression gates remain green
-- [ ] 2.8 Manual-builder refresh tests use planned GET, validate revision, and prove manual GET is no longer supported
+- [x] 2.1 Manual and planned-workout pure TypeScript tests pass
+- [x] 2.2 Astro types synchronize successfully
+- [x] 2.3 Repository lint passes
+- [x] 2.4 Production SSR build passes under the Cloudflare adapter
+- [x] 2.5 Database, generated-type, and both workout concurrency regression gates remain green
+- [x] 2.8 Manual-builder refresh tests use planned GET, validate revision, and prove manual GET is no longer supported
 
 #### Manual
 
-- [ ] 2.6 Planned GET/PUT/DELETE enforce Origin, media type, body, schema, authentication, revision, and ownership bounds
-- [ ] 2.7 Known and unknown failures expose only safe code/request-ID responses and sanitized logs while durable state remains unchanged
+- [x] 2.6 Planned GET/PUT/DELETE enforce Origin, media type, body, schema, authentication, revision, and ownership bounds
+- [x] 2.7 Known and unknown failures expose only safe code/request-ID responses and sanitized logs while durable state remains unchanged
 
 ### Phase 3: Editing, Conflict, and Deletion UX
 
