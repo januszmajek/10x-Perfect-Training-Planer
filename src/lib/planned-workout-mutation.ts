@@ -4,6 +4,7 @@ export const PLANNED_WORKOUT_MUTATION_VERSION = 1 as const;
 
 const UPDATE_KEYS = ["version", "expectedWorkoutId", "expectedRevision", "exercises"];
 const DELETE_KEYS = ["version", "expectedWorkoutId", "expectedRevision"];
+const COMPLETE_KEYS = ["version", "expectedWorkoutId", "expectedRevision"];
 const EXERCISE_KEYS = ["exerciseId", "sets", "reps"];
 
 export interface PlannedWorkoutUpdateRequest {
@@ -19,8 +20,15 @@ export interface PlannedWorkoutDeleteRequest {
   expectedRevision: number;
 }
 
+export interface PlannedWorkoutCompleteRequest {
+  version: typeof PLANNED_WORKOUT_MUTATION_VERSION;
+  expectedWorkoutId: string;
+  expectedRevision: number;
+}
+
 export type PlannedWorkoutUpdateValidation = { valid: true; value: PlannedWorkoutUpdateRequest } | { valid: false };
 export type PlannedWorkoutDeleteValidation = { valid: true; value: PlannedWorkoutDeleteRequest } | { valid: false };
+export type PlannedWorkoutCompleteValidation = { valid: true; value: PlannedWorkoutCompleteRequest } | { valid: false };
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -70,6 +78,19 @@ export function parsePlannedWorkoutUpdateRequest(input: unknown): PlannedWorkout
 
 export function parsePlannedWorkoutDeleteRequest(input: unknown): PlannedWorkoutDeleteValidation {
   if (!isPlainRecord(input) || !hasExactKeys(input, DELETE_KEYS) || !hasValidToken(input)) return { valid: false };
+
+  return {
+    valid: true,
+    value: {
+      version: PLANNED_WORKOUT_MUTATION_VERSION,
+      expectedWorkoutId: input.expectedWorkoutId,
+      expectedRevision: input.expectedRevision,
+    },
+  };
+}
+
+export function parsePlannedWorkoutCompleteRequest(input: unknown): PlannedWorkoutCompleteValidation {
+  if (!isPlainRecord(input) || !hasExactKeys(input, COMPLETE_KEYS) || !hasValidToken(input)) return { valid: false };
 
   return {
     valid: true,

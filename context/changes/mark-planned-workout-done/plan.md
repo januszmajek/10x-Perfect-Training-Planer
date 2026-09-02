@@ -524,33 +524,33 @@ GET and occurs only after ambiguous transport outcomes.
 
 #### Automated
 
-- [x] 1.1 Clean local reset applies the completion migration
-- [x] 1.2 Public schema database lint passes
-- [x] 1.3 Completion pgTAP contract passes
-- [x] 1.4 Complete database suite remains green
-- [x] 1.5 Planned-workout concurrency regression passes with the real completion RPC
-- [x] 1.6 Generated public database types have no drift
+- [x] 1.1 Clean local reset applies the completion migration — c9e273e
+- [x] 1.2 Public schema database lint passes — c9e273e
+- [x] 1.3 Completion pgTAP contract passes — c9e273e
+- [x] 1.4 Complete database suite remains green — c9e273e
+- [x] 1.5 Planned-workout concurrency regression passes with the real completion RPC — c9e273e
+- [x] 1.6 Generated public database types have no drift — c9e273e
 
 #### Manual
 
-- [x] 1.7 Completion changes only lifecycle fields and preserves prescription and revision
-- [x] 1.8 Two authenticated users remain isolated through the completion RPC
+- [x] 1.7 Completion changes only lifecycle fields and preserves prescription and revision — c9e273e
+- [x] 1.8 Two authenticated users remain isolated through the completion RPC — c9e273e
 
 ### Phase 2: Completion Application Boundary
 
 #### Automated
 
-- [ ] 2.1 Planned-workout request contract tests pass
-- [ ] 2.2 Completion database and concurrency gates remain green
-- [ ] 2.3 Generated database type drift check remains green
-- [ ] 2.4 Astro types synchronize successfully
-- [ ] 2.5 Repository lint passes
-- [ ] 2.6 Production Cloudflare Worker build succeeds
+- [x] 2.1 Planned-workout request contract tests pass
+- [x] 2.2 Completion database and concurrency gates remain green
+- [x] 2.3 Generated database type drift check remains green
+- [x] 2.4 Astro types synchronize successfully
+- [x] 2.5 Repository lint passes
+- [x] 2.6 Production Cloudflare Worker build succeeds
 
 #### Manual
 
-- [ ] 2.7 PATCH enforces request, authentication, schema, token, and ownership bounds
-- [ ] 2.8 API failures expose only safe responses and sanitized logs without durable mutation
+- [x] 2.7 PATCH enforces request, authentication, schema, token, and ownership bounds
+- [x] 2.8 API failures expose only safe responses and sanitized logs without durable mutation
 
 ### Phase 3: Undoable Dashboard Completion Experience
 

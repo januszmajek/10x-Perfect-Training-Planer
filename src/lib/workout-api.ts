@@ -7,7 +7,8 @@ export type WorkoutApiOperation =
   | "get_current_plan"
   | "save_manual_workout"
   | "update_planned_workout"
-  | "delete_planned_workout";
+  | "delete_planned_workout"
+  | "complete_planned_workout";
 type RequestFailureLayer = "request" | "validation" | WorkoutFailureLayer;
 
 function statusFor(code: WorkoutErrorCode): number {

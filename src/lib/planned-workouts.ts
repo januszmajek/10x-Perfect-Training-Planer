@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { validateDraftItems, type CatalogueExercise, type ManualWorkoutDraftItem } from "@/lib/manual-workout-builder";
-import type { PlannedWorkoutDeleteRequest, PlannedWorkoutUpdateRequest } from "@/lib/planned-workout-mutation";
+import type {
+  PlannedWorkoutCompleteRequest,
+  PlannedWorkoutDeleteRequest,
+  PlannedWorkoutUpdateRequest,
+} from "@/lib/planned-workout-mutation";
 import type { Database, Json } from "@/types/database.types";
 
 type WorkoutClient = SupabaseClient<Database>;
@@ -199,6 +203,29 @@ export async function deletePlannedWorkout(
   if (authFailure) return authFailure;
 
   const { data, error } = await client.rpc("delete_planned_workout", {
+    p_expected_workout_id: request.expectedWorkoutId,
+    p_expected_revision: request.expectedRevision,
+  });
+
+  if (error) {
+    const code = mapPlannedRpcFailure(error.code);
+    return workoutFailure(code, "database", code === "persistence_failed" ? "UNKNOWN_SQLSTATE" : error.code);
+  }
+  if (data !== request.expectedWorkoutId) return workoutFailure("persistence_failed", "database", "INVALID_RPC_RESULT");
+
+  return { ok: true, data: { workoutId: data } };
+}
+
+export async function completePlannedWorkout(
+  client: WorkoutClient,
+  userId: string | null,
+  request: PlannedWorkoutCompleteRequest,
+): Promise<WorkoutResult<{ workoutId: string }>> {
+  if (!userId) return workoutFailure("unauthenticated", "service", "AUTH_MISSING");
+  const authFailure = await verifyOwnedSession(client, userId);
+  if (authFailure) return authFailure;
+
+  const { data, error } = await client.rpc("complete_planned_workout", {
     p_expected_workout_id: request.expectedWorkoutId,
     p_expected_revision: request.expectedRevision,
   });
