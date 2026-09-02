@@ -556,19 +556,19 @@ GET and occurs only after ambiguous transport outcomes.
 
 #### Automated
 
-- [x] 3.1 Final database, completion, concurrency, generated-type, and planned-workout gates pass
-- [x] 3.2 Pure deadline, Undo, obsolete-callback, and exactly-once completion-state tests pass
-- [x] 3.3 Existing manual-workout and cryptography tests pass
-- [x] 3.4 Astro types synchronize successfully
-- [x] 3.5 Repository lint passes
-- [x] 3.6 Production Cloudflare Worker build succeeds
+- [x] 3.1 Final database, completion, concurrency, generated-type, and planned-workout gates pass — e7c3dc0
+- [x] 3.2 Pure deadline, Undo, obsolete-callback, and exactly-once completion-state tests pass — e7c3dc0
+- [x] 3.3 Existing manual-workout and cryptography tests pass — e7c3dc0
+- [x] 3.4 Astro types synchronize successfully — e7c3dc0
+- [x] 3.5 Repository lint passes — e7c3dc0
+- [x] 3.6 Production Cloudflare Worker build succeeds — e7c3dc0
 
 #### Manual
 
-- [x] 3.7 Mark done starts a non-blocking collapse and five-second Undo opportunity
-- [x] 3.8 Early and near-deadline Undo restore the exact planned workout without a request
-- [x] 3.9 Navigation before the deadline cancels the uncommitted completion
-- [x] 3.10 Successful completion shows durable success and immutable history
-- [x] 3.11 Concurrent planned mutations resolve without completing an unseen workout
-- [x] 3.12 Ambiguous and known failures reconcile without false state claims
-- [x] 3.13 Responsive, keyboard, live-region, focus, and reduced-motion behavior is correct
+- [x] 3.7 Mark done starts a non-blocking collapse and five-second Undo opportunity — e7c3dc0
+- [x] 3.8 Early and near-deadline Undo restore the exact planned workout without a request — e7c3dc0
+- [x] 3.9 Navigation before the deadline cancels the uncommitted completion — e7c3dc0
+- [x] 3.10 Successful completion shows durable success and immutable history — e7c3dc0
+- [x] 3.11 Concurrent planned mutations resolve without completing an unseen workout — e7c3dc0
+- [x] 3.12 Ambiguous and known failures reconcile without false state claims — e7c3dc0
+- [x] 3.13 Responsive, keyboard, live-region, focus, and reduced-motion behavior is correct — e7c3dc0

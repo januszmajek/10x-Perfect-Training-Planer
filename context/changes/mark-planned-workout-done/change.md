@@ -1,9 +1,9 @@
 ---
 change_id: mark-planned-workout-done
 title: Mark planned workout done
-status: implementing
+status: implemented
 created: 2026-09-02
-updated: 2026-09-02
+updated: 2026-09-03
 archived_at: null
 ---
 
