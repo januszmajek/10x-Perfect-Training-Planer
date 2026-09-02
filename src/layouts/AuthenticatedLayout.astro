@@ -14,11 +14,14 @@ if (!user) {
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/workouts/new", label: "Manual workout" },
+  { href: "/workouts/new", label: "Workout" },
   { href: "/account", label: "Account" },
 ];
 
 function isActivePath(href: string): boolean {
+  if (href === "/workouts/new") {
+    return Astro.url.pathname === "/workouts/new" || Astro.url.pathname === "/workouts/edit";
+  }
   return Astro.url.pathname === href || Astro.url.pathname.startsWith(`${href}/`);
 }
 ---

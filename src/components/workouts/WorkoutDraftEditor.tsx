@@ -1,12 +1,16 @@
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Check, Dumbbell, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Dumbbell, Plus, Replace, RotateCcw, Search, Trash2, X } from "lucide-react";
 import {
   MAX_REPS,
   MAX_SETS,
   MAX_WORKOUT_EXERCISES,
   MIN_REPS,
   MIN_SETS,
+  addDraftItem,
   filterCatalogue,
+  moveDraftItem,
+  removeDraftItem,
+  replaceDraftItem,
   validateDraftItems,
   type CatalogueExercise,
   type EquipmentType,
@@ -44,6 +48,7 @@ export default function WorkoutDraftEditor({
   const [search, setSearch] = useState("");
   const [selectedMuscles, setSelectedMuscles] = useState<string[]>([]);
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentType[]>([]);
+  const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
   const knownExerciseIds = useMemo(() => new Set(catalogue.map(({ id }) => id)), [catalogue]);
   const exercisesById = useMemo(() => new Map(catalogue.map((exercise) => [exercise.id, exercise])), [catalogue]);
   const selectedExerciseIds = useMemo(() => new Set(draft.map(({ exerciseId }) => exerciseId)), [draft]);
@@ -67,12 +72,11 @@ export default function WorkoutDraftEditor({
   }
 
   function moveItem(index: number, direction: "up" | "down") {
-    const nextIndex = direction === "up" ? index - 1 : index + 1;
-    if (nextIndex < 0 || nextIndex >= draft.length) return;
-    const next = [...draft];
-    [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
-    onChange(next);
+    onChange(moveDraftItem(draft, index, direction));
   }
+
+  const replacingExercise = replacingIndex === null ? null : draft[replacingIndex];
+  const replacingExerciseName = replacingExercise ? exercisesById.get(replacingExercise.exerciseId)?.name : null;
 
   return (
     <div className="space-y-6">
@@ -173,6 +177,9 @@ export default function WorkoutDraftEditor({
           <ul className="mt-4 space-y-3" aria-label="Filtered exercise catalogue">
             {filteredCatalogue.map((exercise) => {
               const selected = selectedExerciseIds.has(exercise.id);
+              const isReplacementTarget = replacingIndex !== null;
+              const selectedElsewhere = selected && draft[replacingIndex ?? -1]?.exerciseId !== exercise.id;
+              const isCurrentReplacement = isReplacementTarget && draft[replacingIndex]?.exerciseId === exercise.id;
               return (
                 <li key={exercise.id} className="rounded-xl border border-white/10 bg-black/15 p-4">
                   <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -182,18 +189,34 @@ export default function WorkoutDraftEditor({
                     </div>
                     <button
                       type="button"
-                      disabled={selected || draft.length >= MAX_WORKOUT_EXERCISES || pending}
+                      disabled={
+                        pending ||
+                        (isReplacementTarget
+                          ? selectedElsewhere || isCurrentReplacement
+                          : selected || draft.length >= MAX_WORKOUT_EXERCISES)
+                      }
                       onClick={() => {
-                        onChange([...draft, { exerciseId: exercise.id, sets: 3, reps: 10 }]);
+                        if (replacingIndex !== null) {
+                          onChange(replaceDraftItem(draft, replacingIndex, exercise.id));
+                          setReplacingIndex(null);
+                          return;
+                        }
+                        onChange(addDraftItem(draft, exercise.id));
                       }}
                       className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-lg border border-purple-300/30 px-3 py-2 text-sm font-semibold text-purple-100 disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
                     >
-                      {selected ? (
+                      {isCurrentReplacement ? (
                         <Check aria-hidden="true" className="size-4" />
                       ) : (
                         <Plus aria-hidden="true" className="size-4" />
                       )}
-                      {selected ? "Added" : "Add"}
+                      {isReplacementTarget
+                        ? isCurrentReplacement
+                          ? "Current"
+                          : "Replace"
+                        : selected
+                          ? "Added"
+                          : "Add"}
                     </button>
                   </div>
                 </li>
@@ -210,6 +233,24 @@ export default function WorkoutDraftEditor({
         <section className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl sm:p-6 lg:sticky lg:top-6">
           <p className="text-sm font-medium tracking-wide text-purple-300 uppercase">Workout draft</p>
           <h2 className="mt-1 text-2xl font-bold text-white">Your exercise order</h2>
+          {replacingIndex !== null && (
+            <div className="mt-4 flex flex-col gap-3 rounded-xl border border-amber-300/30 bg-amber-400/10 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-amber-100" role="status">
+                Replacing {replacingExerciseName ?? "this exercise"}. Choose an available catalogue exercise.
+              </p>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => {
+                  setReplacingIndex(null);
+                }}
+                className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-amber-100/25 px-3 py-2 text-sm font-medium text-amber-50 disabled:opacity-45"
+              >
+                <X aria-hidden="true" className="size-4" />
+                Cancel replace
+              </button>
+            </div>
+          )}
           <p className="mt-2 text-sm text-blue-100/60">
             {draft.length} of {MAX_WORKOUT_EXERCISES} exercises selected
           </p>
@@ -267,7 +308,19 @@ export default function WorkoutDraftEditor({
                       </label>
                     </div>
                     {!valid && <p className="mt-2 text-xs text-red-200">Use whole values: sets 1–99 and reps 1–999.</p>}
-                    <div className="mt-4 grid grid-cols-3 gap-2">
+                    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() => {
+                          setReplacingIndex((current) => (current === index ? null : index));
+                        }}
+                        className="inline-flex min-h-11 items-center justify-center gap-1 rounded-lg border border-amber-300/25 px-2 py-2 text-xs text-amber-100 disabled:opacity-35"
+                        aria-label={`Replace ${exercise?.name ?? "exercise"}`}
+                      >
+                        <Replace aria-hidden="true" className="size-4" />
+                        {replacingIndex === index ? "Replacing" : "Replace"}
+                      </button>
                       <button
                         type="button"
                         disabled={index === 0 || pending}
@@ -296,7 +349,10 @@ export default function WorkoutDraftEditor({
                         type="button"
                         disabled={pending}
                         onClick={() => {
-                          onChange(draft.filter((_, itemIndex) => itemIndex !== index));
+                          onChange(removeDraftItem(draft, item.exerciseId));
+                          if (replacingIndex === index) setReplacingIndex(null);
+                          else if (replacingIndex !== null && replacingIndex > index)
+                            setReplacingIndex(replacingIndex - 1);
                         }}
                         className="inline-flex min-h-11 items-center justify-center gap-1 rounded-lg border border-red-300/25 px-2 py-2 text-xs text-red-200 disabled:opacity-35"
                         aria-label={`Remove ${exercise?.name ?? "exercise"}`}

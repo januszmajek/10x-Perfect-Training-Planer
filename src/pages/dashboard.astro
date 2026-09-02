@@ -12,6 +12,9 @@ if (!user || !supabase) {
 const planResult = await loadCurrentPlannedWorkout(supabase, user.id);
 const currentPlan = planResult.ok ? planResult.data : null;
 const showSavedStatus = Astro.url.searchParams.get("status") === "workout-saved" && currentPlan !== null;
+const showUpdatedStatus = Astro.url.searchParams.get("status") === "workout-updated" && currentPlan !== null;
+const showDeletedStatus = Astro.url.searchParams.get("status") === "workout-deleted" && currentPlan === null;
+const showChangedStatus = Astro.url.searchParams.get("status") === "workout-changed";
 ---
 
 <AuthenticatedLayout title="Dashboard | Perfect Training Planner">
@@ -31,6 +34,36 @@ const showSavedStatus = Astro.url.searchParams.get("status") === "workout-saved"
         class="mb-5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
       >
         Your manual workout was saved successfully.
+      </p>
+    )
+  }
+  {
+    showUpdatedStatus && (
+      <p
+        role="status"
+        class="mb-5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
+      >
+        Your planned workout was updated successfully.
+      </p>
+    )
+  }
+  {
+    showDeletedStatus && (
+      <p
+        role="status"
+        class="mb-5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
+      >
+        Your planned workout was deleted.
+      </p>
+    )
+  }
+  {
+    showChangedStatus && (
+      <p
+        role="status"
+        class="mb-5 rounded-xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100"
+      >
+        Your planned workout changed elsewhere. The latest saved state is shown below.
       </p>
     )
   }

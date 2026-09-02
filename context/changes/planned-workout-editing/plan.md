@@ -554,35 +554,35 @@ are single RPC transactions with no application retry loop; a reviewed overwrite
 
 #### Automated
 
-- [x] 2.1 Manual and planned-workout pure TypeScript tests pass
-- [x] 2.2 Astro types synchronize successfully
-- [x] 2.3 Repository lint passes
-- [x] 2.4 Production SSR build passes under the Cloudflare adapter
-- [x] 2.5 Database, generated-type, and both workout concurrency regression gates remain green
-- [x] 2.8 Manual-builder refresh tests use planned GET, validate revision, and prove manual GET is no longer supported
+- [x] 2.1 Manual and planned-workout pure TypeScript tests pass — db47b31
+- [x] 2.2 Astro types synchronize successfully — db47b31
+- [x] 2.3 Repository lint passes — db47b31
+- [x] 2.4 Production SSR build passes under the Cloudflare adapter — db47b31
+- [x] 2.5 Database, generated-type, and both workout concurrency regression gates remain green — db47b31
+- [x] 2.8 Manual-builder refresh tests use planned GET, validate revision, and prove manual GET is no longer supported — db47b31
 
 #### Manual
 
-- [x] 2.6 Planned GET/PUT/DELETE enforce Origin, media type, body, schema, authentication, revision, and ownership bounds
-- [x] 2.7 Known and unknown failures expose only safe code/request-ID responses and sanitized logs while durable state remains unchanged
+- [x] 2.6 Planned GET/PUT/DELETE enforce Origin, media type, body, schema, authentication, revision, and ownership bounds — db47b31
+- [x] 2.7 Known and unknown failures expose only safe code/request-ID responses and sanitized logs while durable state remains unchanged — db47b31
 
 ### Phase 3: Editing, Conflict, and Deletion UX
 
 #### Automated
 
-- [ ] 3.1 Final database, concurrency, and generated-type gates pass
-- [ ] 3.2 Manual and planned-workout pure TypeScript tests pass
-- [ ] 3.3 Existing cryptography tests pass
-- [ ] 3.4 Astro types synchronize successfully
-- [ ] 3.5 Repository lint passes
-- [ ] 3.6 Production Cloudflare Worker build passes
+- [x] 3.1 Final database, concurrency, and generated-type gates pass
+- [x] 3.2 Manual and planned-workout pure TypeScript tests pass
+- [x] 3.3 Existing cryptography tests pass
+- [x] 3.4 Astro types synchronize successfully
+- [x] 3.5 Repository lint passes
+- [x] 3.6 Production Cloudflare Worker build passes
 
 #### Manual
 
-- [ ] 3.7 Manual- and AI-origin plans open with exact ordered prescriptions and preserve parent identity/provenance after save
-- [ ] 3.8 Replace preserves position and sets/reps; add/remove/reorder and numeric validation work by keyboard and touch
-- [ ] 3.9 Clean Cancel exits immediately, while dirty Cancel/navigation protects the draft and confirmed discard restores no draft
-- [ ] 3.10 Concurrent edits preserve the local draft and support load-latest or reviewed overwrite without silent loss
-- [ ] 3.11 A plan deleted, replaced, or completed during editing cannot be silently recreated or overwritten
-- [ ] 3.12 Confirmed dashboard deletion removes only the matching plan; cancellation and stale deletion change nothing
-- [ ] 3.13 Editing, conflict, and deletion remain usable at 360px and desktop widths with correct focus, labels, live status, and wrapping
+- [x] 3.7 Manual- and AI-origin plans open with exact ordered prescriptions and preserve parent identity/provenance after save
+- [x] 3.8 Replace preserves position and sets/reps; add/remove/reorder and numeric validation work by keyboard and touch
+- [x] 3.9 Clean Cancel exits immediately, while dirty Cancel/navigation protects the draft and confirmed discard restores no draft
+- [x] 3.10 Concurrent edits preserve the local draft and support load-latest or reviewed overwrite without silent loss
+- [x] 3.11 A plan deleted, replaced, or completed during editing cannot be silently recreated or overwritten
+- [x] 3.12 Confirmed dashboard deletion removes only the matching plan; cancellation and stale deletion change nothing
+- [x] 3.13 Editing, conflict, and deletion remain usable at 360px and desktop widths with correct focus, labels, live status, and wrapping
