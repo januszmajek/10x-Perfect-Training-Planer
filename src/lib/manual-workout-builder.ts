@@ -8,7 +8,7 @@ export const MIN_REPS = 1;
 export const MAX_REPS = 999;
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const REQUEST_KEYS = ["exercises", "expectedWorkoutId", "replaceExisting", "version"];
+const REQUEST_KEYS = ["exercises", "expectedRevision", "expectedWorkoutId", "replaceExisting", "version"];
 const EXERCISE_KEYS = ["exerciseId", "reps", "sets"];
 
 export type EquipmentType = Enums<"equipment_type">;
@@ -43,6 +43,7 @@ export interface ManualWorkoutRequest {
   version: typeof MANUAL_WORKOUT_REQUEST_VERSION;
   replaceExisting: boolean;
   expectedWorkoutId: string | null;
+  expectedRevision: number | null;
   exercises: ManualWorkoutDraftItem[];
 }
 
@@ -159,14 +160,16 @@ export function parseManualWorkoutRequest(input: unknown): ManualWorkoutRequestV
     input.version !== MANUAL_WORKOUT_REQUEST_VERSION ||
     typeof input.replaceExisting !== "boolean" ||
     (input.expectedWorkoutId !== null && !isCanonicalUuid(input.expectedWorkoutId)) ||
+    (input.expectedRevision !== null &&
+      (!Number.isSafeInteger(input.expectedRevision) || (input.expectedRevision as number) < 1)) ||
     !Array.isArray(input.exercises)
   ) {
     return { valid: false };
   }
 
   if (
-    (input.replaceExisting && input.expectedWorkoutId === null) ||
-    (!input.replaceExisting && input.expectedWorkoutId !== null)
+    (input.replaceExisting && (input.expectedWorkoutId === null || input.expectedRevision === null)) ||
+    (!input.replaceExisting && (input.expectedWorkoutId !== null || input.expectedRevision !== null))
   ) {
     return { valid: false };
   }
@@ -195,6 +198,7 @@ export function parseManualWorkoutRequest(input: unknown): ManualWorkoutRequestV
       version: MANUAL_WORKOUT_REQUEST_VERSION,
       replaceExisting: input.replaceExisting,
       expectedWorkoutId: input.expectedWorkoutId,
+      expectedRevision: input.expectedRevision,
       exercises,
     },
   };

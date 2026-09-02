@@ -48,7 +48,7 @@ const catalogue: CatalogueExercise[] = [
 ];
 
 function request(exercises: ManualWorkoutDraftItem[] = [createDraftItem(IDS[0])]) {
-  return { version: 1, replaceExisting: false, expectedWorkoutId: null, exercises };
+  return { version: 1, replaceExisting: false, expectedWorkoutId: null, expectedRevision: null, exercises };
 }
 
 void test("filters by case-insensitive trimmed name and returns an empty result", () => {
@@ -114,6 +114,7 @@ void test("accepts the exact version-1 request schema and 20-item boundary", () 
       version: 1,
       replaceExisting: true,
       expectedWorkoutId: IDS[20],
+      expectedRevision: 1,
       exercises: IDS.slice(0, MAX_WORKOUT_EXERCISES).map(createDraftItem),
     }).valid,
     true,
@@ -127,7 +128,13 @@ void test("rejects unknown keys, invalid replacement state, UUIDs, duplicates, a
     false,
   );
   assert.equal(parseManualWorkoutRequest({ ...request(), expectedWorkoutId: IDS[1] }).valid, false);
+  assert.equal(parseManualWorkoutRequest({ ...request(), expectedRevision: 1 }).valid, false);
   assert.equal(parseManualWorkoutRequest({ ...request(), replaceExisting: true }).valid, false);
+  assert.equal(
+    parseManualWorkoutRequest({ ...request(), replaceExisting: true, expectedWorkoutId: IDS[1], expectedRevision: 0 })
+      .valid,
+    false,
+  );
   assert.equal(parseManualWorkoutRequest({ ...request(), exercises: [createDraftItem("NOT-A-UUID")] }).valid, false);
   assert.equal(parseManualWorkoutRequest(request([createDraftItem(IDS[0]), createDraftItem(IDS[0])])).valid, false);
   assert.equal(

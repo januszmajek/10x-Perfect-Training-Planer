@@ -11,6 +11,7 @@ of truth; generated TypeScript types expose that schema to application code.
 4. `supabase/migrations/20260827120000_serialize_workout_exercise_mutations.sql`
 5. `supabase/migrations/20260827130000_create_ai_provider_keys.sql`
 6. `supabase/migrations/20260901120000_create_manual_workout_mutation.sql`
+7. `supabase/migrations/20260902120000_create_planned_workout_mutations.sql`
 
 Production catalogue data belongs in the second migration. `supabase/seed.sql` is only for non-sensitive local
 fixtures and must not contain data required by production.
@@ -28,14 +29,14 @@ fixtures and must not contain data required by production.
 
 ## Tables and key columns
 
-| Table                    | Primary key                                | Load-bearing columns and relationships                                                  |
-| ------------------------ | ------------------------------------------ | --------------------------------------------------------------------------------------- |
-| `muscle_groups`          | `code`                                     | `name`, `category`, `recovery_hours`                                                    |
-| `exercises`              | `id`                                       | unique `slug`, unique `name`, `equipment`                                               |
-| `exercise_muscle_groups` | `exercise_id`, `muscle_group_code`, `role` | restrictive references to `exercises.id` and `muscle_groups.code`                       |
-| `workouts`               | `id`                                       | `user_id` → `auth.users.id`, `status`, immutable `origin`, `created_at`, `completed_at` |
-| `workout_exercises`      | `id`                                       | `workout_id`, `exercise_id`, `position`, `sets`, `reps`                                 |
-| `ai_provider_keys`       | `user_id`                                  | `provider`, `ciphertext`, `iv`, `key_hint`, `encryption_key_version`, timestamps        |
+| Table                    | Primary key                                | Load-bearing columns and relationships                                                              |
+| ------------------------ | ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `muscle_groups`          | `code`                                     | `name`, `category`, `recovery_hours`                                                                |
+| `exercises`              | `id`                                       | unique `slug`, unique `name`, `equipment`                                                           |
+| `exercise_muscle_groups` | `exercise_id`, `muscle_group_code`, `role` | restrictive references to `exercises.id` and `muscle_groups.code`                                   |
+| `workouts`               | `id`                                       | `user_id` → `auth.users.id`, `status`, immutable `origin`, `revision`, `created_at`, `completed_at` |
+| `workout_exercises`      | `id`                                       | `workout_id`, `exercise_id`, `position`, `sets`, `reps`                                             |
+| `ai_provider_keys`       | `user_id`                                  | `provider`, `ciphertext`, `iv`, `key_hint`, `encryption_key_version`, timestamps                    |
 
 ## Muscle taxonomy
 
@@ -56,6 +57,8 @@ Recovery is 72 hours for `lats`, `upper_back`, `lower_back`, `quads`, `hamstring
   immutable and cannot return to `planned`.
 - Workout-exercise writes lock and recheck their parent workout, serializing them against concurrent completion.
 - Workout `user_id`, `origin`, and `created_at` cannot be changed by authenticated clients.
+- `workouts.revision` is a positive opaque compare-and-swap token. It starts at `1`; a trigger converts every
+  permitted direct assignment into exactly `OLD.revision + 1`. RLS limits direct advances to the owner's planned row.
 - `workout_exercises.position`, `(workout_id, position)`, and `(workout_id, exercise_id)` enforce ordered,
   non-duplicated prescriptions; `sets` and `reps` are positive integers.
 - Authenticated users can read the catalogue but cannot mutate it. Anonymous users have no catalogue access.
@@ -64,9 +67,9 @@ Recovery is 72 hours for `lats`, `upper_back`, `lower_back`, `quads`, `hamstring
 
 ## Manual planned-workout save RPC
 
-- `public.save_manual_planned_workout(p_exercises jsonb, p_replace_existing boolean, p_expected_workout_id uuid)`
-  returns the newly saved workout UUID. It is `SECURITY INVOKER`, has an empty `search_path`, and only
-  `authenticated` may execute it.
+- `public.save_manual_planned_workout(p_exercises jsonb, p_replace_existing boolean, p_expected_workout_id uuid,
+p_expected_revision integer)` returns the newly saved workout UUID. It is `SECURITY INVOKER`, has an empty
+  `search_path`, and only `authenticated` may execute it. The legacy three-argument signature is not callable.
 - Ownership, `origin = 'manual'`, `status = 'planned'`, and zero-based exercise positions are derived server-side.
   The input JSON may contain only ordered `exercise_id`, `sets`, and `reps` values; it cannot set user, origin,
   status, timestamps, a workout ID, or positions.
@@ -75,13 +78,28 @@ Recovery is 72 hours for `lats`, `upper_back`, `lower_back`, `quads`, `hamstring
   caller's current planned parent with `FOR UPDATE`. Future planned-workout edit and completion RPCs must reuse this
   lock namespace and ordering.
 - Compare-and-swap outcomes are fixed: expected `null` plus no current plan and `replace = false` creates; expected
-  `null` plus a current plan raises `MW001` (`confirmation_required`); a non-null expected ID with no matching
-  current plan raises `MW002` (`stale_plan`); an exact expected ID with `replace = true` replaces atomically; every
-  other flag/state combination and malformed input raises `MW003` (`validation_failed`). Missing authentication
-  raises `MW004` (`unauthenticated`).
+  ID/revision plus a current plan raises `MW001` (`confirmation_required`); supplied ID/revision with no exact
+  matching current plan raises `MW002` (`stale_plan`); an exact expected pair with `replace = true` replaces
+  atomically; every other flag/state combination and malformed input raises `MW003` (`validation_failed`). Missing
+  authentication raises `MW004` (`unauthenticated`).
 - Replacement deletes only the caller's locked planned parent and inserts the new parent and prescriptions in one
   transaction. Any error rolls back the deletion and every child mutation, leaving completed history and other users'
   data untouched.
+
+## Planned workout edit and delete RPCs
+
+- `public.update_planned_workout(p_expected_workout_id uuid, p_expected_revision integer, p_exercises jsonb)` returns
+  the new revision. `public.delete_planned_workout(p_expected_workout_id uuid, p_expected_revision integer)` returns
+  the deleted workout UUID. Both are authenticated-only `SECURITY INVOKER` functions with empty `search_path`.
+- Both acquire the transaction-scoped advisory lock
+  `hashtextextended('perfect-training-planner:planned-workout:' || auth.uid()::text, 0)` before locking the caller's
+  current planned parent. S-04 completion must reuse this namespace and advisory-lock-then-parent-lock order.
+- Both compare the expected ID and revision after locking. A missing, replaced, completed, cross-user, or
+  revision-mismatched target raises `PW001` (`stale_plan`); malformed input raises `PW002` (`validation_failed`);
+  missing authentication raises `PW003` (`unauthenticated`).
+- Update atomically replaces the complete ordered prescription, derives zero-based contiguous positions, advances
+  revision once, and preserves parent ID, owner, origin, creation time, status, and completion time. Delete hard-
+  deletes only the exact matched planned parent and cascades its prescription. Exceptions roll back every change.
 
 ## AI provider credential invariants
 
@@ -107,6 +125,8 @@ Recovery is 72 hours for `lats`, `upper_back`, `lower_back`, `quads`, `hamstring
 - Workout lifecycle concurrency contract: `supabase/tests/database/workout_lifecycle_concurrency.test.sh`
 - Manual-workout RPC pgTAP contract: `supabase/tests/database/manual_workout_mutation.test.sql`
 - Manual-workout RPC concurrency contract: `supabase/tests/database/manual_workout_mutation_concurrency.test.sh`
+- Planned-workout RPC pgTAP contract: `supabase/tests/database/planned_workout_mutation.test.sql`
+- Planned-workout RPC concurrency contract: `supabase/tests/database/planned_workout_mutation_concurrency.test.sh`
 - AI provider key pgTAP contract: `supabase/tests/database/ai_provider_keys.test.sql`
 - Full local suite: `pnpm exec supabase test db --local supabase/tests/database`
 

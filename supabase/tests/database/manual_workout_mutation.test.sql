@@ -8,29 +8,30 @@ select no_plan();
 select has_function(
   'public',
   'save_manual_planned_workout',
-  array['jsonb', 'boolean', 'uuid'],
+  array['jsonb', 'boolean', 'uuid', 'integer'],
   'manual workout save function has the public RPC signature'
 );
 select function_returns(
   'public',
   'save_manual_planned_workout',
-  array['jsonb', 'boolean', 'uuid'],
+  array['jsonb', 'boolean', 'uuid', 'integer'],
   'uuid',
   'manual workout save function returns the saved workout UUID'
 );
 select is(
-  (select prosecdef from pg_proc where oid = 'public.save_manual_planned_workout(jsonb, boolean, uuid)'::regprocedure),
+  (select prosecdef from pg_proc where oid = 'public.save_manual_planned_workout(jsonb, boolean, uuid, integer)'::regprocedure),
   false,
   'manual workout save function is SECURITY INVOKER'
 );
 select is(
-  (select proconfig @> array['search_path=""'] from pg_proc where oid = 'public.save_manual_planned_workout(jsonb, boolean, uuid)'::regprocedure),
+  (select proconfig @> array['search_path=""'] from pg_proc where oid = 'public.save_manual_planned_workout(jsonb, boolean, uuid, integer)'::regprocedure),
   true,
   'manual workout save function has an empty search path'
 );
 select ok(
-  has_function_privilege('authenticated', 'public.save_manual_planned_workout(jsonb, boolean, uuid)', 'EXECUTE')
-    and not has_function_privilege('anon', 'public.save_manual_planned_workout(jsonb, boolean, uuid)', 'EXECUTE'),
+  has_function_privilege('authenticated', 'public.save_manual_planned_workout(jsonb, boolean, uuid, integer)', 'EXECUTE')
+    and not has_function_privilege('anon', 'public.save_manual_planned_workout(jsonb, boolean, uuid, integer)', 'EXECUTE')
+    and to_regprocedure('public.save_manual_planned_workout(jsonb, boolean, uuid)') is null,
   'only authenticated users can execute the manual workout RPC'
 );
 
@@ -44,37 +45,37 @@ select set_config('request.jwt.claim.role', 'authenticated', true);
 set local role authenticated;
 
 select throws_ok(
-  $$select public.save_manual_planned_workout('[]'::jsonb, false, null)$$,
+  $$select public.save_manual_planned_workout('[]'::jsonb, false, null, null)$$,
   'MW003'::character(5),
   'validation_failed',
   'empty prescriptions are rejected with the public validation SQLSTATE'
 );
 select throws_ok(
-  $$select public.save_manual_planned_workout('[{"exercise_id":"not-a-uuid","sets":3,"reps":10}]'::jsonb, false, null)$$,
+  $$select public.save_manual_planned_workout('[{"exercise_id":"not-a-uuid","sets":3,"reps":10}]'::jsonb, false, null, null)$$,
   'MW003'::character(5),
   'validation_failed',
   'malformed exercise IDs are rejected before mutation'
 );
 select throws_ok(
-  $$select public.save_manual_planned_workout('[{"exercise_id":"00000000-0000-0000-0000-000000000000","sets":3,"reps":10}]'::jsonb, false, null)$$,
+  $$select public.save_manual_planned_workout('[{"exercise_id":"00000000-0000-0000-0000-000000000000","sets":3,"reps":10}]'::jsonb, false, null, null)$$,
   'MW003'::character(5),
   'validation_failed',
   'unknown catalogue exercise IDs are rejected before mutation'
 );
 select throws_ok(
-  $$select public.save_manual_planned_workout('[{"exercise_id":"11111111-1111-1111-1111-111111111111","sets":0,"reps":10}]'::jsonb, false, null)$$,
+  $$select public.save_manual_planned_workout('[{"exercise_id":"11111111-1111-1111-1111-111111111111","sets":0,"reps":10}]'::jsonb, false, null, null)$$,
   'MW003'::character(5),
   'validation_failed',
   'non-positive prescriptions are rejected before UUID lookup'
 );
 select throws_ok(
-  $$select public.save_manual_planned_workout('[{"exercise_id":"11111111-1111-1111-1111-111111111111","sets":3,"reps":10,"position":0}]'::jsonb, false, null)$$,
+  $$select public.save_manual_planned_workout('[{"exercise_id":"11111111-1111-1111-1111-111111111111","sets":3,"reps":10,"position":0}]'::jsonb, false, null, null)$$,
   'MW003'::character(5),
   'validation_failed',
   'caller-supplied positions and unknown JSON keys are rejected'
 );
 select throws_ok(
-  $$select public.save_manual_planned_workout('[{"exercise_id":"11111111-1111-1111-1111-111111111111","sets":3,"reps":10},{"exercise_id":"11111111-1111-1111-1111-111111111111","sets":4,"reps":8}]'::jsonb, false, null)$$,
+  $$select public.save_manual_planned_workout('[{"exercise_id":"11111111-1111-1111-1111-111111111111","sets":3,"reps":10},{"exercise_id":"11111111-1111-1111-1111-111111111111","sets":4,"reps":8}]'::jsonb, false, null, null)$$,
   'MW003'::character(5),
   'validation_failed',
   'duplicate exercise IDs are rejected before mutation'
@@ -88,6 +89,7 @@ select lives_ok(
         jsonb_build_object('exercise_id', (select id from public.exercises where slug = 'back-squat'), 'sets', 4, 'reps', 8)
       ),
       false,
+      null,
       null
     )
   $$,
@@ -118,6 +120,7 @@ select throws_ok(
     select public.save_manual_planned_workout(
       jsonb_build_array(jsonb_build_object('exercise_id', (select id from public.exercises where slug = 'conventional-deadlift'), 'sets', 3, 'reps', 5)),
       false,
+      null,
       null
     )
   $$,
@@ -135,7 +138,8 @@ select throws_ok(
     select public.save_manual_planned_workout(
       jsonb_build_array(jsonb_build_object('exercise_id', (select id from public.exercises where slug = 'conventional-deadlift'), 'sets', 3, 'reps', 5)),
       true,
-      'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+      'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      1
     )
   $$,
   'MW002'::character(5),
@@ -143,12 +147,37 @@ select throws_ok(
   'an unmatched expected plan ID is rejected as stale'
 );
 
+update public.workouts
+set revision = 999
+where user_id = '00000000-0000-0000-0000-000000000021'
+  and status = 'planned';
+
+select is(
+  (select revision from public.workouts where user_id = '00000000-0000-0000-0000-000000000021' and status = 'planned'),
+  2,
+  'the database derives the next revision instead of accepting a caller-selected value'
+);
+select throws_ok(
+  $$
+    select public.save_manual_planned_workout(
+      jsonb_build_array(jsonb_build_object('exercise_id', (select id from public.exercises where slug = 'conventional-deadlift'), 'sets', 3, 'reps', 5)),
+      true,
+      (select id from public.workouts where user_id = '00000000-0000-0000-0000-000000000021' and status = 'planned'),
+      1
+    )
+  $$,
+  'MW002'::character(5),
+  'stale_plan',
+  'a replacement opened before an in-place revision advance is rejected as stale'
+);
+
 select lives_ok(
   $$
     select public.save_manual_planned_workout(
       jsonb_build_array(jsonb_build_object('exercise_id', (select id from public.exercises where slug = 'conventional-deadlift'), 'sets', 5, 'reps', 5)),
       true,
-      (select id from public.workouts where user_id = '00000000-0000-0000-0000-000000000021' and status = 'planned')
+      (select id from public.workouts where user_id = '00000000-0000-0000-0000-000000000021' and status = 'planned'),
+      (select revision from public.workouts where user_id = '00000000-0000-0000-0000-000000000021' and status = 'planned')
     )
   $$,
   'a matching explicit confirmation atomically replaces the plan'
@@ -220,7 +249,8 @@ select throws_ok(
     select public.save_manual_planned_workout(
       jsonb_build_array(jsonb_build_object('exercise_id', (select id from public.exercises where slug = 'front-squat'), 'sets', 77, 'reps', 10)),
       true,
-      (select id from public.workouts where user_id = '00000000-0000-0000-0000-000000000021' and status = 'planned')
+      (select id from public.workouts where user_id = '00000000-0000-0000-0000-000000000021' and status = 'planned'),
+      (select revision from public.workouts where user_id = '00000000-0000-0000-0000-000000000021' and status = 'planned')
     )
   $$,
   '23514'::character(5),
@@ -272,7 +302,8 @@ select lives_ok(
     select public.save_manual_planned_workout(
       jsonb_build_array(jsonb_build_object('exercise_id', (select id from public.exercises where slug = 'front-squat'), 'sets', 3, 'reps', 10)),
       true,
-      (select id from public.workouts where user_id = '00000000-0000-0000-0000-000000000021' and status = 'planned')
+      (select id from public.workouts where user_id = '00000000-0000-0000-0000-000000000021' and status = 'planned'),
+      (select revision from public.workouts where user_id = '00000000-0000-0000-0000-000000000021' and status = 'planned')
     )
   $$,
   'replacement does not select or change completed history'
@@ -321,7 +352,8 @@ select throws_ok(
     select public.save_manual_planned_workout(
       jsonb_build_array(jsonb_build_object('exercise_id', (select id from public.exercises where slug = 'front-squat'), 'sets', 3, 'reps', 10)),
       true,
-      current_setting('test.manual_workout_owner_plan_id')::uuid
+      current_setting('test.manual_workout_owner_plan_id')::uuid,
+      1
     )
   $$,
   'MW002'::character(5),
@@ -357,7 +389,7 @@ select is(
 select set_config('request.jwt.claim.sub', '', true);
 select set_config('request.jwt.claim.role', '', true);
 select throws_ok(
-  $$select public.save_manual_planned_workout('[]'::jsonb, false, null)$$,
+  $$select public.save_manual_planned_workout('[]'::jsonb, false, null, null)$$,
   'MW004'::character(5),
   'unauthenticated',
   'unauthenticated calls get the stable unauthenticated SQLSTATE'

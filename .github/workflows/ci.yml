@@ -32,6 +32,8 @@ jobs:
         run: bash supabase/tests/database/workout_lifecycle_concurrency.test.sh
       - name: Test manual workout mutation concurrency
         run: bash supabase/tests/database/manual_workout_mutation_concurrency.test.sh
+      - name: Test planned workout mutation concurrency
+        run: bash supabase/tests/database/planned_workout_mutation_concurrency.test.sh
       - name: Check generated database types
         run: |
           database_types_file="$(mktemp --suffix=.ts)"

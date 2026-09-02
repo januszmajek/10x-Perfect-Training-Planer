@@ -159,6 +159,7 @@ export type Database = {
           created_at: string;
           id: string;
           origin: Database["public"]["Enums"]["workout_origin"];
+          revision: number;
           status: Database["public"]["Enums"]["workout_status"];
           user_id: string;
         };
@@ -167,6 +168,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           origin: Database["public"]["Enums"]["workout_origin"];
+          revision?: number;
           status?: Database["public"]["Enums"]["workout_status"];
           user_id: string;
         };
@@ -175,6 +177,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           origin?: Database["public"]["Enums"]["workout_origin"];
+          revision?: number;
           status?: Database["public"]["Enums"]["workout_status"];
           user_id?: string;
         };
@@ -185,13 +188,26 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      delete_planned_workout: {
+        Args: { p_expected_revision: number; p_expected_workout_id: string };
+        Returns: string;
+      };
       save_manual_planned_workout: {
         Args: {
           p_exercises: Json;
-          p_expected_workout_id: string;
+          p_expected_revision?: number;
+          p_expected_workout_id?: string;
           p_replace_existing: boolean;
         };
         Returns: string;
+      };
+      update_planned_workout: {
+        Args: {
+          p_exercises: Json;
+          p_expected_revision: number;
+          p_expected_workout_id: string;
+        };
+        Returns: number;
       };
     };
     Enums: {

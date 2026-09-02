@@ -45,6 +45,7 @@ rpc_sql() {
   local exercises=$2
   local replace_existing=$3
   local expected_workout_id=$4
+  local expected_revision=$5
 
   run_sql "
     set application_name = '${application_name}';
@@ -52,7 +53,7 @@ rpc_sql() {
     select set_config('request.jwt.claim.sub', '${owner_id}', true);
     select set_config('request.jwt.claim.role', 'authenticated', true);
     set local role authenticated;
-    select public.save_manual_planned_workout('${exercises}'::jsonb, ${replace_existing}, ${expected_workout_id});
+    select public.save_manual_planned_workout('${exercises}'::jsonb, ${replace_existing}, ${expected_workout_id}, ${expected_revision});
     commit;
   "
 }
@@ -193,9 +194,9 @@ other_snapshot=$(run_sql "
 
 start_advisory_gate 'manual_first_save_gate'
 set +e
-rpc_sql 'manual_first_save_one' "$first_payload" false null >"$first_stdout" 2>"$first_stderr" &
+rpc_sql 'manual_first_save_one' "$first_payload" false null null >"$first_stdout" 2>"$first_stderr" &
 first_pid=$!
-rpc_sql 'manual_first_save_two' "$second_payload" false null >"$second_stdout" 2>"$second_stderr" &
+rpc_sql 'manual_first_save_two' "$second_payload" false null null >"$second_stdout" 2>"$second_stderr" &
 second_pid=$!
 set -e
 if ! wait_for_advisory_waiters 'manual_first_save_one' 'manual_first_save_two'; then
@@ -214,6 +215,7 @@ if [[ $first_status -eq $second_status ]] || ! grep -q 'MW001' "$first_stderr" "
 fi
 
 planned_id=$(run_sql "select id from public.workouts where user_id = '${owner_id}' and status = 'planned';")
+planned_revision=$(run_sql "select revision from public.workouts where id = '${planned_id}';")
 if [[ "$(run_sql "select count(*) from public.workouts where user_id = '${owner_id}' and status = 'planned';")" != '1' ]]; then
   echo 'Concurrent first saves did not leave exactly one planned parent.' >&2
   exit 1
@@ -227,9 +229,9 @@ assert_saved_payload "$planned_id" "$winning_signature"
 
 start_advisory_gate 'manual_replace_gate'
 set +e
-rpc_sql 'manual_replace_one' "$first_payload" true "'${planned_id}'" >"$first_stdout" 2>"$first_stderr" &
+rpc_sql 'manual_replace_one' "$first_payload" true "'${planned_id}'" "$planned_revision" >"$first_stdout" 2>"$first_stderr" &
 first_pid=$!
-rpc_sql 'manual_replace_two' "$second_payload" true "'${planned_id}'" >"$second_stdout" 2>"$second_stderr" &
+rpc_sql 'manual_replace_two' "$second_payload" true "'${planned_id}'" "$planned_revision" >"$second_stdout" 2>"$second_stderr" &
 second_pid=$!
 set -e
 if ! wait_for_advisory_waiters 'manual_replace_one' 'manual_replace_two'; then
@@ -273,7 +275,7 @@ if ! wait_for_sleep 'manual_completion_guard'; then
 fi
 
 set +e
-rpc_sql 'manual_rpc_vs_completion' "$first_payload" true "'${planned_id}'" >"$first_stdout" 2>"$first_stderr" &
+rpc_sql 'manual_rpc_vs_completion' "$first_payload" true "'${planned_id}'" 1 >"$first_stdout" 2>"$first_stderr" &
 rpc_pid=$!
 set -e
 if ! wait_for_parent_lock_with_advisory 'manual_rpc_vs_completion'; then
@@ -303,7 +305,7 @@ if [[ -z "$completed_snapshot" ]]; then
   exit 1
 fi
 
-rpc_sql 'manual_create_after_completion' "$first_payload" false null >/dev/null
+rpc_sql 'manual_create_after_completion' "$first_payload" false null null >/dev/null
 planned_id=$(run_sql "select id from public.workouts where user_id = '${owner_id}' and status = 'planned';")
 
 run_sql "
@@ -323,7 +325,7 @@ if ! wait_for_sleep 'manual_child_mutation_guard'; then
   exit 1
 fi
 
-rpc_sql 'manual_rpc_vs_child_mutation' "$second_payload" true "'${planned_id}'" >"$first_stdout" 2>"$first_stderr" &
+rpc_sql 'manual_rpc_vs_child_mutation' "$second_payload" true "'${planned_id}'" 1 >"$first_stdout" 2>"$first_stderr" &
 rpc_pid=$!
 if ! wait_for_parent_lock_with_advisory 'manual_rpc_vs_child_mutation'; then
   wait "$child_pid" "$rpc_pid" || true

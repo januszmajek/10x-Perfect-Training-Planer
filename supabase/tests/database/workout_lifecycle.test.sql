@@ -25,6 +25,18 @@ select enum_has_labels(
 
 select col_is_pk('public', 'workouts', 'id', 'workouts.id is the primary key');
 select col_is_pk('public', 'workout_exercises', 'id', 'workout_exercises.id is the primary key');
+select col_type_is('public', 'workouts', 'revision', 'integer', 'workouts.revision is an integer');
+select col_not_null('public', 'workouts', 'revision', 'workouts.revision is required');
+select col_default_is('public', 'workouts', 'revision', '1', 'new workouts begin at revision 1');
+select ok(
+  exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.workouts'::regclass
+      and conname = 'workouts_revision_positive_check'
+      and contype = 'c'
+  ),
+  'workout revisions have a positive-value constraint'
+);
 
 select ok(
   exists (
@@ -145,7 +157,9 @@ select ok(
     and has_column_privilege('authenticated', 'public.workouts', 'user_id', 'INSERT')
     and has_column_privilege('authenticated', 'public.workouts', 'status', 'INSERT, UPDATE')
     and has_column_privilege('authenticated', 'public.workouts', 'origin', 'INSERT')
-    and has_column_privilege('authenticated', 'public.workouts', 'completed_at', 'UPDATE'),
+    and has_column_privilege('authenticated', 'public.workouts', 'completed_at', 'UPDATE')
+    and has_column_privilege('authenticated', 'public.workouts', 'revision', 'UPDATE')
+    and not has_column_privilege('authenticated', 'public.workouts', 'revision', 'INSERT'),
   'authenticated has the intended workout operation and column privileges'
 );
 select ok(
@@ -452,6 +466,15 @@ select throws_like(
   '%permission denied for table workouts%',
   'workout creation time is immutable'
 );
+select lives_ok(
+  $$update public.workouts set revision = 999 where user_id = '00000000-0000-0000-0000-000000000003'$$,
+  'an owner may request a revision advance on their planned workout'
+);
+select is(
+  (select revision from public.workouts where user_id = '00000000-0000-0000-0000-000000000003'),
+  2,
+  'direct revision assignments always become exactly OLD.revision + 1'
+);
 select throws_like(
   $$
     update public.workout_exercises
@@ -532,6 +555,15 @@ select is(
   'a completed workout cannot return to planned state'
 );
 select lives_ok(
+  $$update public.workouts set revision = 100 where user_id = '00000000-0000-0000-0000-000000000003'$$,
+  'an attempted completed-workout revision update changes no row'
+);
+select is(
+  (select revision from public.workouts where user_id = '00000000-0000-0000-0000-000000000003' and status = 'completed'),
+  2,
+  'completed workout revisions are immutable'
+);
+select lives_ok(
   $$
     delete from public.workouts
     where user_id = '00000000-0000-0000-0000-000000000003'
@@ -556,6 +588,10 @@ select lives_ok(
     where user_id = '00000000-0000-0000-0000-000000000004'
   $$,
   'an attempted cross-user workout update changes no visible row'
+);
+select lives_ok(
+  $$update public.workouts set revision = 100 where user_id = '00000000-0000-0000-0000-000000000004'$$,
+  'an attempted cross-user revision update changes no visible row'
 );
 select lives_ok(
   $$
@@ -618,6 +654,11 @@ select is(
   ),
   1::bigint,
   'cross-user update and delete attempts leave the other workout unchanged'
+);
+select is(
+  (select revision from public.workouts where id = '40000000-0000-0000-0000-000000000004'),
+  1,
+  'cross-user revision updates leave the other token unchanged'
 );
 select is(
   (

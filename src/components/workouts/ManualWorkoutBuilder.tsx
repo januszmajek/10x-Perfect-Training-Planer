@@ -81,7 +81,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isCurrentPlan(value: unknown): value is CurrentPlannedWorkout {
-  if (!isRecord(value) || !isCanonicalUuid(value.id) || typeof value.createdAt !== "string") {
+  if (
+    !isRecord(value) ||
+    !isCanonicalUuid(value.id) ||
+    !Number.isSafeInteger(value.revision) ||
+    (value.revision as number) < 1 ||
+    typeof value.createdAt !== "string"
+  ) {
     return false;
   }
 
@@ -226,7 +232,11 @@ export default function ManualWorkoutBuilder({ catalogue, initialCurrentPlan }: 
     return value.currentPlan;
   }
 
-  async function submitWorkout(replaceExisting: boolean, expectedWorkoutId: string | null) {
+  async function submitWorkout(
+    replaceExisting: boolean,
+    expectedWorkoutId: string | null,
+    expectedRevision: number | null,
+  ) {
     if (!validateDraftItems(draft, knownExerciseIds)) {
       setError({ message: "Fix the highlighted prescriptions before saving. Your draft has not changed." });
       focusDraftError();
@@ -248,6 +258,7 @@ export default function ManualWorkoutBuilder({ catalogue, initialCurrentPlan }: 
           version: MANUAL_WORKOUT_REQUEST_VERSION,
           replaceExisting,
           expectedWorkoutId,
+          expectedRevision,
           exercises: draft,
         }),
       });
@@ -310,7 +321,7 @@ export default function ManualWorkoutBuilder({ catalogue, initialCurrentPlan }: 
       return;
     }
 
-    void submitWorkout(false, null);
+    void submitWorkout(false, null, null);
   }
 
   function cancelDraft() {
@@ -695,7 +706,7 @@ export default function ManualWorkoutBuilder({ catalogue, initialCurrentPlan }: 
               type="button"
               disabled={pending || !currentPlan}
               onClick={() => {
-                if (currentPlan) void submitWorkout(true, currentPlan.id);
+                if (currentPlan) void submitWorkout(true, currentPlan.id, currentPlan.revision);
               }}
               className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition-colors hover:bg-amber-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-200 disabled:cursor-not-allowed disabled:opacity-45"
             >

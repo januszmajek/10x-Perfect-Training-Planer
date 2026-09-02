@@ -35,6 +35,7 @@ export interface CurrentPlannedWorkoutExercise {
 
 export interface CurrentPlannedWorkout {
   id: string;
+  revision: number;
   origin: Database["public"]["Enums"]["workout_origin"];
   createdAt: string;
   exercises: CurrentPlannedWorkoutExercise[];
@@ -80,7 +81,7 @@ export async function loadCurrentPlannedWorkout(
 
   const { data, error } = await client
     .from("workouts")
-    .select("id,origin,created_at,workout_exercises(exercise_id,position,sets,reps,exercises(name))")
+    .select("id,revision,origin,created_at,workout_exercises(exercise_id,position,sets,reps,exercises(name))")
     .eq("user_id", userId)
     .eq("status", "planned")
     .order("position", { referencedTable: "workout_exercises", ascending: true })
@@ -98,6 +99,7 @@ export async function loadCurrentPlannedWorkout(
     ok: true,
     data: {
       id: data.id,
+      revision: data.revision,
       origin: data.origin,
       createdAt: data.created_at,
       exercises: data.workout_exercises.map((item) => ({
@@ -127,7 +129,7 @@ export async function loadManualWorkoutBuilderData(
       .limit(200),
     client
       .from("workouts")
-      .select("id,origin,created_at,workout_exercises(exercise_id,position,sets,reps,exercises(name))")
+      .select("id,revision,origin,created_at,workout_exercises(exercise_id,position,sets,reps,exercises(name))")
       .eq("user_id", userId)
       .eq("status", "planned")
       .order("position", { referencedTable: "workout_exercises", ascending: true })
@@ -155,6 +157,7 @@ export async function loadManualWorkoutBuilderData(
   const currentPlan = currentPlanResult.data
     ? {
         id: currentPlanResult.data.id,
+        revision: currentPlanResult.data.revision,
         origin: currentPlanResult.data.origin,
         createdAt: currentPlanResult.data.created_at,
         exercises: currentPlanResult.data.workout_exercises.map((item) => ({
@@ -200,11 +203,23 @@ export async function saveManualPlannedWorkout(
     reps,
   }));
 
-  const rpcArgs = {
-    p_exercises: exercises,
-    p_replace_existing: request.replaceExisting,
-    p_expected_workout_id: request.expectedWorkoutId,
-  } as unknown as Database["public"]["Functions"]["save_manual_planned_workout"]["Args"];
+  let rpcArgs: Database["public"]["Functions"]["save_manual_planned_workout"]["Args"];
+  if (request.replaceExisting) {
+    if (request.expectedWorkoutId === null || request.expectedRevision === null) {
+      return failure("validation_failed", "service", "EXPECTED_PLAN_MISSING");
+    }
+    rpcArgs = {
+      p_exercises: exercises,
+      p_replace_existing: true,
+      p_expected_workout_id: request.expectedWorkoutId,
+      p_expected_revision: request.expectedRevision,
+    };
+  } else {
+    rpcArgs = {
+      p_exercises: exercises,
+      p_replace_existing: false,
+    };
+  }
   const { data, error } = await client.rpc("save_manual_planned_workout", rpcArgs);
 
   if (error) {
