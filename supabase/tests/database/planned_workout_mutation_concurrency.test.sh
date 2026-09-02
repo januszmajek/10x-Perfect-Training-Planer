@@ -133,6 +133,20 @@ delete_rpc() {
   "
 }
 
+complete_rpc() {
+  local application_name=$1
+  local expected_revision=$2
+  run_sql "
+    set application_name = '${application_name}';
+    begin;
+    select set_config('request.jwt.claim.sub', '${owner_id}', true);
+    select set_config('request.jwt.claim.role', 'authenticated', true);
+    set local role authenticated;
+    select public.complete_planned_workout('${plan_id}', ${expected_revision});
+    commit;
+  "
+}
+
 manual_rpc() {
   local application_name=$1
   local expected_revision=$2
@@ -297,40 +311,83 @@ if [[ "$(run_sql "select revision from public.workouts where id = '${plan_id}';"
   exit 1
 fi
 
-for operation in edit delete; do
+reset_plan
+start_advisory_gate 'planned_completion_completion_gate'
+set +e
+complete_rpc 'planned_completion_completion_one' 1 >"$first_stdout" 2>"$first_stderr" & first_pid=$!
+complete_rpc 'planned_completion_completion_two' 1 >"$second_stdout" 2>"$second_stderr" & second_pid=$!
+set -e
+wait_for_advisory_waiters 'planned_completion_completion_one' 'planned_completion_completion_two'
+wait "$gate_pid"
+set +e
+wait "$first_pid"; first_status=$?
+wait "$second_pid"; second_status=$?
+set -e
+assert_one_stale_loser "$first_status" "$second_status" PW001
+if [[ "$(run_sql "select count(*) from public.workouts where id = '${plan_id}' and status = 'completed' and origin = 'ai' and revision = 1 and completed_at is not null;")" != '1' ]]; then
+  echo 'Completion/completion race did not leave one immutable AI-origin completion.' >&2
+  exit 1
+fi
+
+for operation in edit delete manual; do
   reset_plan
-  run_sql "
-    set application_name = 'planned_${operation}_completion_guard';
-    begin;
-    select set_config('request.jwt.claim.sub', '${owner_id}', true);
-    select set_config('request.jwt.claim.role', 'authenticated', true);
-    set local role authenticated;
-    update public.workouts set status = 'completed', completed_at = now() where id = '${plan_id}';
-    select pg_sleep(3);
-    commit;
-  " >/dev/null 2>&1 & completion_pid=$!
-  wait_for_sleep "planned_${operation}_completion_guard"
+  start_advisory_gate "planned_completion_${operation}_gate"
   set +e
   if [[ "$operation" == 'edit' ]]; then
     update_rpc 'planned_edit_vs_completion' 1 "$first_payload" >"$first_stdout" 2>"$first_stderr" & rpc_pid=$!
-  else
+  elif [[ "$operation" == 'delete' ]]; then
     delete_rpc 'planned_delete_vs_completion' 1 >"$first_stdout" 2>"$first_stderr" & rpc_pid=$!
+  else
+    manual_rpc 'planned_manual_vs_completion' 1 "$second_payload" >"$first_stdout" 2>"$first_stderr" & rpc_pid=$!
   fi
+  complete_rpc "planned_completion_vs_${operation}" 1 >"$second_stdout" 2>"$second_stderr" & completion_pid=$!
   set -e
-  wait_for_parent_lock_with_advisory "planned_${operation}_vs_completion"
-  wait "$completion_pid"
+  wait_for_advisory_waiters "planned_completion_vs_${operation}" "planned_${operation}_vs_completion"
+  wait "$gate_pid"
   set +e
+  wait "$completion_pid"; completion_status=$?
   wait "$rpc_pid"; rpc_status=$?
   set -e
-  if [[ $rpc_status -eq 0 ]] || ! grep -q PW001 "$first_stderr"; then
-    echo "${operation}/completion race did not produce a completion winner and stale RPC loser." >&2
+  if [[ $completion_status -eq $rpc_status ]]; then
+    echo "${operation}/completion race did not produce exactly one winner." >&2
     exit 1
   fi
-  if [[ "$(run_sql "select count(*) from public.workouts where id = '${plan_id}' and status = 'completed' and origin = 'ai' and revision = 1;")" != '1' ]]; then
-    echo "${operation}/completion race did not preserve complete AI-origin history." >&2
+  if [[ "$operation" == 'manual' ]]; then
+    if ! grep -Eq 'PW001|MW002' "$first_stderr" "$second_stderr"; then
+      echo 'Manual replacement/completion race did not expose an explicit stale loser.' >&2
+      exit 1
+    fi
+  elif ! grep -q PW001 "$first_stderr" "$second_stderr"; then
+    echo "${operation}/completion race did not expose a PW001 stale loser." >&2
+    exit 1
+  fi
+  if [[ "$(run_sql "select count(*) from public.workouts where id = '${plan_id}' and status = 'completed' and origin = 'ai' and revision = 1 and completed_at is not null;")" != '0' ]] \
+    && [[ "$(run_sql "select count(*) from public.workout_exercises where workout_id = '${plan_id}';")" != '1' ]]; then
+    echo "${operation}/completion race corrupted completed workout history." >&2
     exit 1
   fi
 done
+
+reset_plan
+run_sql "
+  set application_name = 'planned_child_vs_completion_guard';
+  begin;
+  select set_config('request.jwt.claim.sub', '${owner_id}', true);
+  select set_config('request.jwt.claim.role', 'authenticated', true);
+  set local role authenticated;
+  update public.workout_exercises set sets = sets + 1 where workout_id = '${plan_id}';
+  select pg_sleep(3);
+  commit;
+" >/dev/null 2>&1 & child_pid=$!
+wait_for_sleep 'planned_child_vs_completion_guard'
+complete_rpc 'planned_completion_vs_child' 1 >"$first_stdout" 2>"$first_stderr" & completion_pid=$!
+wait_for_parent_lock_with_advisory 'planned_completion_vs_child'
+wait "$child_pid" "$completion_pid"
+if [[ "$(run_sql "select count(*) from public.workouts where id = '${plan_id}' and status = 'completed' and completed_at is not null and revision = 1;")" != '1' ]] \
+  || [[ "$(run_sql "select sets from public.workout_exercises where workout_id = '${plan_id}' and position = 0;")" != '4' ]]; then
+  echo 'Completion/child mutation race did not preserve the locked prescription as immutable history.' >&2
+  exit 1
+fi
 
 assert_plan_integrity
 if [[ "$(run_sql "select md5(to_jsonb(workout)::text || (select jsonb_agg(to_jsonb(item) order by item.position)::text from public.workout_exercises item where item.workout_id = workout.id)) from public.workouts workout where workout.user_id = '${other_id}';")" != "$other_snapshot" ]]; then

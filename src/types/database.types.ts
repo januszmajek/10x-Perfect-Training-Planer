@@ -188,6 +188,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      complete_planned_workout: {
+        Args: { p_expected_revision: number; p_expected_workout_id: string };
+        Returns: string;
+      };
       delete_planned_workout: {
         Args: { p_expected_revision: number; p_expected_workout_id: string };
         Returns: string;

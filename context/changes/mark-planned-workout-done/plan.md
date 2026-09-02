@@ -524,17 +524,17 @@ GET and occurs only after ambiguous transport outcomes.
 
 #### Automated
 
-- [ ] 1.1 Clean local reset applies the completion migration
-- [ ] 1.2 Public schema database lint passes
-- [ ] 1.3 Completion pgTAP contract passes
-- [ ] 1.4 Complete database suite remains green
-- [ ] 1.5 Planned-workout concurrency regression passes with the real completion RPC
-- [ ] 1.6 Generated public database types have no drift
+- [x] 1.1 Clean local reset applies the completion migration
+- [x] 1.2 Public schema database lint passes
+- [x] 1.3 Completion pgTAP contract passes
+- [x] 1.4 Complete database suite remains green
+- [x] 1.5 Planned-workout concurrency regression passes with the real completion RPC
+- [x] 1.6 Generated public database types have no drift
 
 #### Manual
 
-- [ ] 1.7 Completion changes only lifecycle fields and preserves prescription and revision
-- [ ] 1.8 Two authenticated users remain isolated through the completion RPC
+- [x] 1.7 Completion changes only lifecycle fields and preserves prescription and revision
+- [x] 1.8 Two authenticated users remain isolated through the completion RPC
 
 ### Phase 2: Completion Application Boundary
 

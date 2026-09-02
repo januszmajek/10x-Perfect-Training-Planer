@@ -12,6 +12,7 @@ of truth; generated TypeScript types expose that schema to application code.
 5. `supabase/migrations/20260827130000_create_ai_provider_keys.sql`
 6. `supabase/migrations/20260901120000_create_manual_workout_mutation.sql`
 7. `supabase/migrations/20260902120000_create_planned_workout_mutations.sql`
+8. `supabase/migrations/20260902130000_complete_planned_workout.sql`
 
 Production catalogue data belongs in the second migration. `supabase/seed.sql` is only for non-sensitive local
 fixtures and must not contain data required by production.
@@ -101,6 +102,21 @@ p_expected_revision integer)` returns the newly saved workout UUID. It is `SECUR
   revision once, and preserves parent ID, owner, origin, creation time, status, and completion time. Delete hard-
   deletes only the exact matched planned parent and cascades its prescription. Exceptions roll back every change.
 
+## Planned workout completion RPC
+
+- `public.complete_planned_workout(p_expected_workout_id uuid, p_expected_revision integer)` returns the completed
+  workout UUID. It is an authenticated-only `SECURITY INVOKER` function with an empty `search_path` and is the
+  supported repository application path for marking a workout done.
+- It acquires the transaction-scoped advisory lock
+  `hashtextextended('perfect-training-planner:planned-workout:' || auth.uid()::text, 0)` before locking the caller's
+  current planned parent with `FOR UPDATE`, matching the planned-workout mutation lock order.
+- A missing, replaced, completed, cross-user, or revision-mismatched target raises `PW001` (`stale_plan`); null or
+  non-positive tokens raise `PW002` (`validation_failed`); missing authentication raises `PW003` (`unauthenticated`).
+- On an exact match it changes only `status` and `completed_at`, with the timestamp selected by the database
+  transaction. It preserves the revision and complete prescription, produces terminal immutable history, and frees
+  the caller's planned-workout slot. Existing authenticated owner lifecycle-column updates remain a lower-level RLS
+  capability; the RPC does not make that direct access exclusive.
+
 ## AI provider credential invariants
 
 - `ai_provider_keys.user_id` is both the primary key and a cascading reference to `auth.users.id`, enforcing one
@@ -127,6 +143,7 @@ p_expected_revision integer)` returns the newly saved workout UUID. It is `SECUR
 - Manual-workout RPC concurrency contract: `supabase/tests/database/manual_workout_mutation_concurrency.test.sh`
 - Planned-workout RPC pgTAP contract: `supabase/tests/database/planned_workout_mutation.test.sql`
 - Planned-workout RPC concurrency contract: `supabase/tests/database/planned_workout_mutation_concurrency.test.sh`
+- Completion RPC pgTAP contract: `supabase/tests/database/planned_workout_completion.test.sql`
 - AI provider key pgTAP contract: `supabase/tests/database/ai_provider_keys.test.sql`
 - Full local suite: `pnpm exec supabase test db --local supabase/tests/database`
 
