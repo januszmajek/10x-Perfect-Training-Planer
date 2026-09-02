@@ -122,3 +122,73 @@
     @apply bg-background text-foreground;
   }
 }
+
+.planned-workout-transition {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows 1s ease,
+    opacity 1s ease;
+}
+
+.planned-workout-transition > section {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.planned-workout-transition.is-collapsed {
+  grid-template-rows: 0fr;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.completion-toast {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 50;
+  display: flex;
+  max-width: 30rem;
+  align-items: center;
+  gap: 1rem;
+  margin-inline: auto;
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 1rem;
+  background: rgb(15 23 42 / 96%);
+  padding: 1rem;
+  box-shadow: 0 20px 40px rgb(0 0 0 / 35%);
+}
+
+.completion-toast-progress {
+  height: 0.25rem;
+  margin-top: 0.75rem;
+  border-radius: 9999px;
+  background: rgb(167 243 208);
+  transform-origin: left;
+  animation: completion-countdown 5s linear forwards;
+}
+
+@keyframes completion-countdown {
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@media (max-width: 24rem) {
+  .completion-toast {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .planned-workout-transition {
+    transition: opacity 1ms linear;
+  }
+
+  .completion-toast-progress {
+    animation: none;
+  }
+}

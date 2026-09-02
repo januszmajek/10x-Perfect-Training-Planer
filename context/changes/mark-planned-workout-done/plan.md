@@ -540,35 +540,35 @@ GET and occurs only after ambiguous transport outcomes.
 
 #### Automated
 
-- [x] 2.1 Planned-workout request contract tests pass
-- [x] 2.2 Completion database and concurrency gates remain green
-- [x] 2.3 Generated database type drift check remains green
-- [x] 2.4 Astro types synchronize successfully
-- [x] 2.5 Repository lint passes
-- [x] 2.6 Production Cloudflare Worker build succeeds
+- [x] 2.1 Planned-workout request contract tests pass — d3aba2f
+- [x] 2.2 Completion database and concurrency gates remain green — d3aba2f
+- [x] 2.3 Generated database type drift check remains green — d3aba2f
+- [x] 2.4 Astro types synchronize successfully — d3aba2f
+- [x] 2.5 Repository lint passes — d3aba2f
+- [x] 2.6 Production Cloudflare Worker build succeeds — d3aba2f
 
 #### Manual
 
-- [x] 2.7 PATCH enforces request, authentication, schema, token, and ownership bounds
-- [x] 2.8 API failures expose only safe responses and sanitized logs without durable mutation
+- [x] 2.7 PATCH enforces request, authentication, schema, token, and ownership bounds — d3aba2f
+- [x] 2.8 API failures expose only safe responses and sanitized logs without durable mutation — d3aba2f
 
 ### Phase 3: Undoable Dashboard Completion Experience
 
 #### Automated
 
-- [ ] 3.1 Final database, completion, concurrency, generated-type, and planned-workout gates pass
-- [ ] 3.2 Pure deadline, Undo, obsolete-callback, and exactly-once completion-state tests pass
-- [ ] 3.3 Existing manual-workout and cryptography tests pass
-- [ ] 3.4 Astro types synchronize successfully
-- [ ] 3.5 Repository lint passes
-- [ ] 3.6 Production Cloudflare Worker build succeeds
+- [x] 3.1 Final database, completion, concurrency, generated-type, and planned-workout gates pass
+- [x] 3.2 Pure deadline, Undo, obsolete-callback, and exactly-once completion-state tests pass
+- [x] 3.3 Existing manual-workout and cryptography tests pass
+- [x] 3.4 Astro types synchronize successfully
+- [x] 3.5 Repository lint passes
+- [x] 3.6 Production Cloudflare Worker build succeeds
 
 #### Manual
 
-- [ ] 3.7 Mark done starts a non-blocking collapse and five-second Undo opportunity
-- [ ] 3.8 Early and near-deadline Undo restore the exact planned workout without a request
-- [ ] 3.9 Navigation before the deadline cancels the uncommitted completion
-- [ ] 3.10 Successful completion shows durable success and immutable history
-- [ ] 3.11 Concurrent planned mutations resolve without completing an unseen workout
-- [ ] 3.12 Ambiguous and known failures reconcile without false state claims
-- [ ] 3.13 Responsive, keyboard, live-region, focus, and reduced-motion behavior is correct
+- [x] 3.7 Mark done starts a non-blocking collapse and five-second Undo opportunity
+- [x] 3.8 Early and near-deadline Undo restore the exact planned workout without a request
+- [x] 3.9 Navigation before the deadline cancels the uncommitted completion
+- [x] 3.10 Successful completion shows durable success and immutable history
+- [x] 3.11 Concurrent planned mutations resolve without completing an unseen workout
+- [x] 3.12 Ambiguous and known failures reconcile without false state claims
+- [x] 3.13 Responsive, keyboard, live-region, focus, and reduced-motion behavior is correct

@@ -8,8 +8,10 @@ import {
   completePlannedWorkout,
   deletePlannedWorkout,
   loadCurrentPlannedWorkout,
+  loadExpectedWorkoutState,
   updatePlannedWorkout,
 } from "@/lib/planned-workouts";
+import { isCanonicalUuid } from "@/lib/manual-workout-builder";
 import {
   failureResponse,
   parseJsonBody,
@@ -27,11 +29,37 @@ export const GET: APIRoute = async (context) => {
   if (!supabase || !user)
     return failureResponse(requestId, operation, "unauthenticated", "request", "AUTH_LOCALS_MISSING");
 
-  const result = await loadCurrentPlannedWorkout(supabase, user.id);
-  if (!result.ok) {
-    return failureResponse(requestId, operation, result.code, result.internal.layer, result.internal.technicalCode);
+  const expectedWorkoutId = context.url.searchParams.get("expectedWorkoutId");
+  if (expectedWorkoutId !== null && !isCanonicalUuid(expectedWorkoutId)) {
+    return failureResponse(requestId, operation, "validation_failed", "validation", "INVALID_EXPECTED_WORKOUT_ID");
   }
-  return successJson(requestId, { currentPlan: result.data });
+
+  const currentPlanResult = await loadCurrentPlannedWorkout(supabase, user.id);
+  if (!currentPlanResult.ok) {
+    return failureResponse(
+      requestId,
+      operation,
+      currentPlanResult.code,
+      currentPlanResult.internal.layer,
+      currentPlanResult.internal.technicalCode,
+    );
+  }
+  if (expectedWorkoutId === null) return successJson(requestId, { currentPlan: currentPlanResult.data });
+
+  const expectedWorkoutStateResult = await loadExpectedWorkoutState(supabase, user.id, expectedWorkoutId);
+  if (!expectedWorkoutStateResult.ok) {
+    return failureResponse(
+      requestId,
+      operation,
+      expectedWorkoutStateResult.code,
+      expectedWorkoutStateResult.internal.layer,
+      expectedWorkoutStateResult.internal.technicalCode,
+    );
+  }
+  return successJson(requestId, {
+    currentPlan: currentPlanResult.data,
+    expectedWorkoutState: expectedWorkoutStateResult.data,
+  });
 };
 
 export const PUT: APIRoute = async (context) => {

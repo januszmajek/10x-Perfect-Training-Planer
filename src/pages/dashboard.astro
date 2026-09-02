@@ -1,5 +1,5 @@
 ---
-import PlannedWorkoutSummary from "@/components/workouts/PlannedWorkoutSummary.astro";
+import PlannedWorkoutSummary from "@/components/workouts/PlannedWorkoutSummary.tsx";
 import AuthenticatedLayout from "@/layouts/AuthenticatedLayout.astro";
 import { loadCurrentPlannedWorkout } from "@/lib/planned-workouts";
 
@@ -15,6 +15,8 @@ const showSavedStatus = Astro.url.searchParams.get("status") === "workout-saved"
 const showUpdatedStatus = Astro.url.searchParams.get("status") === "workout-updated" && currentPlan !== null;
 const showDeletedStatus = Astro.url.searchParams.get("status") === "workout-deleted" && currentPlan === null;
 const showChangedStatus = Astro.url.searchParams.get("status") === "workout-changed";
+const showCompletedStatus =
+  Astro.url.searchParams.get("status") === "workout-completed" && planResult.ok && currentPlan === null;
 ---
 
 <AuthenticatedLayout title="Dashboard | Perfect Training Planner">
@@ -58,6 +60,16 @@ const showChangedStatus = Astro.url.searchParams.get("status") === "workout-chan
     )
   }
   {
+    showCompletedStatus && (
+      <p
+        role="status"
+        class="mb-5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
+      >
+        Your workout was marked done and moved to completed history.
+      </p>
+    )
+  }
+  {
     showChangedStatus && (
       <p
         role="status"
@@ -77,7 +89,7 @@ const showChangedStatus = Astro.url.searchParams.get("status") === "workout-chan
         </p>
       </section>
     ) : currentPlan ? (
-      <PlannedWorkoutSummary plan={currentPlan} />
+      <PlannedWorkoutSummary plan={currentPlan} client:load />
     ) : (
       <section class="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl sm:p-8">
         <h2 class="text-2xl font-bold tracking-tight text-white">No planned workout yet</h2>

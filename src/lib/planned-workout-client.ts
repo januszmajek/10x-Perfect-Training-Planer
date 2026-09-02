@@ -33,3 +33,47 @@ export function parseCurrentPlanResponse(value: unknown): CurrentPlannedWorkout 
   if (value.currentPlan === null) return null;
   return isCurrentPlannedWorkout(value.currentPlan) ? value.currentPlan : undefined;
 }
+
+export type ExpectedWorkoutState = "planned" | "completed" | "absent";
+
+export interface CompletionReconciliationResponse {
+  currentPlan: CurrentPlannedWorkout | null;
+  expectedWorkoutState: ExpectedWorkoutState;
+}
+
+export type CompletionReconciliation = "completed" | "unchanged" | "changed" | "indeterminate";
+
+export function parseCompletionReconciliationResponse(value: unknown): CompletionReconciliationResponse | undefined {
+  const currentPlan = parseCurrentPlanResponse(value);
+  if (!isRecord(value) || currentPlan === undefined) return undefined;
+  if (
+    value.expectedWorkoutState !== "planned" &&
+    value.expectedWorkoutState !== "completed" &&
+    value.expectedWorkoutState !== "absent"
+  ) {
+    return undefined;
+  }
+  return { currentPlan, expectedWorkoutState: value.expectedWorkoutState };
+}
+
+export function classifyCompletionReconciliation(
+  response: CompletionReconciliationResponse,
+  expectedWorkoutId: string,
+  expectedRevision: number,
+): CompletionReconciliation {
+  if (response.expectedWorkoutState === "completed") return "completed";
+  if (
+    response.currentPlan &&
+    (response.currentPlan.id !== expectedWorkoutId || response.currentPlan.revision !== expectedRevision)
+  ) {
+    return "changed";
+  }
+  if (
+    response.expectedWorkoutState === "planned" &&
+    response.currentPlan?.id === expectedWorkoutId &&
+    response.currentPlan.revision === expectedRevision
+  ) {
+    return "unchanged";
+  }
+  return "indeterminate";
+}

@@ -43,6 +43,8 @@ export interface CurrentPlannedWorkout {
   exercises: CurrentPlannedWorkoutExercise[];
 }
 
+export type ExpectedWorkoutState = "planned" | "completed" | "absent";
+
 function sanitizeTechnicalCode(code: unknown): string {
   return typeof code === "string" && /^[A-Z0-9_]{1,32}$/.test(code) ? code : "UNKNOWN";
 }
@@ -114,6 +116,27 @@ export async function loadCurrentPlannedWorkout(
 
   if (error) return workoutFailure("persistence_failed", "database", error.code);
   return { ok: true, data: data ? mapCurrentPlan(data) : null };
+}
+
+export async function loadExpectedWorkoutState(
+  client: WorkoutClient,
+  userId: string | null,
+  expectedWorkoutId: string,
+): Promise<WorkoutResult<ExpectedWorkoutState>> {
+  if (!userId) return workoutFailure("unauthenticated", "service", "AUTH_MISSING");
+  const authFailure = await verifyOwnedSession(client, userId);
+  if (authFailure) return authFailure;
+
+  const { data, error } = await client
+    .from("workouts")
+    .select("status")
+    .eq("user_id", userId)
+    .eq("id", expectedWorkoutId)
+    .maybeSingle();
+
+  if (error) return workoutFailure("persistence_failed", "database", error.code);
+  if (!data) return { ok: true, data: "absent" };
+  return { ok: true, data: data.status === "completed" ? "completed" : "planned" };
 }
 
 export async function loadWorkoutCatalogue(client: WorkoutClient): Promise<WorkoutResult<CatalogueExercise[]>> {
