@@ -108,6 +108,12 @@ void test("round-trips safe opaque cursors and rejects partial or malformed curs
   const cursor = encodeWorkoutHistoryCursor({ completedAt: entry.completedAt, id: WORKOUT_ONE });
   assert.ok(cursor);
   assert.deepEqual(decodeWorkoutHistoryCursor(cursor), { completedAt: entry.completedAt, id: WORKOUT_ONE });
+  assert.deepEqual(parseWorkoutHistorySearchParams(new URLSearchParams(`cursor=${cursor}`)), {
+    valid: true,
+    filters: emptyWorkoutHistoryFilters(),
+    cursor: { completedAt: entry.completedAt, id: WORKOUT_ONE },
+    normalized: false,
+  });
   assert.equal(decodeWorkoutHistoryCursor("eyJjb21wbGV0ZWRBdCI6IngifQ"), null);
   assert.equal(decodeWorkoutHistoryCursor("not-a-cursor!"), null);
   assert.match(

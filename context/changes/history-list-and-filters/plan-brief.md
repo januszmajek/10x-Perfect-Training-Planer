@@ -15,7 +15,8 @@ The database is ready, but the application has no history query, route, filters,
 ## Desired End State
 
 `/history` server-renders the newest 25 matches, then hydrates into React. Filters update the URL and results without
-navigation while cancelling stale requests; Load more appends cursor pages and cards expand inline.
+navigation while cancelling stale requests; an infinite-scroll sentinel appends bounded cursor pages and cards expand
+inline.
 
 ## Key Decisions Made
 
@@ -25,7 +26,8 @@ navigation while cancelling stale requests; Load more appends cursor pages and c
 | Date semantics     | Inclusive browser-local calendar days                        | Matches user expectations around workout dates               |
 | Muscle semantics   | OR across selected primary and secondary tags                | Matches existing catalogue and domain contracts              |
 | Detail UX          | Inline expandable cards                                      | Keeps history browsing fast and mobile-friendly              |
-| Pagination         | 25 items with Load more and tuple cursor                     | Bounds reads while preserving stable ordering                |
+| Pagination         | Infinite scroll with 25-item tuple cursor pages              | Bounds reads while preserving stable ordering                |
+| Append recovery    | Spinner, bounded automatic retries, passive terminal failure | Avoids retry controls and infinite retry loops               |
 | Filter persistence | Canonical URL query parameters                               | Survives refresh and browser navigation                      |
 | Filter application | Automatic, debounced, no reload or confirmation              | Supports natural multi-select interaction                    |
 | Verification       | Pure Node contracts plus existing gates and manual UI checks | Fits current test infrastructure without framework expansion |
@@ -43,7 +45,8 @@ navigation while cancelling stale requests; Load more appends cursor pages and c
 **Out of scope:**
 
 - History mutation or cloning; analytics, performance tracking, exercise search, and origin/equipment filters.
-- Dedicated detail routes, infinite scrolling, browser-test adoption, database changes, migration, or deployment.
+- Dedicated detail routes, numbered or button-based pagination, browser-test adoption, database changes, migration,
+  or deployment.
 
 ## Architecture / Approach
 
@@ -58,7 +61,7 @@ inline expansion without document reloads.
 | -------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------- |
 | 1. History Query and Client Contracts        | DTOs, dates, URL/cursor logic, tests, and two-stage owner query         | Nested filtering must not truncate detail    |
 | 2. Protected History API and SSR Entry Point | Safe GET endpoint, protected route, initial SSR, and navigation         | Input bounds and auth must remain exact      |
-| 3. Responsive No-Reload History Experience   | Immediate filters, URL sync, cancellation, Load more, and inline detail | Rapid requests must never show stale results |
+| 3. Responsive No-Reload History Experience   | Immediate filters, URL sync, infinite scroll, and inline detail         | Rapid requests must never show stale results |
 
 **Prerequisites:** S-04 completion flow and existing local Supabase verification environment.
 

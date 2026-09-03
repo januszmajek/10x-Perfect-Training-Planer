@@ -9,6 +9,7 @@ import {
   type WorkoutHistoryFilters,
   type WorkoutHistoryPage,
 } from "@/lib/workout-history-client";
+import { buildWorkoutHistoryCursorPredicate } from "./workout-history-query.ts";
 import { verifyOwnedSession, workoutFailure, type WorkoutFailure, type WorkoutResult } from "@/lib/planned-workouts";
 import type { Database } from "@/types/database.types";
 
@@ -120,9 +121,7 @@ export async function loadCompletedWorkoutHistory(
     query = query.in("workout_exercises.exercises.exercise_muscle_groups.muscle_group_code", filters.muscles);
   }
   if (cursor) {
-    query = query.or(
-      `completed_at.lt.${cursor.completedAt},and(completed_at.eq.${cursor.completedAt},id.lt.${cursor.id})`,
-    );
+    query = query.or(buildWorkoutHistoryCursorPredicate(cursor));
   }
 
   const { data: rawMembership, error: membershipError } = await query;

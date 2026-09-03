@@ -60,7 +60,7 @@ export interface WorkoutHistoryPage {
 }
 
 export type HistorySearchParseResult =
-  | { valid: true; filters: WorkoutHistoryFilters; cursor: string | null; normalized: boolean }
+  | { valid: true; filters: WorkoutHistoryFilters; cursor: WorkoutHistoryCursor | null; normalized: boolean }
   | { valid: false };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -224,7 +224,7 @@ export function parseWorkoutHistorySearchParams(
   return {
     valid: true,
     filters,
-    cursor: cursor.length === 1 ? cursor[0] : null,
+    cursor: parsedCursor,
     normalized: canonical !== params.toString(),
   };
 }

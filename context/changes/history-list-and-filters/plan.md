@@ -28,8 +28,8 @@ so this bounded two-stage read does not introduce a mutation race or require a d
 After this plan is complete:
 
 - `/history` is protected, linked from private navigation, and initially server-renders the first matching page.
-- History is ordered by `completed_at DESC, id DESC`, displays 25 entries at a time, and exposes Load more only when
-  another page exists.
+- History is ordered by `completed_at DESC, id DESC`, displays bounded 25-entry cursor pages, and automatically
+  loads the next page as the user approaches the end of the currently loaded list.
 - Date controls offer 7-, 30-, and 90-day presets, All history, and an inclusive custom local-calendar range.
 - The browser converts local dates into exact UTC start-inclusive/end-exclusive boundaries before writing the URL or
   calling the API, including across daylight-saving transitions.
@@ -39,7 +39,7 @@ After this plan is complete:
   rapid changes, the URL is updated with `history.replaceState`, and stale requests cannot overwrite newer results.
 - Compact history cards expand inline to show origin, completion time, all involved muscle groups, and the complete
   ordered exercise prescription with sets and reps.
-- Empty, loading, filtered-empty, request-failure, and load-more-failure states preserve useful context and remain
+- Empty, loading, filtered-empty, request-failure, and automatic-append-failure states preserve useful context and remain
   accessible at 360px and desktop widths.
 - Pure history contracts, existing database/security suites, Astro sync, lint, and Cloudflare Worker build gates pass.
 
@@ -70,8 +70,9 @@ After this plan is complete:
 - Charts, volume curves, personal-record tracking, trends, summaries, or other analytics.
 - Weight, duration, notes, ratings, per-set performance, or training-date backfills.
 - Search by exercise name, origin filtering, equipment filtering, or saved filter presets.
+- Revised shared muscle-filter semantics; that cross-product behavior is owned by a separate change.
 - A dedicated per-workout detail route; detail expands inside the history list.
-- Infinite scrolling, numbered pagination, virtualization, or loading the complete unbounded history.
+- Numbered pagination, a user-visible pagination control, virtualization, or loading the complete unbounded history.
 - A database view, RPC, schema migration, index change, materialized history, cache, or service-role query.
 - Editing applied migrations, pushing to hosted Supabase, deploying the Worker, or changing secrets.
 - Adding Playwright, Cypress, Vitest, or another test framework.
@@ -93,7 +94,8 @@ and request-local auth patterns.
 
 Third, implement the responsive island. Controlled date and muscle inputs update immediately, synchronize canonical
 query parameters with `history.replaceState`, and fetch page one without document navigation. Request cancellation
-and generation checks prevent stale updates. Load more appends the next cursor page; entry expansion remains local.
+and generation checks prevent stale updates. An intersection sentinel appends the next cursor page; entry expansion
+remains local.
 
 ## Critical Implementation Details
 
@@ -111,12 +113,13 @@ replacement request runs, then atomically replace them on valid success. A faile
 failed Load more keeps accumulated entries. Checkboxes remain enabled during refresh so users can build a
 multi-selection naturally.
 
-### State sequencing
+### Cursor and state sequencing
 
 The browser owns inclusive local dates. It converts the selected start day to local midnight and the selected end day
 to the following local midnight, then serializes both as UTC ISO instants. The server consumes only validated
-start-inclusive/end-exclusive instants and never guesses the browser timezone. A filter change clears expanded entry
-IDs and pagination; Load more never changes filters or the page URL.
+start-inclusive/end-exclusive instants and never guesses the browser timezone. The raw PostgREST cursor predicate
+must quote canonical ISO timestamp literals because `:` and `.` are reserved query-grammar characters. A filter
+change clears expanded entry IDs and pagination; an automatic append never changes filters or the page URL.
 
 ## Phase 1: History Query and Client Contracts
 
@@ -349,9 +352,28 @@ muscle names must wrap. Expansion does not fetch another record because each pag
 **Intent**: Preserve accumulated history and user orientation across page loads, empty results, and recoverable
 failures.
 
-**Contract**: Show Load more only when `nextCursor` exists. Append the next 25 entries while preserving expansion and
-filters; disable duplicate pagination requests. A filter change aborts an active append. Append failure keeps all
-existing entries and presents a retry local to the Load more area.
+**Files**: `src/components/workouts/WorkoutHistory.tsx`, `src/lib/workout-history.ts`,
+`src/lib/workout-history-query.ts`, `src/lib/workout-history.test.ts`, `package.json`
+
+**Contract**: Correct the cursor continuation predicate so each raw ISO timestamp operand is quoted before it enters
+the PostgREST `or(...)` expression. Replace the normal Load more button with an `IntersectionObserver` sentinel that
+appears only while `nextCursor` exists and starts the next bounded cursor request before the user reaches the list end.
+Keep a synchronous in-flight/cursor guard in addition to React state so repeated observer callbacks cannot issue
+duplicate requests for one cursor. A filter change, unmount, exhausted history, or active append/backoff disconnects
+the observer and invalidates active append work.
+
+While an append or automatic retry is pending, show an inline spinner and announce loading through the existing polite
+status channel without moving focus. Retry transient network and server failures at most twice with bounded backoff;
+after the final failure, preserve all loaded entries and show a passive, safe-error message with the request ID when
+available. Do not render a pagination or retry button. After terminal failure, retain a passive observer lock for the
+current `(generation, cursor)`: it must first observe the sentinel outside the viewport, then permit one new bounded
+attempt after a subsequent entry. This prevents a stationary sentinel from looping while preserving scroll-based
+recovery. Clear every retry timer, controller, guard, and observer on generation change and unmount. On valid success,
+defensively merge by workout ID, update the cursor, and re-observe only the new sentinel.
+
+Extract the predicate formatting into a server-safe pure helper and test its exact PostgREST grammar with canonical
+ISO timestamps and equal-timestamp UUID tie breaking. Add the server test file to `pnpm test:history`; client contract
+coverage remains in the existing history test file.
 
 Distinguish initial empty history from filtered empty results. Initial empty explains that marking a planned workout
 done adds it to history and links to the dashboard. Filtered empty offers Clear filters. Do not replace visible
@@ -387,11 +409,11 @@ Add global CSS only for behavior not expressible cleanly through existing Tailwi
 - Selecting and deselecting several muscles immediately updates results without Apply, confirmation, Astro navigation,
   or document reload; rapid changes never allow stale responses to win.
 - URL parameters remain canonical and restore filters/results after refresh and browser navigation.
-- Primary and secondary muscle tags use OR semantics, while date and muscle filters combine correctly.
-- Load more appends stable duplicate-free pages; changing filters during append resets to the correct first page.
+- Infinite scrolling appends stable duplicate-free pages; changing filters during append resets to the correct first
+  page.
 - Several entries expand inline with complete ordered prescriptions and accurate origin/time/muscle summaries.
-- Initial empty, filtered empty, refresh failure, malformed response, and load-more failure states preserve appropriate
-  data, focus, retry actions, and safe request-ID feedback.
+- Initial empty, filtered empty, refresh failure, malformed response, and automatic-append failure states preserve
+  appropriate data, focus, passive recovery information, and safe request-ID feedback.
 - History remains usable at 360px and desktop widths with keyboard-only navigation, screen-reader semantics, long
   names, touch targets, and no horizontal overflow.
 - Navigating away during a pending debounce, replacement, or append leaves no request, timer, listener, or late state
@@ -418,6 +440,8 @@ closing the change.
 - Use Node's built-in TypeScript runner for browser-local date conversion, preset ranges, DST boundaries, canonical
   URL serialization, strict API parsing, cursor validation, stable tuple ordering, response DTO validation, page
   replacement/append behavior, deduplication, and stale-generation rejection.
+- Test the server cursor-predicate helper separately with ISO timestamp quoting and tuple continuation ordering, then
+  run both history test files through `pnpm test:history`.
 - Keep React rendering, Astro locals, and live Supabase clients outside pure tests.
 - Treat request abortion and generation checks as explicit state/effect contracts where practical; verify real fetch
   integration manually.
@@ -441,9 +465,11 @@ closing the change.
 4. Rapidly select and deselect several muscles; verify immediate no-reload updates, URL replacement, OR matching, and
    no stale-result flashes.
 5. Refresh a filtered URL and use browser navigation; verify the controls and first result page are restored.
-6. Load at least three pages with tied timestamps; verify stable order, no gaps, and no duplicate workout IDs.
-7. Change filters during Load more and force refresh/append network failures; verify cancellation, retained results,
-   retry behavior, and safe messages.
+6. Load at least three pages with tied timestamps by scrolling to the sentinel; verify stable order, no gaps, no
+   duplicate workout IDs, and no duplicate request for the same cursor.
+7. Change filters during an automatic append and force transient and final append failures; verify cancellation,
+   bounded automatic retries, retained results, no retry button or retry loop, safe messages, and a fresh attempt only
+   after leaving and re-entering the sentinel.
 8. Repeat API and page access with a second user and supplied filters/cursors; verify strict owner isolation.
 9. Repeat at 360px and desktop widths with keyboard-only navigation, checking focus, fieldsets, live status,
    expansion semantics, touch targets, wrapping, and overflow.
@@ -452,9 +478,9 @@ closing the change.
 
 Each page uses one bounded membership query and, when non-empty, one bounded detail query. The first query requests at
 most 26 parents and the second at most 25 parent IDs; neither loads unbounded history. Existing owner/status/date and
-muscle lookup indexes are sufficient at documented MVP scale. Do not add caching, virtualization, an RPC, or a new
-index without measured evidence. Debouncing and cancellation limit redundant client work during rapid multi-select
-changes.
+muscle lookup indexes are sufficient at documented MVP scale. The observer permits one cursor request at a time and
+uses a bounded prefetch margin; it does not add caching, virtualization, an RPC, or a new index. Debouncing and
+cancellation limit redundant client work during rapid multi-select changes.
 
 ## Migration Notes
 
@@ -508,39 +534,38 @@ changes.
 
 #### Automated
 
-- [x] 2.1 History contract tests pass
-- [x] 2.2 Full local database suite remains green
-- [x] 2.3 Existing workout concurrency gates remain green
-- [x] 2.4 Astro types synchronize successfully
-- [x] 2.5 Repository lint passes
-- [x] 2.6 Production Cloudflare Worker build succeeds
+- [x] 2.1 History contract tests pass — 5b245ca
+- [x] 2.2 Full local database suite remains green — 5b245ca
+- [x] 2.3 Existing workout concurrency gates remain green — 5b245ca
+- [x] 2.4 Astro types synchronize successfully — 5b245ca
+- [x] 2.5 Repository lint passes — 5b245ca
+- [x] 2.6 Production Cloudflare Worker build succeeds — 5b245ca
 
 #### Manual
 
-- [x] 2.7 Page and API authentication boundaries behave correctly
-- [x] 2.8 Invalid history query parameters are safely rejected or normalized
-- [x] 2.9 History API preserves cross-user isolation
-- [x] 2.10 First-page SSR and History navigation state are correct
+- [x] 2.7 Page and API authentication boundaries behave correctly — 5b245ca
+- [x] 2.8 Invalid history query parameters are safely rejected or normalized — 5b245ca
+- [x] 2.9 History API preserves cross-user isolation — 5b245ca
+- [x] 2.10 First-page SSR and History navigation state are correct — 5b245ca
 
 ### Phase 3: Responsive No-Reload History Experience
 
 #### Automated
 
-- [ ] 3.1 Final history contract suite passes
-- [ ] 3.2 Existing focused TypeScript suites pass
-- [ ] 3.3 Full database and concurrency gates remain green
-- [ ] 3.4 Astro types synchronize successfully
-- [ ] 3.5 Repository lint passes
-- [ ] 3.6 Production Cloudflare Worker build succeeds
+- [x] 3.1 Final history contract suite passes
+- [x] 3.2 Existing focused TypeScript suites pass
+- [x] 3.3 Full database and concurrency gates remain green
+- [x] 3.4 Astro types synchronize successfully
+- [x] 3.5 Repository lint passes
+- [x] 3.6 Production Cloudflare Worker build succeeds
 
 #### Manual
 
-- [ ] 3.7 Date presets and inclusive local ranges return correct history
-- [ ] 3.8 Muscle multi-select updates without confirmation or document reload
-- [ ] 3.9 Canonical URLs restore filters and results
-- [ ] 3.10 Date and muscle matching semantics are correct
-- [ ] 3.11 Cursor pagination appends stable duplicate-free results
-- [ ] 3.12 Inline details show complete immutable prescriptions
-- [ ] 3.13 Empty, loading, and failure states preserve context and recovery
-- [ ] 3.14 Responsive, keyboard, screen-reader, focus, and overflow behavior is correct
-- [ ] 3.15 Request lifecycle cleanup prevents late updates after navigation
+- [x] 3.7 Date presets and inclusive local ranges return correct history
+- [x] 3.8 Muscle multi-select updates without confirmation or document reload
+- [x] 3.9 Canonical URLs restore filters and results
+- [x] 3.11 Cursor pagination and infinite scrolling append stable duplicate-free results
+- [x] 3.12 Inline details show complete immutable prescriptions
+- [x] 3.13 Empty, loading, and failure states preserve context without visible retry controls
+- [x] 3.14 Responsive, keyboard, screen-reader, focus, and overflow behavior is correct
+- [x] 3.15 Request lifecycle cleanup prevents late updates after navigation
