@@ -492,35 +492,35 @@ changes.
 
 #### Automated
 
-- [x] 1.1 History contract tests pass
-- [x] 1.2 Existing planned-workout tests remain green
-- [x] 1.3 Astro types synchronize successfully
-- [x] 1.4 Repository lint passes
-- [x] 1.5 Production Cloudflare Worker build succeeds
+- [x] 1.1 History contract tests pass — 12ab3ef
+- [x] 1.2 Existing planned-workout tests remain green — 12ab3ef
+- [x] 1.3 Astro types synchronize successfully — 12ab3ef
+- [x] 1.4 Repository lint passes — 12ab3ef
+- [x] 1.5 Production Cloudflare Worker build succeeds — 12ab3ef
 
 #### Manual
 
-- [x] 1.6 Equal-timestamp cursor pages are stable and duplicate-free
-- [x] 1.7 Muscle filtering preserves complete workout details
-- [x] 1.8 Authenticated history service results remain owner-isolated
+- [x] 1.6 Equal-timestamp cursor pages are stable and duplicate-free — 12ab3ef
+- [x] 1.7 Muscle filtering preserves complete workout details — 12ab3ef
+- [x] 1.8 Authenticated history service results remain owner-isolated — 12ab3ef
 
 ### Phase 2: Protected History API and SSR Entry Point
 
 #### Automated
 
-- [ ] 2.1 History contract tests pass
-- [ ] 2.2 Full local database suite remains green
-- [ ] 2.3 Existing workout concurrency gates remain green
-- [ ] 2.4 Astro types synchronize successfully
-- [ ] 2.5 Repository lint passes
-- [ ] 2.6 Production Cloudflare Worker build succeeds
+- [x] 2.1 History contract tests pass
+- [x] 2.2 Full local database suite remains green
+- [x] 2.3 Existing workout concurrency gates remain green
+- [x] 2.4 Astro types synchronize successfully
+- [x] 2.5 Repository lint passes
+- [x] 2.6 Production Cloudflare Worker build succeeds
 
 #### Manual
 
-- [ ] 2.7 Page and API authentication boundaries behave correctly
-- [ ] 2.8 Invalid history query parameters are safely rejected or normalized
-- [ ] 2.9 History API preserves cross-user isolation
-- [ ] 2.10 First-page SSR and History navigation state are correct
+- [x] 2.7 Page and API authentication boundaries behave correctly
+- [x] 2.8 Invalid history query parameters are safely rejected or normalized
+- [x] 2.9 History API preserves cross-user isolation
+- [x] 2.10 First-page SSR and History navigation state are correct
 
 ### Phase 3: Responsive No-Reload History Experience
 

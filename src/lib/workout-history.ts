@@ -23,9 +23,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function toCanonicalTimestamp(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const timestamp = new Date(value);
+  return Number.isFinite(timestamp.getTime()) ? timestamp.toISOString() : null;
+}
+
 function asHistoryMembership(value: unknown): HistoryMembership | null {
-  if (!isRecord(value) || typeof value.id !== "string" || typeof value.completed_at !== "string") return null;
-  return { id: value.id, completedAt: value.completed_at };
+  if (!isRecord(value) || typeof value.id !== "string") return null;
+  const completedAt = toCanonicalTimestamp(value.completed_at);
+  return completedAt ? { id: value.id, completedAt } : null;
 }
 
 function mapHistoryDetail(value: unknown): CompletedWorkoutHistoryEntry | null {
@@ -53,8 +60,8 @@ function mapHistoryDetail(value: unknown): CompletedWorkoutHistoryEntry | null {
   const mapped = {
     id: value.id,
     origin: value.origin,
-    createdAt: value.created_at,
-    completedAt: value.completed_at,
+    createdAt: toCanonicalTimestamp(value.created_at),
+    completedAt: toCanonicalTimestamp(value.completed_at),
     exercises: exercises.sort((left, right) => left.position - right.position),
   };
   return isCompletedWorkoutHistoryEntry(mapped) ? mapped : null;

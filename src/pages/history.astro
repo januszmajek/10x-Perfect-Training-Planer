@@ -1,0 +1,79 @@
+---
+import AuthenticatedLayout from "@/layouts/AuthenticatedLayout.astro";
+import WorkoutHistory from "@/components/workouts/WorkoutHistory.tsx";
+import { parseWorkoutHistorySearchParams, toWorkoutHistoryPageUrl } from "@/lib/workout-history-client";
+import { loadCompletedWorkoutHistory, loadHistoryMuscleOptions } from "@/lib/workout-history";
+
+const { user, supabase } = Astro.locals;
+
+if (!user || !supabase) {
+  return Astro.redirect("/auth/signin");
+}
+
+const optionsResult = await loadHistoryMuscleOptions(supabase, user.id);
+let historyResult: Awaited<ReturnType<typeof loadCompletedWorkoutHistory>> | null = null;
+let initialFilters = null;
+
+if (optionsResult.ok) {
+  const parsed = parseWorkoutHistorySearchParams(
+    Astro.url.searchParams,
+    new Set(optionsResult.data.map((option) => option.code)),
+    false,
+  );
+  if (!parsed.valid) {
+    return Astro.redirect("/history", 302);
+  }
+
+  const canonicalUrl = toWorkoutHistoryPageUrl(parsed.filters);
+  if (parsed.normalized || `${Astro.url.pathname}${Astro.url.search}` !== canonicalUrl) {
+    return Astro.redirect(canonicalUrl, 302);
+  }
+
+  initialFilters = parsed.filters;
+  historyResult = await loadCompletedWorkoutHistory(supabase, user.id, parsed.filters);
+}
+---
+
+<AuthenticatedLayout title="History | Perfect Training Planner">
+  <div class="mb-8">
+    <p class="text-sm font-medium tracking-wide text-purple-300 uppercase">Completed workouts</p>
+    <h1 class="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">Workout history</h1>
+    <p class="mt-3 max-w-2xl text-sm leading-6 text-blue-100/65 sm:text-base">
+      Review completed workouts and their exact exercise prescriptions.
+    </p>
+  </div>
+
+  {
+    optionsResult.ok && historyResult?.ok && initialFilters ? (
+      <section class="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl sm:p-7">
+        <WorkoutHistory
+          initialFilters={initialFilters}
+          initialPage={historyResult.data}
+          muscleOptions={optionsResult.data}
+          client:load
+        />
+      </section>
+    ) : (
+      <section class="rounded-2xl border border-red-400/30 bg-red-500/10 p-5 text-red-100 sm:p-7">
+        <h2 class="text-lg font-semibold">Your workout history could not be loaded</h2>
+        <p class="mt-2 text-sm leading-6 text-red-100/80">
+          Refresh the page to try again or return to the dashboard. No workout data was changed.
+        </p>
+        <div class="mt-5 flex flex-col gap-3 sm:flex-row">
+          <a
+            href="/history"
+            class="inline-flex min-h-11 items-center justify-center rounded-lg bg-red-100 px-4 py-2 text-sm font-semibold text-red-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-100"
+          >
+            Try again
+          </a>
+          <a
+            href="/dashboard"
+            class="inline-flex min-h-11 items-center justify-center rounded-lg border border-red-100/25 px-4 py-2 text-sm font-semibold text-red-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-100"
+          >
+            Return to dashboard
+          </a>
+        </div>
+      </section>
+    )
+  }
+</AuthenticatedLayout>

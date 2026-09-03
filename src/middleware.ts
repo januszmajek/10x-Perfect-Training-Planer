@@ -1,7 +1,7 @@
 import { defineMiddleware } from "astro:middleware";
 import { createClient } from "@/lib/supabase";
 
-const PROTECTED_ROUTES = ["/dashboard", "/account", "/api/account", "/workouts", "/api/workouts"];
+const PROTECTED_ROUTES = ["/dashboard", "/history", "/account", "/api/account", "/workouts", "/api/workouts"];
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));

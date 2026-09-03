@@ -5,6 +5,7 @@ export const MAX_WORKOUT_REQUEST_BYTES = 32 * 1024;
 
 export type WorkoutApiOperation =
   | "get_current_plan"
+  | "get_completed_history"
   | "save_manual_workout"
   | "update_planned_workout"
   | "delete_planned_workout"

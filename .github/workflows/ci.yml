@@ -46,6 +46,8 @@ jobs:
         run: pnpm test:manual-workout
       - name: Test planned workout mutation contracts
         run: pnpm test:planned-workout
+      - name: Test workout history contracts
+        run: pnpm test:history
       - name: Synchronize Astro types
         run: pnpm astro sync
       - name: Lint repository
