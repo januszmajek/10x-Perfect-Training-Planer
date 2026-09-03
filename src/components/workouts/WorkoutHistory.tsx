@@ -128,6 +128,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
   const requestRef = useRef<AbortController | null>(null);
   const debounceTimerRef = useRef<number | null>(null);
   const appendRetryTimerRef = useRef<number | null>(null);
+  const appendRetryResolverRef = useRef<(() => void) | null>(null);
   const appendInFlightRef = useRef(false);
   const appendFailureLockedRef = useRef(false);
   const appendExitObservedRef = useRef(false);
@@ -145,6 +146,8 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
     debounceTimerRef.current = null;
     if (appendRetryTimerRef.current !== null) window.clearTimeout(appendRetryTimerRef.current);
     appendRetryTimerRef.current = null;
+    appendRetryResolverRef.current?.();
+    appendRetryResolverRef.current = null;
     appendInFlightRef.current = false;
   }, []);
 
@@ -320,9 +323,14 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
         }
         if (!failure.retryable || attempt === 2) break;
         await new Promise<void>((resolve) => {
-          appendRetryTimerRef.current = window.setTimeout(resolve, 500 * (attempt + 1));
+          const finish = () => {
+            appendRetryTimerRef.current = null;
+            appendRetryResolverRef.current = null;
+            resolve();
+          };
+          appendRetryResolverRef.current = finish;
+          appendRetryTimerRef.current = window.setTimeout(finish, 500 * (attempt + 1));
         });
-        appendRetryTimerRef.current = null;
         if (!mountedRef.current || !isCurrentHistoryRequest(generation, generationRef.current)) return;
       }
       if (mountedRef.current && isCurrentHistoryRequest(generation, generationRef.current)) {
@@ -334,7 +342,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
       if (mountedRef.current && isCurrentHistoryRequest(generation, generationRef.current)) {
         setIsAppending(false);
       }
-      appendInFlightRef.current = false;
+      if (isCurrentHistoryRequest(generation, generationRef.current)) appendInFlightRef.current = false;
     }
   }, [cancelActiveWork, committedFilters, isReplacing]);
 
@@ -486,9 +494,11 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
       </div>
 
       <p aria-atomic="true" aria-live="polite" className="sr-only">
-        {!isReplacing && !isAppending
-          ? `${page.entries.length} ${page.entries.length === 1 ? "workout" : "workouts"} shown.`
-          : ""}
+        {isReplacing
+          ? "Updating history."
+          : isAppending
+            ? "Loading more workouts."
+            : `${page.entries.length} ${page.entries.length === 1 ? "workout" : "workouts"} shown.`}
       </p>
 
       {refreshFailure && (
@@ -502,7 +512,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
       )}
 
       <div className="mt-5 flex items-baseline justify-between gap-3">
-        <p className="text-sm text-blue-100/65" role="status">
+        <p className="text-sm text-blue-100/65">
           {isReplacing
             ? "Updating history…"
             : `${page.entries.length} ${page.entries.length === 1 ? "workout" : "workouts"} shown`}
@@ -649,7 +659,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
           )}
           {page.nextCursor && <div ref={sentinelRef} aria-hidden="true" className="mt-3 h-px" />}
           {isAppending && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-blue-100/70" role="status">
+            <div className="mt-3 flex items-center gap-2 text-sm text-blue-100/70">
               <span
                 aria-hidden="true"
                 className="size-4 animate-spin rounded-full border-2 border-purple-200/30 border-t-purple-200"
