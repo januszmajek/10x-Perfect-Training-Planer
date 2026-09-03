@@ -28,9 +28,9 @@ so this bounded two-stage read does not introduce a mutation race or require a d
 After this plan is complete:
 
 - `/history` is protected, linked from private navigation, and initially server-renders the first matching page.
-- History is ordered by `completed_at DESC, id DESC`, displays bounded 25-entry cursor pages, and automatically
   loads the next page as the user approaches the end of the currently loaded list.
 - Date controls offer 7-, 30-, and 90-day presets, All history, and an inclusive custom local-calendar range.
+- History is ordered by `completed_at DESC, id DESC`, displays bounded 25-entry cursor pages, and automatically
 - The browser converts local dates into exact UTC start-inclusive/end-exclusive boundaries before writing the URL or
   calling the API, including across daylight-saving transitions.
 - Users can select several muscle groups. A workout matches any selected primary or secondary muscle tag; date and

@@ -1,10 +1,10 @@
 ---
 change_id: muscle-filter-all-semantics
 title: Require all selected muscle filters
-status: implemented
+status: archived
 created: 2026-09-03
 updated: 2026-09-04
-archived_at: null
+archived_at: 2026-09-03T22:06:41Z
 ---
 
 ## Notes
