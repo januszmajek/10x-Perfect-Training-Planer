@@ -62,10 +62,10 @@ void test("filters by case-insensitive trimmed name and returns an empty result"
   assert.deepEqual(filterCatalogue(catalogue, { search: "missing", muscleGroups: [], equipment: [] }), []);
 });
 
-void test("uses OR within categories, AND across categories, and includes secondary muscles", () => {
+void test("requires all selected muscles while including primary and secondary tags", () => {
   const filtered = filterCatalogue(catalogue, {
     search: "",
-    muscleGroups: ["triceps", "biceps"],
+    muscleGroups: ["chest", "triceps"],
     equipment: ["barbell", "bodyweight"],
   });
 
@@ -73,6 +73,15 @@ void test("uses OR within categories, AND across categories, and includes second
     filtered.map(({ name }) => name),
     ["Barbell Bench Press"],
   );
+  assert.deepEqual(
+    filterCatalogue(catalogue, { search: "", muscleGroups: ["biceps"], equipment: [] }).map(({ name }) => name),
+    ["Cable Row"],
+  );
+  assert.deepEqual(
+    filterCatalogue(catalogue, { search: "", muscleGroups: ["triceps", "upper_back"], equipment: [] }),
+    [],
+  );
+  assert.equal(filterCatalogue(catalogue, { search: "", muscleGroups: [], equipment: [] }).length, catalogue.length);
 });
 
 void test("creates 3 x 10 items, prevents duplicates, and removes by exercise ID", () => {

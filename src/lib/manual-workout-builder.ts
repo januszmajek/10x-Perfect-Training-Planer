@@ -1,4 +1,5 @@
 import type { Enums } from "../types/database.types.ts";
+import { matchesAllSelectedMuscles } from "./muscle-filter.ts";
 
 export const MANUAL_WORKOUT_REQUEST_VERSION = 1 as const;
 export const MAX_WORKOUT_EXERCISES = 20;
@@ -73,13 +74,11 @@ export function filterCatalogue(
   filters: CatalogueFilters,
 ): CatalogueExercise[] {
   const search = filters.search.trim().toLocaleLowerCase();
-  const selectedMuscles = new Set(filters.muscleGroups);
   const selectedEquipment = new Set(filters.equipment);
 
   return catalogue.filter((exercise) => {
     const matchesName = search.length === 0 || exercise.name.toLocaleLowerCase().includes(search);
-    const matchesMuscle =
-      selectedMuscles.size === 0 || exercise.muscles.some((muscle) => selectedMuscles.has(muscle.code));
+    const matchesMuscle = matchesAllSelectedMuscles(exercise.muscles, filters.muscleGroups);
     const matchesEquipment = selectedEquipment.size === 0 || selectedEquipment.has(exercise.equipment);
 
     return matchesName && matchesMuscle && matchesEquipment;

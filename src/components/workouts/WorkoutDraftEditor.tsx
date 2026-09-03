@@ -1,5 +1,18 @@
-import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Check, Dumbbell, Plus, Replace, RotateCcw, Search, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowUp,
+  Check,
+  Dumbbell,
+  Plus,
+  Replace,
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
+  Trash2,
+  X,
+} from "lucide-react";
 import {
   MAX_REPS,
   MAX_SETS,
@@ -49,6 +62,8 @@ export default function WorkoutDraftEditor({
   const [selectedMuscles, setSelectedMuscles] = useState<string[]>([]);
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentType[]>([]);
   const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const filterTriggerRef = useRef<HTMLButtonElement>(null);
   const knownExerciseIds = useMemo(() => new Set(catalogue.map(({ id }) => id)), [catalogue]);
   const exercisesById = useMemo(() => new Map(catalogue.map((exercise) => [exercise.id, exercise])), [catalogue]);
   const selectedExerciseIds = useMemo(() => new Set(draft.map(({ exerciseId }) => exerciseId)), [draft]);
@@ -64,8 +79,42 @@ export default function WorkoutDraftEditor({
     return [...options].sort(([, left], [, right]) => left.localeCompare(right));
   }, [catalogue]);
   const equipmentOptions = useMemo(() => [...new Set(catalogue.map(({ equipment }) => equipment))].sort(), [catalogue]);
+  const primaryMuscleOptions = useMemo(
+    () =>
+      muscleOptions.filter(([code]) =>
+        catalogue.some((exercise) =>
+          exercise.muscles.some((muscle) => muscle.code === code && muscle.role === "primary"),
+        ),
+      ),
+    [catalogue, muscleOptions],
+  );
+  const secondaryMuscleOptions = useMemo(
+    () =>
+      muscleOptions.filter(([code]) =>
+        catalogue.some((exercise) =>
+          exercise.muscles.some((muscle) => muscle.code === code && muscle.role === "secondary"),
+        ),
+      ),
+    [catalogue, muscleOptions],
+  );
   const draftValid = validateDraftItems(draft, knownExerciseIds);
   const filtersActive = search.trim() !== "" || selectedMuscles.length > 0 || selectedEquipment.length > 0;
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFiltersOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    const trigger = filterTriggerRef.current;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+      trigger?.focus();
+    };
+  }, [filtersOpen]);
 
   function updateItem(index: number, update: Partial<ManualWorkoutDraftItem>) {
     onChange(draft.map((item, itemIndex) => (itemIndex === index ? { ...item, ...update } : item)));
@@ -85,12 +134,35 @@ export default function WorkoutDraftEditor({
           {error}
         </div>
       )}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)] lg:items-start">
-        <section className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl sm:p-6">
+      {filtersOpen && (
+        <button
+          aria-label="Close filters"
+          className="fixed inset-0 z-30 bg-black/60 lg:hidden"
+          onClick={() => {
+            setFiltersOpen(false);
+          }}
+        />
+      )}
+      <div className="grid gap-6 xl:grid-cols-[17rem_minmax(0,1fr)_minmax(20rem,0.85fr)] xl:items-start">
+        <aside
+          className={`fixed inset-y-0 left-0 z-40 w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-r-2xl border border-white/10 bg-slate-950 p-4 shadow-2xl transition-transform duration-300 lg:static lg:w-auto lg:translate-x-0 lg:overflow-visible lg:rounded-2xl lg:bg-white/5 lg:p-6 lg:shadow-none ${filtersOpen ? "translate-x-0" : "-translate-x-full"}`}
+        >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-medium tracking-wide text-purple-300 uppercase">Exercise catalogue</p>
-              <h2 className="mt-1 text-2xl font-bold text-white">Find exercises</h2>
+              <div className="mt-1 flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-label="Close filters"
+                  onClick={() => {
+                    setFiltersOpen(false);
+                  }}
+                  className="inline-flex size-10 items-center justify-center rounded-lg border border-white/15 text-blue-50 lg:hidden"
+                >
+                  <ArrowLeft aria-hidden="true" className="size-5" />
+                </button>
+                <h2 className="text-2xl font-bold text-white">Filters</h2>
+              </div>
             </div>
             {filtersActive && (
               <button
@@ -126,14 +198,14 @@ export default function WorkoutDraftEditor({
               placeholder="e.g. squat"
             />
           </div>
-          <details className="mt-4 rounded-xl border border-white/10 bg-black/10 p-4">
-            <summary className="cursor-pointer text-sm font-semibold text-white">
-              Muscle and equipment filters ({selectedMuscles.length + selectedEquipment.length} selected)
-            </summary>
-            <div className="mt-4 grid gap-5 sm:grid-cols-2">
+          <div className="mt-4 grid gap-4">
+            <details className="rounded-xl border border-white/10 bg-black/10 p-4">
+              <summary className="cursor-pointer text-sm font-semibold text-white">
+                Main muscles ({primaryMuscleOptions.filter(([code]) => selectedMuscles.includes(code)).length} selected)
+              </summary>
               <fieldset>
-                <legend className="text-sm font-semibold text-blue-50">Muscle groups</legend>
-                {muscleOptions.map(([code, name]) => (
+                <legend className="sr-only">Main muscles</legend>
+                {primaryMuscleOptions.map(([code, name]) => (
                   <label key={code} className="mt-2 flex min-h-10 items-center gap-3 text-sm text-blue-100/75">
                     <input
                       type="checkbox"
@@ -149,8 +221,37 @@ export default function WorkoutDraftEditor({
                   </label>
                 ))}
               </fieldset>
+            </details>
+            <details className="rounded-xl border border-white/10 bg-black/10 p-4">
+              <summary className="cursor-pointer text-sm font-semibold text-white">
+                Secondary muscles ({secondaryMuscleOptions.filter(([code]) => selectedMuscles.includes(code)).length}{" "}
+                selected)
+              </summary>
               <fieldset>
-                <legend className="text-sm font-semibold text-blue-50">Equipment</legend>
+                <legend className="sr-only">Secondary muscles</legend>
+                {secondaryMuscleOptions.map(([code, name]) => (
+                  <label key={code} className="mt-2 flex min-h-10 items-center gap-3 text-sm text-blue-100/75">
+                    <input
+                      type="checkbox"
+                      checked={selectedMuscles.includes(code)}
+                      onChange={() => {
+                        setSelectedMuscles((items) =>
+                          items.includes(code) ? items.filter((item) => item !== code) : [...items, code],
+                        );
+                      }}
+                      className="size-4 accent-purple-500"
+                    />
+                    {name}
+                  </label>
+                ))}
+              </fieldset>
+            </details>
+            <details className="rounded-xl border border-white/10 bg-black/10 p-4">
+              <summary className="cursor-pointer text-sm font-semibold text-white">
+                Equipment ({selectedEquipment.length} selected)
+              </summary>
+              <fieldset>
+                <legend className="sr-only">Equipment</legend>
                 {equipmentOptions.map((equipment) => (
                   <label key={equipment} className="mt-2 flex min-h-10 items-center gap-3 text-sm text-blue-100/75">
                     <input
@@ -169,8 +270,22 @@ export default function WorkoutDraftEditor({
                   </label>
                 ))}
               </fieldset>
-            </div>
-          </details>
+            </details>
+          </div>
+        </aside>
+        <section className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl sm:p-6">
+          <p className="text-sm font-medium tracking-wide text-purple-300 uppercase">Exercise catalogue</p>
+          <h2 className="mt-1 text-2xl font-bold text-white">Find exercises</h2>
+          <button
+            ref={filterTriggerRef}
+            type="button"
+            onClick={() => {
+              setFiltersOpen(true);
+            }}
+            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-blue-50 lg:hidden"
+          >
+            <SlidersHorizontal aria-hidden="true" className="size-4" /> Filters
+          </button>
           <p className="mt-4 text-sm text-blue-100/60" role="status">
             {filteredCatalogue.length} of {catalogue.length} exercises shown
           </p>
@@ -186,6 +301,18 @@ export default function WorkoutDraftEditor({
                     <div className="min-w-0">
                       <h3 className="font-semibold break-words text-white">{exercise.name}</h3>
                       <p className="mt-1 text-xs text-purple-200 uppercase">{formatLabel(exercise.equipment)}</p>
+                      {exercise.muscles.length > 0 && (
+                        <ul className="mt-3 flex flex-wrap gap-2" aria-label={`${exercise.name} muscle groups`}>
+                          {exercise.muscles.map((muscle) => (
+                            <li
+                              key={`${muscle.code}-${muscle.role}`}
+                              className="rounded-full bg-purple-500/15 px-2.5 py-1 text-xs text-purple-100"
+                            >
+                              {muscle.name}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                     <button
                       type="button"
@@ -230,7 +357,7 @@ export default function WorkoutDraftEditor({
             </div>
           )}
         </section>
-        <section className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl sm:p-6 lg:sticky lg:top-6">
+        <section className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl sm:p-6 xl:sticky xl:top-6">
           <p className="text-sm font-medium tracking-wide text-purple-300 uppercase">Workout draft</p>
           <h2 className="mt-1 text-2xl font-bold text-white">Your exercise order</h2>
           {replacingIndex !== null && (

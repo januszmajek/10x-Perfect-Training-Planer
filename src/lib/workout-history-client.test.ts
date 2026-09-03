@@ -9,6 +9,7 @@ import {
   historyPresetRange,
   isCurrentHistoryRequest,
   localDateRangeToHistoryFilters,
+  matchesWorkoutHistoryFilters,
   matchesWorkoutHistoryMuscles,
   mergeWorkoutHistoryPage,
   parseWorkoutHistoryResponse,
@@ -104,6 +105,14 @@ void test("parses canonical query parameters and rejects unknown, malformed, and
   });
 });
 
+void test("canonicalizes and validates repeated History equipment filters", () => {
+  const url = toWorkoutHistoryPageUrl({ muscles: [], equipment: ["machine", "barbell", "machine"] });
+  assert.equal(url, "/history?equipment=barbell&equipment=machine");
+  assert.deepEqual(parseWorkoutHistorySearchParams(new URLSearchParams("equipment=machine&equipment=unknown")), {
+    valid: false,
+  });
+});
+
 void test("round-trips safe opaque cursors and rejects partial or malformed cursor payloads", () => {
   const cursor = encodeWorkoutHistoryCursor({ completedAt: entry.completedAt, id: WORKOUT_ONE });
   assert.ok(cursor);
@@ -138,10 +147,51 @@ void test("orders equal completion timestamps by descending workout ID", () => {
   );
 });
 
-void test("uses primary and secondary tags with OR semantics", () => {
+void test("requires every selected muscle across primary and secondary tags", () => {
   assert.equal(matchesWorkoutHistoryMuscles(entry, ["triceps"]), true);
-  assert.equal(matchesWorkoutHistoryMuscles(entry, ["chest", "quads"]), true);
+  assert.equal(matchesWorkoutHistoryMuscles(entry, ["chest", "triceps"]), true);
+  assert.equal(matchesWorkoutHistoryMuscles(entry, ["chest", "quads"]), false);
   assert.equal(matchesWorkoutHistoryMuscles(entry, ["quads"]), false);
+  assert.equal(matchesWorkoutHistoryMuscles(entry, []), true);
+
+  const mixedRoleEntry: CompletedWorkoutHistoryEntry = {
+    ...entry,
+    exercises: [
+      ...entry.exercises,
+      {
+        exerciseId: "00000000-0000-0000-0000-000000000004",
+        name: "Cable Row",
+        position: 1,
+        sets: 3,
+        reps: 10,
+        muscles: [
+          { code: "upper_back", name: "Upper Back", role: "primary" },
+          { code: "biceps", name: "Biceps", role: "secondary" },
+        ],
+      },
+    ],
+  };
+  assert.equal(matchesWorkoutHistoryMuscles(mixedRoleEntry, ["chest", "biceps"]), true);
+  assert.equal(matchesWorkoutHistoryMuscles(mixedRoleEntry, ["triceps", "upper_back"]), true);
+});
+
+void test("intersects date and all-selected muscle filters", () => {
+  assert.equal(
+    matchesWorkoutHistoryFilters(entry, {
+      completedFrom: "2026-03-09T00:00:00.000Z",
+      completedBefore: "2026-03-10T00:00:00.000Z",
+      muscles: ["chest", "triceps"],
+    }),
+    true,
+  );
+  assert.equal(
+    matchesWorkoutHistoryFilters(entry, {
+      completedFrom: "2026-03-10T00:00:00.000Z",
+      muscles: ["chest", "triceps"],
+    }),
+    false,
+  );
+  assert.equal(matchesWorkoutHistoryFilters(entry, { muscles: ["chest", "quads"] }), false);
 });
 
 void test("rejects malformed history DTOs and merges append pages without duplicate workout IDs", () => {

@@ -1,10 +1,20 @@
 import { isCanonicalUuid } from "./manual-workout-builder.ts";
-import type { MuscleRole } from "./manual-workout-builder.ts";
+import type { EquipmentType, MuscleRole } from "./manual-workout-builder.ts";
+import { matchesAllSelectedMuscles } from "./muscle-filter.ts";
 
 export const WORKOUT_HISTORY_PAGE_SIZE = 25;
 export const MAX_HISTORY_MUSCLES = 16;
 export const MAX_HISTORY_CURSOR_LENGTH = 256;
 export const WORKOUT_HISTORY_API_PATH = "/api/workouts/history";
+export const HISTORY_EQUIPMENT_OPTIONS = [
+  "barbell",
+  "bodyweight",
+  "cable",
+  "dumbbell",
+  "kettlebell",
+  "machine",
+  "resistance_band",
+] as const satisfies readonly EquipmentType[];
 
 const LOCAL_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MUSCLE_CODE_PATTERN = /^[a-z]+(?:_[a-z]+)*$/;
@@ -21,6 +31,7 @@ export interface WorkoutHistoryFilters {
   completedFrom?: string;
   completedBefore?: string;
   muscles: string[];
+  equipment?: EquipmentType[];
 }
 
 export interface WorkoutHistoryCursor {
@@ -31,6 +42,10 @@ export interface WorkoutHistoryCursor {
 export interface MuscleOption {
   code: string;
   name: string;
+}
+
+export interface HistoryFilterMuscleOption extends MuscleOption {
+  role: MuscleRole;
 }
 
 export interface WorkoutHistoryMuscleTag extends MuscleOption {
@@ -103,7 +118,7 @@ function canonicalMuscles(muscles: readonly string[]): string[] | null {
 }
 
 export function emptyWorkoutHistoryFilters(): WorkoutHistoryFilters {
-  return { muscles: [] };
+  return { muscles: [], equipment: [] };
 }
 
 export function historyPresetRange(preset: HistoryPreset, now = new Date()): HistoryDateRange | null {
@@ -130,6 +145,7 @@ export function localDateRangeToHistoryFilters(
     completedFrom: start.toISOString(),
     completedBefore: exclusiveEnd.toISOString(),
     muscles: canonical,
+    equipment: [],
   };
 }
 
@@ -138,10 +154,12 @@ export function normalizeWorkoutHistoryFilters(value: WorkoutHistoryFilters): Wo
   const hasFrom = value.completedFrom !== undefined;
   const hasBefore = value.completedBefore !== undefined;
   if (!muscles || hasFrom !== hasBefore) return null;
-  if (!hasFrom) return { muscles };
+  const equipment = [...new Set(value.equipment ?? [])].sort();
+  if (equipment.some((item) => !HISTORY_EQUIPMENT_OPTIONS.includes(item))) return null;
+  if (!hasFrom) return { muscles, equipment };
   if (!isCanonicalUtcInstant(value.completedFrom) || !isCanonicalUtcInstant(value.completedBefore)) return null;
   if (value.completedFrom >= value.completedBefore) return null;
-  return { completedFrom: value.completedFrom, completedBefore: value.completedBefore, muscles };
+  return { completedFrom: value.completedFrom, completedBefore: value.completedBefore, muscles, equipment };
 }
 
 export function encodeWorkoutHistoryCursor(cursor: WorkoutHistoryCursor): string | null {
@@ -185,6 +203,9 @@ function toHistoryUrl(path: string, filters: WorkoutHistoryFilters, cursor: stri
   normalized.muscles.forEach((muscle) => {
     params.append("muscle", muscle);
   });
+  normalized.equipment?.forEach((item) => {
+    params.append("equipment", item);
+  });
   if (cursor) params.set("cursor", cursor);
   const query = params.toString();
   return query ? `${path}?${query}` : path;
@@ -203,12 +224,13 @@ export function parseWorkoutHistorySearchParams(
   knownMuscles?: ReadonlySet<string>,
   rejectUnknownParameters = true,
 ): HistorySearchParseResult {
-  const known = new Set(["completedFrom", "completedBefore", "muscle", "cursor"]);
+  const known = new Set(["completedFrom", "completedBefore", "muscle", "equipment", "cursor"]);
   if (rejectUnknownParameters && [...params.keys()].some((key) => !known.has(key))) return { valid: false };
   const completedFrom = params.getAll("completedFrom");
   const completedBefore = params.getAll("completedBefore");
   const cursor = params.getAll("cursor");
   const muscles = params.getAll("muscle");
+  const equipment = params.getAll("equipment") as EquipmentType[];
   if (completedFrom.length > 1 || completedBefore.length > 1 || cursor.length > 1) return { valid: false };
   if (knownMuscles && muscles.some((muscle) => !knownMuscles.has(muscle))) return { valid: false };
 
@@ -216,6 +238,7 @@ export function parseWorkoutHistorySearchParams(
     ...(completedFrom.length === 1 ? { completedFrom: completedFrom[0] } : {}),
     ...(completedBefore.length === 1 ? { completedBefore: completedBefore[0] } : {}),
     muscles,
+    equipment,
   });
   const parsedCursor = cursor.length === 1 ? decodeWorkoutHistoryCursor(cursor[0]) : null;
   if (!filters || (cursor.length === 1 && !parsedCursor)) return { valid: false };
@@ -289,9 +312,21 @@ export function matchesWorkoutHistoryMuscles(
   entry: CompletedWorkoutHistoryEntry,
   selectedMuscles: readonly string[],
 ): boolean {
+  return matchesAllSelectedMuscles(
+    entry.exercises.flatMap((exercise) => exercise.muscles),
+    selectedMuscles,
+  );
+}
+
+export function matchesWorkoutHistoryFilters(
+  entry: CompletedWorkoutHistoryEntry,
+  filters: WorkoutHistoryFilters,
+): boolean {
+  const completedAt = entry.completedAt;
   return (
-    selectedMuscles.length === 0 ||
-    entry.exercises.some((exercise) => exercise.muscles.some((muscle) => selectedMuscles.includes(muscle.code)))
+    (!filters.completedFrom || completedAt >= filters.completedFrom) &&
+    (!filters.completedBefore || completedAt < filters.completedBefore) &&
+    matchesWorkoutHistoryMuscles(entry, filters.muscles)
   );
 }
 

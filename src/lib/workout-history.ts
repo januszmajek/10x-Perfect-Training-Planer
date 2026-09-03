@@ -4,12 +4,16 @@ import {
   isCompletedWorkoutHistoryEntry,
   WORKOUT_HISTORY_PAGE_SIZE,
   type CompletedWorkoutHistoryEntry,
-  type MuscleOption,
+  type HistoryFilterMuscleOption,
   type WorkoutHistoryCursor,
   type WorkoutHistoryFilters,
   type WorkoutHistoryPage,
 } from "@/lib/workout-history-client";
-import { buildWorkoutHistoryCursorPredicate } from "./workout-history-query.ts";
+import {
+  buildHistoryMembershipSelect,
+  buildWorkoutHistoryCursorPredicate,
+  historyMembershipFilters,
+} from "./workout-history-query.ts";
 import { verifyOwnedSession, workoutFailure, type WorkoutFailure, type WorkoutResult } from "@/lib/planned-workouts";
 import type { Database } from "@/types/database.types";
 
@@ -75,23 +79,26 @@ function historyFailure(technicalCode: string): WorkoutFailure {
 export async function loadHistoryMuscleOptions(
   client: WorkoutClient,
   userId: string,
-): Promise<WorkoutResult<MuscleOption[]>> {
+): Promise<WorkoutResult<HistoryFilterMuscleOption[]>> {
   const authFailure = await verifyOwnedSession(client, userId);
   if (authFailure) return authFailure;
 
   const { data, error } = await client
-    .from("muscle_groups")
-    .select("code,name")
-    .order("name", { ascending: true })
+    .from("exercise_muscle_groups")
+    .select("role,muscle_groups(code,name)")
     .limit(100);
   if (error) return workoutFailure("persistence_failed", "database", error.code);
-  if (
-    data.some((option) => typeof option.code !== "string" || typeof option.name !== "string" || !option.name.trim())
-  ) {
-    return historyFailure("INVALID_MUSCLE_OPTION");
-  }
-
-  return { ok: true, data };
+  const options = (data as unknown[]).flatMap((item) => {
+    if (!isRecord(item) || (item.role !== "primary" && item.role !== "secondary") || !isRecord(item.muscle_groups))
+      return [];
+    const { code, name } = item.muscle_groups;
+    return typeof code === "string" && typeof name === "string" && name.trim() ? [{ code, name, role: item.role }] : [];
+  });
+  if (options.length === 0) return historyFailure("INVALID_MUSCLE_OPTION");
+  return {
+    ok: true,
+    data: options.sort((left, right) => left.name.localeCompare(right.name) || left.role.localeCompare(right.role)),
+  };
 }
 
 export async function loadCompletedWorkoutHistory(
@@ -103,12 +110,10 @@ export async function loadCompletedWorkoutHistory(
   const authFailure = await verifyOwnedSession(client, userId);
   if (authFailure) return authFailure;
 
-  const select = filters.muscles.length
-    ? "id,completed_at,workout_exercises!inner(exercises!inner(exercise_muscle_groups!inner(muscle_group_code)))"
-    : "id,completed_at";
+  const muscleFilters = historyMembershipFilters(filters.muscles);
   let query = client
     .from("workouts")
-    .select(select)
+    .select(buildHistoryMembershipSelect(filters.muscles, filters.equipment ?? []))
     .eq("user_id", userId)
     .eq("status", "completed")
     .order("completed_at", { ascending: false })
@@ -117,9 +122,10 @@ export async function loadCompletedWorkoutHistory(
 
   if (filters.completedFrom) query = query.gte("completed_at", filters.completedFrom);
   if (filters.completedBefore) query = query.lt("completed_at", filters.completedBefore);
-  if (filters.muscles.length) {
-    query = query.in("workout_exercises.exercises.exercise_muscle_groups.muscle_group_code", filters.muscles);
+  for (const { alias, code } of muscleFilters) {
+    query = query.eq(`${alias}.exercises.exercise_muscle_groups.muscle_group_code`, code);
   }
+  if (filters.equipment?.length) query = query.in("equipment_match.exercises.equipment", filters.equipment);
   if (cursor) {
     query = query.or(buildWorkoutHistoryCursorPredicate(cursor));
   }

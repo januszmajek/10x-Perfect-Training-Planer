@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, SlidersHorizontal } from "lucide-react";
 import {
+  HISTORY_EQUIPMENT_OPTIONS,
   historyPresetRange,
   isCurrentHistoryRequest,
   localDateRangeToHistoryFilters,
@@ -9,15 +11,17 @@ import {
   toWorkoutHistoryApiUrl,
   toWorkoutHistoryPageUrl,
   type CompletedWorkoutHistoryEntry,
+  type HistoryFilterMuscleOption,
   type MuscleOption,
   type WorkoutHistoryFilters,
   type WorkoutHistoryPage,
 } from "@/lib/workout-history-client";
+import type { EquipmentType } from "@/lib/manual-workout-builder";
 
 interface Props {
   initialFilters: WorkoutHistoryFilters;
   initialPage: WorkoutHistoryPage;
-  muscleOptions: MuscleOption[];
+  muscleOptions: HistoryFilterMuscleOption[];
 }
 
 interface LocalDateRange {
@@ -49,14 +53,31 @@ function localRangeFromFilters(filters: WorkoutHistoryFilters): LocalDateRange |
   return { start: localDateValue(start), end: localDateValue(exclusiveEnd) };
 }
 
-function filtersFromControls(range: LocalDateRange | null, muscles: readonly string[]): WorkoutHistoryFilters | null {
-  if (!range || (!range.start && !range.end)) return { muscles: [...new Set(muscles)].sort() };
+function filtersFromControls(
+  range: LocalDateRange | null,
+  muscles: readonly string[],
+  equipment: readonly EquipmentType[],
+): WorkoutHistoryFilters | null {
+  if (!range || (!range.start && !range.end))
+    return { muscles: [...new Set(muscles)].sort(), equipment: [...equipment].sort() };
   if (!range.start || !range.end) return null;
-  return localDateRangeToHistoryFilters(range, muscles);
+  const filters = localDateRangeToHistoryFilters(range, muscles);
+  return filters ? { ...filters, equipment: [...equipment].sort() } : null;
 }
 
-function hasFilters(range: LocalDateRange | null, muscles: readonly string[]): boolean {
-  return muscles.length > 0 || range !== null;
+function hasFilters(
+  range: LocalDateRange | null,
+  muscles: readonly string[],
+  equipment: readonly EquipmentType[],
+): boolean {
+  return muscles.length > 0 || equipment.length > 0 || range !== null;
+}
+
+function formatLabel(value: string): string {
+  return value
+    .split("_")
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 function involvedMuscles(entry: CompletedWorkoutHistoryEntry): MuscleOption[] {
@@ -117,6 +138,11 @@ function ErrorMessage({
 export default function WorkoutHistory({ initialFilters, initialPage, muscleOptions }: Props) {
   const [dateRange, setDateRange] = useState<LocalDateRange | null>(() => localRangeFromFilters(initialFilters));
   const [selectedMuscles, setSelectedMuscles] = useState<string[]>(initialFilters.muscles);
+  const [selectedEquipment, setSelectedEquipment] = useState<EquipmentType[]>(initialFilters.equipment ?? []);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<"all" | "7d" | "30d" | "90d" | "custom">(() =>
+    localRangeFromFilters(initialFilters) ? "custom" : "all",
+  );
   const [page, setPage] = useState<WorkoutHistoryPage>(initialPage);
   const [committedFilters, setCommittedFilters] = useState<WorkoutHistoryFilters>(initialFilters);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -136,6 +162,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
   const generationRef = useRef(0);
   const mountedRef = useRef(true);
   const clearFiltersRef = useRef<HTMLButtonElement>(null);
+  const filterTriggerRef = useRef<HTMLButtonElement>(null);
   const knownMuscles = useMemo(() => new Set(muscleOptions.map((option) => option.code)), [muscleOptions]);
 
   const cancelActiveWork = useCallback(() => {
@@ -223,6 +250,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       setDateRange(localRangeFromFilters(initialFilters));
+      setSelectedEquipment(initialFilters.equipment ?? []);
     });
     return () => {
       window.cancelAnimationFrame(frame);
@@ -235,7 +263,9 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
       const parsed = parseWorkoutHistorySearchParams(new URLSearchParams(window.location.search), knownMuscles, false);
       if (!parsed.valid || parsed.cursor) return;
       setDateRange(localRangeFromFilters(parsed.filters));
+      setSelectedPreset(localRangeFromFilters(parsed.filters) ? "custom" : "all");
       setSelectedMuscles(parsed.filters.muscles);
+      setSelectedEquipment(parsed.filters.equipment ?? []);
       void startReplacement(parsed.filters, false);
     };
     window.addEventListener("popstate", handlePopState);
@@ -246,10 +276,32 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
     };
   }, [cancelActiveWork, knownMuscles, startReplacement]);
 
-  function scheduleReplacement(nextRange: LocalDateRange | null, nextMuscles: string[], immediate = false) {
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFiltersOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    const trigger = filterTriggerRef.current;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+      trigger?.focus();
+    };
+  }, [filtersOpen]);
+
+  function scheduleReplacement(
+    nextRange: LocalDateRange | null,
+    nextMuscles: string[],
+    immediate = false,
+    nextEquipment: EquipmentType[] = selectedEquipment,
+  ) {
     setDateRange(nextRange);
     setSelectedMuscles(nextMuscles);
-    const filters = filtersFromControls(nextRange, nextMuscles);
+    setSelectedEquipment(nextEquipment);
+    const filters = filtersFromControls(nextRange, nextMuscles, nextEquipment);
     cancelActiveWork();
     setIsReplacing(false);
     resetAppendRecovery();
@@ -370,305 +422,366 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
     };
   }, [isAppending, isReplacing, loadMore, page.nextCursor, resetAppendRecovery]);
 
-  const filtersActive = hasFilters(dateRange, selectedMuscles);
+  const filtersActive = hasFilters(dateRange, selectedMuscles, selectedEquipment);
   const initialView = !filtersActive && page.entries.length === 0;
   const visibleMuscles = dateRange
     ? [dateRange.start === "" ? "Start date" : dateRange.start, dateRange.end === "" ? "End date" : dateRange.end]
     : [];
+  const primaryMuscles = muscleOptions.filter((option) => option.role === "primary");
+  const secondaryMuscles = muscleOptions.filter((option) => option.role === "secondary");
+
+  function muscleFacet(title: string, options: HistoryFilterMuscleOption[]) {
+    const count = options.filter((option) => selectedMuscles.includes(option.code)).length;
+    return (
+      <details className="mt-4 rounded-xl border border-white/10 bg-slate-950/25 p-4">
+        <summary className="cursor-pointer text-sm font-semibold text-white">
+          {title} ({count} selected)
+        </summary>
+        <div className="mt-3 grid gap-2">
+          {options.map((muscle) => {
+            const selected = selectedMuscles.includes(muscle.code);
+            return (
+              <label
+                key={`${muscle.code}-${muscle.role}`}
+                className="flex min-h-11 items-center gap-3 text-sm text-blue-100/80"
+              >
+                <input
+                  type="checkbox"
+                  checked={selected}
+                  onChange={() => {
+                    const next = selected
+                      ? selectedMuscles.filter((code) => code !== muscle.code)
+                      : [...selectedMuscles, muscle.code].sort();
+                    scheduleReplacement(dateRange, next);
+                  }}
+                  className="size-4 accent-purple-500"
+                />
+                {muscle.name}
+              </label>
+            );
+          })}
+        </div>
+      </details>
+    );
+  }
 
   return (
     <section aria-label="Completed workout history" aria-busy={isReplacing || isAppending}>
-      <div className="rounded-xl border border-white/10 bg-black/15 p-4 sm:p-5">
-        <div className="flex flex-col gap-3 border-b border-white/10 pb-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-white">Refine your history</h2>
-            <p className="mt-1 text-sm leading-6 text-blue-100/65">
-              Date and muscle filters update results automatically.
-            </p>
-          </div>
-          <button
-            ref={clearFiltersRef}
-            type="button"
-            disabled={!filtersActive}
-            onClick={() => {
-              scheduleReplacement(null, [], true);
-              window.requestAnimationFrame(() => clearFiltersRef.current?.focus());
-            }}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-blue-50 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300 disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            Clear filters
-          </button>
-        </div>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <label className="text-sm font-medium text-blue-50">
-            Start date
-            <input
-              type="date"
-              value={dateRange?.start ?? ""}
-              onChange={(event) => {
-                scheduleReplacement({ start: event.target.value, end: dateRange?.end ?? "" }, selectedMuscles);
-              }}
-              className="mt-2 min-h-11 w-full rounded-lg border border-white/15 bg-black/20 px-3 py-2 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
-            />
-          </label>
-          <label className="text-sm font-medium text-blue-50">
-            End date
-            <input
-              type="date"
-              value={dateRange?.end ?? ""}
-              onChange={(event) => {
-                scheduleReplacement({ start: dateRange?.start ?? "", end: event.target.value }, selectedMuscles);
-              }}
-              className="mt-2 min-h-11 w-full rounded-lg border border-white/15 bg-black/20 px-3 py-2 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
-            />
-          </label>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-          {(["7d", "30d", "90d"] as const).map((preset) => (
-            <button
-              key={preset}
-              type="button"
-              onClick={() => {
-                scheduleReplacement(historyPresetRange(preset), selectedMuscles, true);
-              }}
-              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-purple-300/30 px-3 py-2 text-sm font-semibold text-purple-100 transition-colors hover:bg-purple-500/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
-            >
-              Last {preset.replace("d", " days")}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => {
-              scheduleReplacement(null, selectedMuscles, true);
-            }}
-            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-blue-50 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
-          >
-            All history
-          </button>
-        </div>
-
-        <details className="mt-4 rounded-xl border border-white/10 bg-slate-950/25 p-4">
-          <summary className="cursor-pointer text-sm font-semibold text-white">
-            Muscle groups ({selectedMuscles.length} selected)
-          </summary>
-          <fieldset className="mt-4">
-            <legend className="text-sm font-medium text-blue-50">Match any selected muscle</legend>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {muscleOptions.map((muscle) => {
-                const selected = selectedMuscles.includes(muscle.code);
-                return (
-                  <label
-                    key={muscle.code}
-                    className="flex min-h-11 items-center gap-3 rounded-lg px-2 text-sm text-blue-100/80 hover:bg-white/5"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selected}
-                      onChange={() => {
-                        const next = selected
-                          ? selectedMuscles.filter((code) => code !== muscle.code)
-                          : [...selectedMuscles, muscle.code].sort();
-                        scheduleReplacement(dateRange, next);
-                      }}
-                      className="size-4 shrink-0 accent-purple-500"
-                    />
-                    <span className="min-w-0 break-words">{muscle.name}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-        </details>
-
-        {filtersActive && (
-          <p className="mt-4 text-sm text-blue-100/70">
-            Active filters:{" "}
-            {[
-              ...visibleMuscles,
-              ...selectedMuscles.map((code) => muscleOptions.find((option) => option.code === code)?.name ?? code),
-            ].join(", ")}
-          </p>
-        )}
-      </div>
-
-      <p aria-atomic="true" aria-live="polite" className="sr-only">
-        {isReplacing
-          ? "Updating history."
-          : isAppending
-            ? "Loading more workouts."
-            : `${page.entries.length} ${page.entries.length === 1 ? "workout" : "workouts"} shown.`}
-      </p>
-
-      {refreshFailure && (
-        <div className="mt-5">
-          <ErrorMessage
-            failure={refreshFailure}
-            retryLabel="Retry history"
-            onRetry={() => void startReplacement(committedFilters, false)}
-          />
-        </div>
+      {filtersOpen && (
+        <button
+          aria-label="Close filters"
+          className="fixed inset-0 z-30 bg-black/60 lg:hidden"
+          onClick={() => {
+            setFiltersOpen(false);
+          }}
+        />
       )}
-
-      <div className="mt-5 flex items-baseline justify-between gap-3">
-        <p className="text-sm text-blue-100/65">
-          {isReplacing
-            ? "Updating history…"
-            : `${page.entries.length} ${page.entries.length === 1 ? "workout" : "workouts"} shown`}
-        </p>
-      </div>
-
-      {page.entries.length === 0 && !isReplacing ? (
-        <div className="mt-5 rounded-xl border border-dashed border-white/15 px-4 py-8 text-center">
-          <p className="font-semibold text-white">
-            {initialView ? "No completed workouts yet" : "No workouts match these filters"}
-          </p>
-          <p className="mt-2 text-sm leading-6 text-blue-100/65">
-            {initialView
-              ? "Mark a planned workout done and it will appear here with its complete prescription."
-              : "Try a wider date range or remove one or more muscle filters."}
-          </p>
-          {initialView ? (
-            <a
-              href="/dashboard"
-              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-purple-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
-            >
-              Go to dashboard
-            </a>
-          ) : (
+      <div className="grid gap-5 lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-start">
+        <aside
+          className={`fixed inset-y-0 z-40 w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-r-xl border border-white/10 bg-slate-950 p-4 shadow-2xl transition-[left] duration-300 lg:static lg:left-auto lg:w-auto lg:overflow-visible lg:rounded-xl lg:bg-black/15 lg:p-5 lg:shadow-none ${filtersOpen ? "left-0" : "-left-full"}`}
+        >
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
             <button
               type="button"
+              aria-label="Close filters"
               onClick={() => {
-                scheduleReplacement(null, [], true);
+                setFiltersOpen(false);
+              }}
+              className="inline-flex size-10 items-center justify-center rounded-lg border border-white/15 text-blue-50 lg:hidden"
+            >
+              <ArrowLeft aria-hidden="true" className="size-5" />
+            </button>
+            <h2 className="mr-auto text-xl font-bold text-white">Filters</h2>
+            <button
+              ref={clearFiltersRef}
+              type="button"
+              disabled={!filtersActive}
+              onClick={() => {
+                scheduleReplacement(null, [], true, []);
                 window.requestAnimationFrame(() => clearFiltersRef.current?.focus());
               }}
-              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-blue-50 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-blue-50 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300 disabled:cursor-not-allowed disabled:opacity-45"
             >
-              Clear filters
+              Reset filters
             </button>
-          )}
-        </div>
-      ) : (
-        <ol className="mt-5 space-y-3" aria-label="Completed workouts">
-          {page.entries.map((entry) => {
-            const expanded = expandedIds.has(entry.id);
-            const detailId = `history-detail-${entry.id}`;
-            const muscles = involvedMuscles(entry);
-            return (
-              <li key={entry.id} className="min-w-0 rounded-xl border border-white/10 bg-black/15 p-4">
-                <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="font-semibold break-words text-white">
-                      {entry.origin === "ai" ? "AI workout" : "Manual workout"}
-                    </p>
-                    <time
-                      suppressHydrationWarning
-                      className="mt-1 block text-sm text-blue-100/65"
-                      dateTime={entry.completedAt}
-                    >
-                      Completed {formatCompletion(entry.completedAt)}
-                    </time>
-                    <p className="mt-2 text-sm text-blue-100/70">
-                      {entry.exercises.length} {entry.exercises.length === 1 ? "exercise" : "exercises"}
-                    </p>
-                    {muscles.length > 0 && (
-                      <ul className="mt-3 flex flex-wrap gap-2" aria-label="Involved muscle groups">
-                        {muscles.map((muscle) => (
-                          <li
-                            key={muscle.code}
-                            className="rounded-full bg-purple-500/15 px-2.5 py-1 text-xs text-purple-100"
-                          >
-                            {muscle.name}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    aria-expanded={expanded}
-                    aria-controls={detailId}
-                    onClick={() => {
-                      setExpandedIds((current) => {
-                        const next = new Set(current);
-                        if (next.has(entry.id)) next.delete(entry.id);
-                        else next.add(entry.id);
-                        return next;
-                      });
-                    }}
-                    className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-blue-50 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
-                  >
-                    {expanded ? "Hide details" : "Show details"}
-                  </button>
-                </div>
+          </div>
 
-                {expanded && (
-                  <div id={detailId} className="mt-4 border-t border-white/10 pt-4">
-                    <p className="text-sm text-blue-100/65">
-                      Origin: {entry.origin === "ai" ? "AI-generated" : "Manual"} · Created{" "}
-                      <time dateTime={entry.createdAt}>{formatCompletion(entry.createdAt)}</time>
-                    </p>
-                    <ol
-                      className="mt-4 space-y-3"
-                      aria-label={`${entry.origin === "ai" ? "AI" : "Manual"} workout prescription`}
-                    >
-                      {entry.exercises.map((exercise) => (
-                        <li key={exercise.exerciseId} className="min-w-0 rounded-lg bg-white/5 p-3">
-                          <p className="font-semibold break-words text-white">
-                            {exercise.position + 1}. {exercise.name}
-                          </p>
-                          <p className="mt-1 text-sm text-blue-100/70">
-                            {exercise.sets} {exercise.sets === 1 ? "set" : "sets"} × {exercise.reps}{" "}
-                            {exercise.reps === 1 ? "rep" : "reps"}
-                          </p>
-                          <ul className="mt-2 flex flex-wrap gap-2" aria-label={`${exercise.name} muscle roles`}>
-                            {exercise.muscles.map((muscle) => (
+          <details className="mt-4 rounded-xl border border-white/10 bg-slate-950/25 p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-white">Date</summary>
+            <fieldset className="mt-4 grid gap-2">
+              <legend className="sr-only">Date range</legend>
+              {(["all", "7d", "30d", "90d"] as const).map((preset) => (
+                <label key={preset} className="flex min-h-10 items-center gap-3 text-sm text-blue-100/80">
+                  <input
+                    type="radio"
+                    name="history-date-preset"
+                    checked={selectedPreset === preset}
+                    onChange={() => {
+                      setSelectedPreset(preset);
+                      scheduleReplacement(historyPresetRange(preset), selectedMuscles, true);
+                    }}
+                    className="size-4 accent-purple-500"
+                  />
+                  {preset === "all" ? "All time" : `Last ${preset.replace("d", " days")}`}
+                </label>
+              ))}
+            </fieldset>
+            <div className="mt-4 grid gap-3 border-t border-white/10 pt-4">
+              <label className="text-sm font-medium text-blue-50">
+                Start date
+                <input
+                  type="date"
+                  value={dateRange?.start ?? ""}
+                  onChange={(event) => {
+                    setSelectedPreset("custom");
+                    scheduleReplacement({ start: event.target.value, end: dateRange?.end ?? "" }, selectedMuscles);
+                  }}
+                  className="mt-2 min-h-11 w-full rounded-lg border border-white/15 bg-black/20 px-3 py-2 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
+                />
+              </label>
+              <label className="text-sm font-medium text-blue-50">
+                End date
+                <input
+                  type="date"
+                  value={dateRange?.end ?? ""}
+                  onChange={(event) => {
+                    setSelectedPreset("custom");
+                    scheduleReplacement({ start: dateRange?.start ?? "", end: event.target.value }, selectedMuscles);
+                  }}
+                  className="mt-2 min-h-11 w-full rounded-lg border border-white/15 bg-black/20 px-3 py-2 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
+                />
+              </label>
+            </div>
+          </details>
+
+          {muscleFacet("Main muscles", primaryMuscles)}
+          {muscleFacet("Secondary muscles", secondaryMuscles)}
+
+          <details className="mt-4 rounded-xl border border-white/10 bg-slate-950/25 p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-white">
+              Equipment ({selectedEquipment.length} selected)
+            </summary>
+            <div className="mt-3 grid gap-2">
+              {HISTORY_EQUIPMENT_OPTIONS.map((equipment) => (
+                <label key={equipment} className="flex min-h-11 items-center gap-3 text-sm text-blue-100/80">
+                  <input
+                    type="checkbox"
+                    checked={selectedEquipment.includes(equipment)}
+                    onChange={() => {
+                      const next = selectedEquipment.includes(equipment)
+                        ? selectedEquipment.filter((item) => item !== equipment)
+                        : [...selectedEquipment, equipment];
+                      scheduleReplacement(dateRange, selectedMuscles, false, next);
+                    }}
+                    className="size-4 accent-purple-500"
+                  />
+                  {formatLabel(equipment)}
+                </label>
+              ))}
+            </div>
+          </details>
+
+          {filtersActive && (
+            <p className="mt-4 text-sm text-blue-100/70">
+              Active filters:{" "}
+              {[
+                ...visibleMuscles,
+                ...selectedMuscles.map((code) => muscleOptions.find((option) => option.code === code)?.name ?? code),
+                ...selectedEquipment.map(formatLabel),
+              ].join(", ")}
+            </p>
+          )}
+        </aside>
+
+        <div className="min-w-0">
+          <button
+            ref={filterTriggerRef}
+            type="button"
+            onClick={() => {
+              setFiltersOpen(true);
+            }}
+            className="mb-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-blue-50 lg:hidden"
+          >
+            <SlidersHorizontal aria-hidden="true" className="size-4" /> Filters
+          </button>
+          <p aria-atomic="true" aria-live="polite" className="sr-only">
+            {isReplacing
+              ? "Updating history."
+              : isAppending
+                ? "Loading more workouts."
+                : `${page.entries.length} ${page.entries.length === 1 ? "workout" : "workouts"} shown.`}
+          </p>
+
+          {refreshFailure && (
+            <div className="mt-5">
+              <ErrorMessage
+                failure={refreshFailure}
+                retryLabel="Retry history"
+                onRetry={() => void startReplacement(committedFilters, false)}
+              />
+            </div>
+          )}
+
+          <div className="mt-5 flex items-baseline justify-between gap-3">
+            <p className="text-sm text-blue-100/65">
+              {isReplacing
+                ? "Updating history…"
+                : `${page.entries.length} ${page.entries.length === 1 ? "workout" : "workouts"} shown`}
+            </p>
+          </div>
+
+          {page.entries.length === 0 && !isReplacing ? (
+            <div className="mt-5 rounded-xl border border-dashed border-white/15 px-4 py-8 text-center">
+              <p className="font-semibold text-white">
+                {initialView ? "No completed workouts yet" : "No workouts match these filters"}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-blue-100/65">
+                {initialView
+                  ? "Mark a planned workout done and it will appear here with its complete prescription."
+                  : "Try a wider date range or remove one or more muscle filters."}
+              </p>
+              {initialView ? (
+                <a
+                  href="/dashboard"
+                  className="mt-5 inline-flex min-h-11 items-center justify-center rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-purple-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
+                >
+                  Go to dashboard
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    scheduleReplacement(null, [], true);
+                    window.requestAnimationFrame(() => clearFiltersRef.current?.focus());
+                  }}
+                  className="mt-5 inline-flex min-h-11 items-center justify-center rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-blue-50 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+          ) : (
+            <ol className="mt-5 space-y-3" aria-label="Completed workouts">
+              {page.entries.map((entry) => {
+                const expanded = expandedIds.has(entry.id);
+                const detailId = `history-detail-${entry.id}`;
+                const muscles = involvedMuscles(entry);
+                return (
+                  <li key={entry.id} className="min-w-0 rounded-xl border border-white/10 bg-black/15 p-4">
+                    <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="font-semibold break-words text-white">
+                          {entry.origin === "ai" ? "AI workout" : "Manual workout"}
+                        </p>
+                        <time
+                          suppressHydrationWarning
+                          className="mt-1 block text-sm text-blue-100/65"
+                          dateTime={entry.completedAt}
+                        >
+                          Completed {formatCompletion(entry.completedAt)}
+                        </time>
+                        <p className="mt-2 text-sm text-blue-100/70">
+                          {entry.exercises.length} {entry.exercises.length === 1 ? "exercise" : "exercises"}
+                        </p>
+                        {muscles.length > 0 && (
+                          <ul className="mt-3 flex flex-wrap gap-2" aria-label="Involved muscle groups">
+                            {muscles.map((muscle) => (
                               <li
-                                key={`${muscle.code}-${muscle.role}`}
-                                className="rounded-full bg-slate-950/60 px-2 py-1 text-xs text-blue-100/75"
+                                key={muscle.code}
+                                className="rounded-full bg-purple-500/15 px-2.5 py-1 text-xs text-purple-100"
                               >
-                                {muscle.name} · {muscle.role}
+                                {muscle.name}
                               </li>
                             ))}
                           </ul>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ol>
-      )}
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        aria-expanded={expanded}
+                        aria-controls={detailId}
+                        onClick={() => {
+                          setExpandedIds((current) => {
+                            const next = new Set(current);
+                            if (next.has(entry.id)) next.delete(entry.id);
+                            else next.add(entry.id);
+                            return next;
+                          });
+                        }}
+                        className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-blue-50 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
+                      >
+                        {expanded ? "Hide details" : "Show details"}
+                      </button>
+                    </div>
 
-      {(page.nextCursor !== null || appendFailure !== null) && (
-        <div className="mt-5">
-          {appendFailure && (
-            <div
-              role="alert"
-              className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100"
-            >
-              <p>{appendFailure.message}</p>
-              {appendFailure.requestId && (
-                <p className="mt-1 text-xs text-red-100/70">Support request ID: {appendFailure.requestId}</p>
-              )}
-              <p className="mt-2 text-xs text-red-100/70">Scroll away and back to the end to try loading again.</p>
-            </div>
+                    {expanded && (
+                      <div id={detailId} className="mt-4 border-t border-white/10 pt-4">
+                        <p className="text-sm text-blue-100/65">
+                          Origin: {entry.origin === "ai" ? "AI-generated" : "Manual"} · Created{" "}
+                          <time dateTime={entry.createdAt}>{formatCompletion(entry.createdAt)}</time>
+                        </p>
+                        <ol
+                          className="mt-4 space-y-3"
+                          aria-label={`${entry.origin === "ai" ? "AI" : "Manual"} workout prescription`}
+                        >
+                          {entry.exercises.map((exercise) => (
+                            <li key={exercise.exerciseId} className="min-w-0 rounded-lg bg-white/5 p-3">
+                              <p className="font-semibold break-words text-white">
+                                {exercise.position + 1}. {exercise.name}
+                              </p>
+                              <p className="mt-1 text-sm text-blue-100/70">
+                                {exercise.sets} {exercise.sets === 1 ? "set" : "sets"} × {exercise.reps}{" "}
+                                {exercise.reps === 1 ? "rep" : "reps"}
+                              </p>
+                              <ul className="mt-2 flex flex-wrap gap-2" aria-label={`${exercise.name} muscle roles`}>
+                                {exercise.muscles.map((muscle) => (
+                                  <li
+                                    key={`${muscle.code}-${muscle.role}`}
+                                    className="rounded-full bg-slate-950/60 px-2 py-1 text-xs text-blue-100/75"
+                                  >
+                                    {muscle.name} · {muscle.role}
+                                  </li>
+                                ))}
+                              </ul>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
           )}
-          {page.nextCursor && <div ref={sentinelRef} aria-hidden="true" className="mt-3 h-px" />}
-          {isAppending && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-blue-100/70">
-              <span
-                aria-hidden="true"
-                className="size-4 animate-spin rounded-full border-2 border-purple-200/30 border-t-purple-200"
-              />
-              Loading more workouts…
+
+          {(page.nextCursor !== null || appendFailure !== null) && (
+            <div className="mt-5">
+              {appendFailure && (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100"
+                >
+                  <p>{appendFailure.message}</p>
+                  {appendFailure.requestId && (
+                    <p className="mt-1 text-xs text-red-100/70">Support request ID: {appendFailure.requestId}</p>
+                  )}
+                  <p className="mt-2 text-xs text-red-100/70">Scroll away and back to the end to try loading again.</p>
+                </div>
+              )}
+              {page.nextCursor && <div ref={sentinelRef} aria-hidden="true" className="mt-3 h-px" />}
+              {isAppending && (
+                <div className="mt-3 flex items-center gap-2 text-sm text-blue-100/70">
+                  <span
+                    aria-hidden="true"
+                    className="size-4 animate-spin rounded-full border-2 border-purple-200/30 border-t-purple-200"
+                  />
+                  Loading more workouts…
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
+      </div>
     </section>
   );
 }
