@@ -492,17 +492,17 @@ changes.
 
 #### Automated
 
-- [ ] 1.1 History contract tests pass
-- [ ] 1.2 Existing planned-workout tests remain green
-- [ ] 1.3 Astro types synchronize successfully
-- [ ] 1.4 Repository lint passes
-- [ ] 1.5 Production Cloudflare Worker build succeeds
+- [x] 1.1 History contract tests pass
+- [x] 1.2 Existing planned-workout tests remain green
+- [x] 1.3 Astro types synchronize successfully
+- [x] 1.4 Repository lint passes
+- [x] 1.5 Production Cloudflare Worker build succeeds
 
 #### Manual
 
-- [ ] 1.6 Equal-timestamp cursor pages are stable and duplicate-free
-- [ ] 1.7 Muscle filtering preserves complete workout details
-- [ ] 1.8 Authenticated history service results remain owner-isolated
+- [x] 1.6 Equal-timestamp cursor pages are stable and duplicate-free
+- [x] 1.7 Muscle filtering preserves complete workout details
+- [x] 1.8 Authenticated history service results remain owner-isolated
 
 ### Phase 2: Protected History API and SSR Entry Point
 
