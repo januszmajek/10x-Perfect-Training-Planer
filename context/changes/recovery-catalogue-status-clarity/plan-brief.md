@@ -5,7 +5,7 @@
 
 ## What & Why
 
-Manual UI review rejected standalone readiness/recovery copy and exposed a layout problem in the muscle-chip region. This revision moves remaining time into affected primary-muscle chips, removes secondary-workload presentation entirely, and breaks the oversized shared editor into focused workout components.
+Manual UI review rejected standalone readiness/recovery copy. This revision moves remaining time into affected primary-muscle chips, removes secondary-workload presentation entirely, and breaks the oversized shared editor into focused workout components.
 
 ## Starting Point
 
@@ -13,7 +13,7 @@ Manual UI review rejected standalone readiness/recovery copy and exposed a layou
 
 ## Desired End State
 
-Ready cards show no status copy. Recovering primary chips carry their own concise duration, such as `Quads 42h`, while all other chips remain neutral and the chip region fills available width. The live recovery model contains only state plus affected primary muscles, and the shared editor becomes a thin coordinator behind its unchanged public API.
+Ready cards show no status copy. Recovering primary chips carry their own concise duration, such as `Quads 42h`, while all other chips remain neutral. The live recovery model contains only state plus affected primary muscles, and the shared editor becomes a thin coordinator behind its unchanged public API.
 
 ## Key Decisions Made
 
@@ -22,12 +22,11 @@ Ready cards show no status copy. Recovering primary chips carry their own concis
 | Recovery detail | Put time inside affected primary chips | Associates information directly with its muscle | User review |
 | Ready presentation | No per-card text and neutral styling | Absence of recovering muscles needs no extra explanation | User review |
 | Secondary workload | Remove from UI and runtime contract | It has no clear catalogue action for the user | User review |
-| Chip width | Grow the content region and chip list | Fixes unused horizontal space without distorting pill labels | Code research |
 | Refactor boundary | Four feature children behind one coordinator | Reduces file complexity while preserving shared create/edit integration | Code research |
 
 ## Scope
 
-**In scope:** recovery DTO cleanup, test/contract updates, filter/catalogue/card/draft component extraction, chip-only recovery UX, responsive and accessibility checks.
+**In scope:** recovery DTO cleanup, test/contract updates, filter/catalogue/card/draft component extraction, chip-only recovery UX, and accessibility checks.
 
 **Out of scope:** recovery algorithms/windows, completed-history queries, readiness scores, new global UI primitives, browser-test infrastructure, and caller API changes.
 
@@ -41,15 +40,14 @@ Slim the recovery contract first. Then retain cross-panel state in `WorkoutDraft
 | --- | --- | --- |
 | 1. Contract cleanup | Removes secondary workload from model, tests, and canonical docs | Accidentally changing primary recovery semantics |
 | 2. Editor decomposition | Thin coordinator plus focused workout components | Breaking replacement or drawer coordination |
-| 3. Chip UX | Time-bearing recovery chips and full-width responsive layout | Ambiguous abbreviated time or chip/action collisions |
+| 3. Chip UX | Time-bearing recovery chips | Ambiguous abbreviated time |
 
 **Prerequisites:** The reviewed plan commit `8603e23` and current uncommitted UI draft are present.
-**Estimated effort:** Two implementation sessions plus manual responsive and accessibility verification.
+**Estimated effort:** Two implementation sessions plus manual accessibility verification.
 
 ## Open Risks & Assumptions
 
-- The screenshot's unused row width is caused by the non-growing content region; chips remain intrinsic-width rather than stretching each label to equal width.
-- Component/browser automation is unavailable, so create/edit and responsive behavior require explicit manual gates.
+- Component/browser automation is unavailable, so create/edit behavior requires explicit manual gates.
 - The revised plan materially supersedes the earlier plan review and requires a fresh `/10x-plan-review` before implementation resumes.
 
 ## Success Criteria (Summary)

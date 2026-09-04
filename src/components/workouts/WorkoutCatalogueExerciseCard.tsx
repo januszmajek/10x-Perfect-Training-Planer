@@ -23,6 +23,11 @@ function formatRemainingTime(milliseconds: number): string {
   return hours <= 1 ? "1h" : `${hours}h`;
 }
 
+function formatRecoveryDuration(milliseconds: number): string {
+  const hours = Math.max(1, Math.ceil(milliseconds / (60 * 60 * 1000)));
+  return `${hours} hour${hours === 1 ? "" : "s"} of recovery time remaining`;
+}
+
 export default function WorkoutCatalogueExerciseCard({
   exercise,
   recovery,
@@ -31,33 +36,35 @@ export default function WorkoutCatalogueExerciseCard({
   actionLabel,
   onSelect,
 }: Props) {
-  const recoveringMuscles = new Set(recovery?.recoveringMuscles.map(({ code }) => code));
+  const recoveringMuscles = new Map(recovery?.recoveringMuscles.map((muscle) => [muscle.code, muscle]));
   const isRecovering = recovery?.state === "recovering";
-  const border = recovery ? (isRecovering ? "border-amber-300/30" : "border-emerald-300/25") : "border-white/10";
+  const border = isRecovering ? "border-amber-300/30" : "border-white/10";
 
   return (
     <li className={`rounded-xl border ${border} bg-black/15 p-4`}>
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
+        <div className="min-w-0 sm:flex-1">
           <h3 className="font-semibold wrap-break-word text-white">{exercise.name}</h3>
           <p className="mt-1 text-xs text-purple-200 uppercase">{formatLabel(exercise.equipment)}</p>
-          {recovery && (
-            <p className={`mt-3 text-sm ${isRecovering ? "text-amber-100" : "text-emerald-100"}`}>
-              {isRecovering
-                ? `Recovery: ${recovery.recoveringMuscles.map((muscle) => `${muscle.name} · ${formatRemainingTime(muscle.remainingMilliseconds)} left`).join(", ")}`
-                : "Ready to train"}
-            </p>
-          )}
           {exercise.muscles.length > 0 && (
-            <ul className="mt-3 flex flex-wrap gap-2" aria-label={`${exercise.name} muscle groups`}>
-              {exercise.muscles.map((muscle) => (
-                <li
-                  key={`${muscle.code}-${muscle.role}`}
-                  className={`rounded-full px-2.5 py-1 text-xs ${muscle.role === "primary" && recoveringMuscles.has(muscle.code) ? "bg-amber-400/15 text-amber-100" : "bg-purple-500/15 text-purple-100"}`}
-                >
-                  {muscle.name}
-                </li>
-              ))}
+            <ul className="mt-3 flex w-full flex-wrap gap-2" aria-label={`${exercise.name} muscle groups`}>
+              {exercise.muscles.map((muscle) => {
+                const recoveryContext = muscle.role === "primary" ? recoveringMuscles.get(muscle.code) : undefined;
+                return (
+                  <li
+                    key={`${muscle.code}-${muscle.role}`}
+                    className={`rounded-full px-2.5 py-1 text-xs ${recoveryContext ? "bg-amber-400/15 text-amber-100" : "bg-purple-500/15 text-purple-100"}`}
+                  >
+                    {muscle.name}
+                    {recoveryContext && (
+                      <>
+                        <span aria-hidden="true"> {formatRemainingTime(recoveryContext.remainingMilliseconds)}</span>
+                        <span className="sr-only"> {formatRecoveryDuration(recoveryContext.remainingMilliseconds)}</span>
+                      </>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
