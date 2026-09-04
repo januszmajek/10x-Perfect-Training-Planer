@@ -121,7 +121,7 @@ Split the oversized editor into focused feature components while preserving one 
 
 **Intent**: Separate catalogue ordering/list behavior from a reusable single-card presentation boundary.
 
-**Contract**: Let the panel own recovery sort state and derive recovery grouping plus per-exercise Add/Added/Replace/Current actions from controlled inputs. Preserve filter-first ordering, result count, empty state, group headings, and semantic lists. Let the card own exercise identity, equipment, muscle chips, optional recovery treatment, and action button. Keep card props independent of the save API and pass a resolved action label/disabled state plus a selection callback.
+**Contract**: Let the panel own recovery sort state and derive recovery grouping plus per-exercise Add/Added/Replace/Current actions from controlled inputs. Preserve filter-first ordering, result count, empty state, group headings, and semantic lists. The panel is the only extracted component that discriminates raw from recovery-aware catalogue entries; resolve each entry's `recovery` value there and pass `RecoveryAwareCatalogueExercise["recovery"] | null` to the card. Let the card own exercise identity, equipment, muscle chips, optional recovery treatment, and action button. Keep card props independent of the save API and pass a resolved action label/disabled state plus a selection callback.
 
 #### 4. Draft panel
 
@@ -251,10 +251,10 @@ Recovery data remains server-projected once. Build a small code-to-recovery-cont
 
 #### Automated
 
-- [ ] 2.1 Reduce `WorkoutDraftEditor.tsx` to a thin coordinator
-- [ ] 2.2 Preserve filtering, ordering, and draft helper behavior with `pnpm test:manual-workout`
-- [ ] 2.3 Pass `pnpm lint`
-- [ ] 2.4 Pass `pnpm build`
+- [x] 2.1 Reduce `WorkoutDraftEditor.tsx` to a thin coordinator
+- [x] 2.2 Preserve filtering, ordering, and draft helper behavior with `pnpm test:manual-workout`
+- [x] 2.3 Pass `pnpm lint`
+- [x] 2.4 Pass `pnpm build`
 
 #### Manual
 
