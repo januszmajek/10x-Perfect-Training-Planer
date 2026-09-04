@@ -1,56 +1,59 @@
-# Recovery catalogue status clarity — Plan Brief
+# Recovery catalogue clarity and editor decomposition — Plan Brief
 
 > Full plan: `context/changes/recovery-catalogue-status-clarity/plan.md`
 > Frame brief: `context/changes/recovery-aware-manual-builder/frame.md`
 
 ## What & Why
 
-Make an exercise's advisory recovery state immediately scannable in the default catalogue, while clearly tying the reason and remaining time only to affected primary muscles. The recovery logic is sound, but card hierarchy makes status easy to miss and generic pill recolouring would overstate what the data means.
+Manual UI review rejected standalone readiness/recovery copy and exposed a layout problem in the muscle-chip region. This revision moves remaining time into affected primary-muscle chips, removes secondary-workload presentation entirely, and breaks the oversized shared editor into focused workout components.
 
 ## Starting Point
 
-The shared exercise-card component uses neutral cards and purple muscle pills. Recovering entries add an amber explanation below the pills; ready cards are generally unlabeled, especially in default order.
+`WorkoutDraftEditor.tsx` exceeds 600 lines and owns filters, catalogue ordering/cards, replacement coordination, and draft controls. The current uncommitted UI draft shows `Ready to train`, a top-level recovery sentence, and `Recent indirect work`; `secondaryWorkload` also exists in the live projection contract and tests.
 
 ## Desired End State
 
-Every recovery-aware card on `/workouts/new` has concise status text and a subtle matching border. Recovering cards precisely identify every affected primary muscle and rounded time left, while ready cards say `Ready to train`. All exercises stay selectable, and raw edit-mode catalogue cards stay neutral.
+Ready cards show no status copy. Recovering primary chips carry their own concise duration, such as `Quads 42h`, while all other chips remain neutral and the chip region fills available width. The live recovery model contains only state plus affected primary muscles, and the shared editor becomes a thin coordinator behind its unchanged public API.
 
 ## Key Decisions Made
 
 | Decision | Choice | Why | Source |
 | --- | --- | --- | --- |
-| Status hierarchy | Text status plus restrained card border | Enables rapid scanning without relying on colour | Plan |
-| Pill treatment | Highlight affected recovering primary pills only | Secondary workload is not a recovery blocker | Frame |
-| Wording | `Ready to train` and `Recovery: muscle · time` | Concise and supported by page-level advisory context | Plan |
-| Scope | Catalogue-only presentation | Keeps recovery calculation, sorting, and edit mode stable | Frame |
+| Recovery detail | Put time inside affected primary chips | Associates information directly with its muscle | User review |
+| Ready presentation | No per-card text and neutral styling | Absence of recovering muscles needs no extra explanation | User review |
+| Secondary workload | Remove from UI and runtime contract | It has no clear catalogue action for the user | User review |
+| Chip width | Grow the content region and chip list | Fixes unused horizontal space without distorting pill labels | Code research |
+| Refactor boundary | Four feature children behind one coordinator | Reduces file complexity while preserving shared create/edit integration | Code research |
 
 ## Scope
 
-**In scope:** recovery-aware card status text, borders, precise primary-muscle highlighting, and manual regression verification.
+**In scope:** recovery DTO cleanup, test/contract updates, filter/catalogue/card/draft component extraction, chip-only recovery UX, responsive and accessibility checks.
 
-**Out of scope:** recovery calculation, persistence, medical/readiness scores, selection restrictions, sort/filter semantics, and raw edit-card styling.
+**Out of scope:** recovery algorithms/windows, completed-history queries, readiness scores, new global UI primitives, browser-test infrastructure, and caller API changes.
 
 ## Architecture / Approach
 
-`WorkoutDraftEditor` already receives a display-ready recovery projection. It will conditionally render the status hierarchy only for entries passing the existing recovery-aware type guard; no API, schema, or data-loading changes are needed.
+Slim the recovery contract first. Then retain cross-panel state in `WorkoutDraftEditor` while extracting controlled `WorkoutCatalogueFilters`, `WorkoutCataloguePanel`, `WorkoutCatalogueExerciseCard`, and `WorkoutDraftPanel` components under `components/workouts`. Apply the final chip UX at the card boundary and verify both create and edit consumers.
 
 ## Phases at a Glance
 
 | Phase | What it delivers | Key risk |
 | --- | --- | --- |
-| 1. Present status | Scannable status, state borders, precise pills | Misstating secondary-muscle context |
-| 2. Verify regressions | Responsive, keyboard, sort, and edit-mode checks | No component test runner |
+| 1. Contract cleanup | Removes secondary workload from model, tests, and canonical docs | Accidentally changing primary recovery semantics |
+| 2. Editor decomposition | Thin coordinator plus focused workout components | Breaking replacement or drawer coordination |
+| 3. Chip UX | Time-bearing recovery chips and full-width responsive layout | Ambiguous abbreviated time or chip/action collisions |
 
-**Prerequisites:** Recovery-aware manual builder remains available on `/workouts/new`.
-**Estimated effort:** One focused implementation session plus manual browser verification.
+**Prerequisites:** The reviewed plan commit `8603e23` and current uncommitted UI draft are present.
+**Estimated effort:** Two implementation sessions plus manual responsive and accessibility verification.
 
 ## Open Risks & Assumptions
 
-- Visual presentation must preserve text status for users who cannot or do not distinguish state colours.
-- Existing node tests protect data behavior, so card presentation requires explicit manual checks.
+- The screenshot's unused row width is caused by the non-growing content region; chips remain intrinsic-width rather than stretching each label to equal width.
+- Component/browser automation is unavailable, so create/edit and responsive behavior require explicit manual gates.
+- The revised plan materially supersedes the earlier plan review and requires a fresh `/10x-plan-review` before implementation resumes.
 
 ## Success Criteria (Summary)
 
-- Ready and recovering cards are distinguishable in default and sorted views without relying on colour alone.
-- Only affected primary muscles get recovery emphasis; secondary workload stays contextual.
-- Existing catalogue interaction and raw edit-mode cards do not regress.
+- Recovering time appears only inside affected primary chips; ready and secondary chips contain no extra status copy.
+- Secondary workload is absent from live code and canonical contract documentation.
+- `WorkoutDraftEditor` is materially smaller while both create and edit workflows remain stable.

@@ -15,17 +15,10 @@ export interface RecoveryMuscleContext {
   remainingMilliseconds: number;
 }
 
-export interface SecondaryWorkloadContext {
-  code: string;
-  name: string;
-  fractionalSets: number;
-}
-
 export interface RecoveryAwareCatalogueExercise extends CatalogueExercise {
   recovery: {
     state: RecoveryState;
     recoveringMuscles: RecoveryMuscleContext[];
-    secondaryWorkload: SecondaryWorkloadContext[];
   };
 }
 
@@ -66,7 +59,6 @@ export function projectRecoveryAwareCatalogue(
 ): RecoveryAwareCatalogueExercise[] {
   const nowMilliseconds = now.getTime();
   const deadlines = new Map<string, number>();
-  const secondarySets = new Map<string, number>();
 
   for (const workout of completedWorkouts) {
     const completedAt = validDate(workout.completedAt);
@@ -78,8 +70,6 @@ export function projectRecoveryAwareCatalogue(
         if (muscle.role === "primary") {
           const deadline = completedAt + muscle.recoveryHours * 60 * 60 * 1000;
           deadlines.set(muscle.code, Math.max(deadlines.get(muscle.code) ?? 0, deadline));
-        } else {
-          secondarySets.set(muscle.code, (secondarySets.get(muscle.code) ?? 0) + exercise.sets * 0.5);
         }
       }
     }
@@ -98,19 +88,11 @@ export function projectRecoveryAwareCatalogue(
         },
       ];
     });
-    const secondaryWorkload = exercise.muscles.flatMap((muscle) => {
-      const fractionalSets = secondarySets.get(muscle.code);
-      return muscle.role === "secondary" && fractionalSets
-        ? [{ code: muscle.code, name: muscle.name, fractionalSets }]
-        : [];
-    });
-
     return {
       ...exercise,
       recovery: {
         state: recoveringMuscles.length ? "recovering" : "ready",
         recoveringMuscles,
-        secondaryWorkload,
       },
     };
   });

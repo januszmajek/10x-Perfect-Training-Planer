@@ -64,9 +64,11 @@ function formatRemainingTime(milliseconds: number): string {
   return totalHours <= 1 ? "1h" : `${totalHours}h`;
 }
 
-function formatFractionalSets(fractionalSets: number): string {
-  return Number.isInteger(fractionalSets) ? String(fractionalSets) : fractionalSets.toFixed(1);
-}
+const RECOVERY_ORDER_BUTTON_LABELS: Record<RecoveryOrder, string> = {
+  "not-sorted": "Default",
+  "ready-first": "Ready first",
+  "recovering-first": "Recovery first",
+};
 
 export default function WorkoutDraftEditor<T extends CatalogueExercise>({
   catalogue,
@@ -314,31 +316,33 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
         <section className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl sm:p-6">
           <p className="text-sm font-medium tracking-wide text-purple-300 uppercase">Exercise catalogue</p>
           <h2 className="mt-1 text-2xl font-bold text-white">Find exercises</h2>
-          <button
-            ref={filterTriggerRef}
-            type="button"
-            onClick={() => {
-              setFiltersOpen(true);
-            }}
-            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-blue-50 lg:hidden"
-          >
-            <SlidersHorizontal aria-hidden="true" className="size-4" /> Filters
-          </button>
-          <p className="mt-4 text-sm text-blue-100/60" role="status">
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              ref={filterTriggerRef}
+              type="button"
+              onClick={() => {
+                setFiltersOpen(true);
+              }}
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-blue-50 lg:hidden"
+            >
+              <SlidersHorizontal aria-hidden="true" className="size-4" /> Filters
+            </button>
+            {recoveryGuidanceAvailable && (
+              <button
+                type="button"
+                aria-label={`Recovery order: ${RECOVERY_ORDER_LABELS[recoveryOrder]}. Activate to show ${RECOVERY_ORDER_LABELS[nextRecoveryOrder(recoveryOrder)]}.`}
+                onClick={() => {
+                  setRecoveryOrder((current) => nextRecoveryOrder(current));
+                }}
+                className="inline-flex min-h-11 items-center rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-blue-50 hover:bg-white/10"
+              >
+                Sort: {RECOVERY_ORDER_BUTTON_LABELS[recoveryOrder]}
+              </button>
+            )}
+          </div>
+          <p className="mt-3 text-sm text-blue-100/60" role="status">
             {filteredCatalogue.length} of {catalogue.length} exercises shown
           </p>
-          {recoveryGuidanceAvailable && (
-            <button
-              type="button"
-              aria-label={`Recovery order: ${RECOVERY_ORDER_LABELS[recoveryOrder]}. Activate to show ${RECOVERY_ORDER_LABELS[nextRecoveryOrder(recoveryOrder)]}.`}
-              onClick={() => {
-                setRecoveryOrder((current) => nextRecoveryOrder(current));
-              }}
-              className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-emerald-300/30 px-3 py-2 text-sm font-semibold text-emerald-100 hover:bg-emerald-300/10"
-            >
-              Recovery order: {RECOVERY_ORDER_LABELS[recoveryOrder]}
-            </button>
-          )}
           <div className="mt-4 space-y-5" aria-label="Filtered exercise catalogue">
             {(recoveryGroups.length > 0 ? recoveryGroups : [{ state: null, exercises: filteredCatalogue }]).map(
               ({ state, exercises }) => (
@@ -355,48 +359,50 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
                       const selectedElsewhere = selected && draft[replacingIndex ?? -1]?.exerciseId !== exercise.id;
                       const isCurrentReplacement =
                         isReplacementTarget && draft[replacingIndex]?.exerciseId === exercise.id;
+                      const recovery = isRecoveryAwareExercise(exercise) ? exercise.recovery : null;
+                      const recoveringMuscleCodes = new Set(recovery?.recoveringMuscles.map((muscle) => muscle.code));
+                      const isRecovering = recovery?.state === "recovering";
+                      const cardBorderClass = recovery
+                        ? isRecovering
+                          ? "border-amber-300/30"
+                          : "border-emerald-300/25"
+                        : "border-white/10";
                       return (
-                        <li key={exercise.id} className="rounded-xl border border-white/10 bg-black/15 p-4">
+                        <li key={exercise.id} className={`rounded-xl border ${cardBorderClass} bg-black/15 p-4`}>
                           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0">
-                              <h3 className="font-semibold break-words text-white">{exercise.name}</h3>
+                              <h3 className="font-semibold wrap-break-word text-white">{exercise.name}</h3>
                               <p className="mt-1 text-xs text-purple-200 uppercase">
                                 {formatLabel(exercise.equipment)}
                               </p>
+                              {recovery && (
+                                <p className={`mt-3 text-sm ${isRecovering ? "text-amber-100" : "text-emerald-100"}`}>
+                                  {isRecovering
+                                    ? `Recovery: ${recovery.recoveringMuscles
+                                        .map(
+                                          (muscle) =>
+                                            `${muscle.name} · ${formatRemainingTime(muscle.remainingMilliseconds)} left`,
+                                        )
+                                        .join(", ")}`
+                                    : "Ready to train"}
+                                </p>
+                              )}
                               {exercise.muscles.length > 0 && (
                                 <ul className="mt-3 flex flex-wrap gap-2" aria-label={`${exercise.name} muscle groups`}>
                                   {exercise.muscles.map((muscle) => (
                                     <li
                                       key={`${muscle.code}-${muscle.role}`}
-                                      className="rounded-full bg-purple-500/15 px-2.5 py-1 text-xs text-purple-100"
+                                      className={`rounded-full px-2.5 py-1 text-xs ${
+                                        muscle.role === "primary" && recoveringMuscleCodes.has(muscle.code)
+                                          ? "bg-amber-400/15 text-amber-100"
+                                          : "bg-purple-500/15 text-purple-100"
+                                      }`}
                                     >
                                       {muscle.name}
                                     </li>
                                   ))}
                                 </ul>
                               )}
-                              {isRecoveryAwareExercise(exercise) && exercise.recovery.state === "recovering" && (
-                                <p className="mt-3 text-sm text-amber-100">
-                                  {exercise.recovery.recoveringMuscles.map((muscle) => (
-                                    <span key={muscle.code} className="block">
-                                      {muscle.name} recovering for {formatRemainingTime(muscle.remainingMilliseconds)}
-                                    </span>
-                                  ))}
-                                </p>
-                              )}
-                              {isRecoveryAwareExercise(exercise) &&
-                                exercise.recovery.state === "ready" &&
-                                exercise.recovery.secondaryWorkload.length > 0 && (
-                                  <p className="mt-3 text-sm text-blue-100/75">
-                                    Recent indirect work:{" "}
-                                    {exercise.recovery.secondaryWorkload
-                                      .map(
-                                        (muscle) =>
-                                          `${muscle.name} ${formatFractionalSets(muscle.fractionalSets)} sets`,
-                                      )
-                                      .join(", ")}
-                                  </p>
-                                )}
                             </div>
                             <button
                               type="button"

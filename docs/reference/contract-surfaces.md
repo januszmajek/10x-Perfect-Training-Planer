@@ -55,8 +55,8 @@ Recovery is 72 hours for `lats`, `upper_back`, `lower_back`, `quads`, `hamstring
   persisted as mutable state.
 - `workouts.completed_at` is the authoritative recovery event time. A primary muscle is recovering while
   `now < completed_at + muscle_groups.recovery_hours`; it is ready exactly at the boundary.
-- Primary exercise-muscle tags contribute `1.0` set and start their configured recovery window. Secondary tags
-  contribute `0.5` fractional workload as display context only and never block readiness.
+- Primary exercise-muscle tags start their configured recovery window. Secondary tags never start or block that
+  fixed recovery window.
 - The manual-builder catalogue applies search, muscle, and equipment filters independently of recovery state. Its
   ready/recovering presentation is advisory: every matching exercise remains available to add or replace.
 - A dynamic recovery score is out of scope until the product records additional inputs such as actual load, RIR,

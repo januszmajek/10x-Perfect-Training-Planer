@@ -1,98 +1,185 @@
-# Recovery catalogue status clarity implementation plan
+# Recovery catalogue clarity and editor decomposition implementation plan
 
 ## Overview
 
-Refine the recovery-aware exercise catalogue so users can identify advisory recovery status at a glance in every ordering state. The presentation will use compact text status, a subtle card-level state cue, and precise highlighting of only the primary muscles currently in recovery.
+Revise the exercise catalogue based on manual UI review: show recovery time inside the affected muscle chip, remove per-card ready and indirect-work copy, let the chip region use the full available row width, and split the oversized shared draft editor into focused components. Remove secondary workload from the live recovery model because it no longer has a user-facing purpose.
 
 ## Current State Analysis
 
-`WorkoutDraftEditor` renders neutral exercise cards and purple muscle pills. Recovering entries expose their explanation only after those tags, while ready entries generally have no equivalent state label. Group headings communicate state only when recovery sorting is active.
+`WorkoutDraftEditor.tsx` is over 600 lines and owns filter state, drawer lifecycle, catalogue filtering and recovery ordering, exercise-card rendering, replacement coordination, draft editing, and save/cancel presentation. Both create and edit flows reuse this component, so its public props and behavior are a load-bearing integration point.
 
-The server-side projection already provides display data. It marks an exercise `recovering` only when a primary muscle has an unexpired recovery deadline, and retains secondary workload only as contextual data. This change must consume that contract; it must not recalculate readiness.
+The current uncommitted Phase 1 draft adds a standalone `Ready to train` or `Recovery: …` line and state-coloured card borders. Manual review rejected the standalone copy. The muscle list's content column also lacks flex growth at the horizontal card breakpoint, so the chips do not use the available space beside the action button.
+
+`secondaryWorkload` is not persisted, but it is part of the live TypeScript recovery contract, projection, UI rendering, tests, and canonical contract documentation. Removing the bottom-card explanation therefore requires a coordinated contract cleanup rather than hiding one paragraph.
 
 ## Desired End State
 
-On `/workouts/new`, every recovery-aware exercise card clearly states either `Ready to train` or a concise recovery message that names every affected primary muscle and its rounded remaining time. Ready and recovering cards have subtle, distinct borders, and only affected primary-muscle pills receive the recovering treatment. Users can still search, sort, add, and replace every exercise regardless of status.
+Recovery-aware exercise cards show no standalone ready or recovery sentence. Ready cards remain neutral. When a primary muscle is recovering, its chip uses the recovery colour and includes the rounded remaining time, for example `Quads 42h`; every other primary and secondary chip remains neutral. The chip region fills the available horizontal card space and wraps without colliding with the Add/Replace action.
+
+The recovery projection exposes only the exercise state and affected recovering primary muscles. Secondary-only completed work does not block recovery and produces no display payload. `WorkoutDraftEditor` becomes a thin shared coordinator composed from focused feature-level workout components while keeping its public interface and create/edit behavior stable.
 
 ### Key Discoveries
 
-- The UI surface is shared by new and edit pages, but only the new-workout route passes the recovery-enriched catalogue. `src/components/workouts/WorkoutDraftEditor.tsx:97-117`, `src/pages/workouts/new.astro:12-30`, `src/pages/workouts/edit.astro:12-25`
-- `recoveringMuscles` contains exactly primary-muscle causes and remaining time; secondary workload never blocks readiness. `src/lib/recovery-aware-catalogue.ts:77-115`
-- No component/browser test runner exists. Existing unit tests protect projection, filtering, and ordering, while card behavior requires focused manual verification. `package.json:15-18`, `src/lib/recovery-aware-catalogue.test.ts:35-110`
+- Both `ManualWorkoutBuilder` and `PlannedWorkoutEditor` consume the same `WorkoutDraftEditor` interface, so extracted children should remain behind that shared composition root. `src/components/workouts/ManualWorkoutBuilder.tsx:139-154`, `src/components/workouts/PlannedWorkoutEditor.tsx:197-217`
+- The editor's clean boundaries are filter controls, catalogue/list/card presentation, and draft controls; replacement index and drawer focus coordination cross those boundaries and should stay in the parent. `src/components/workouts/WorkoutDraftEditor.tsx:77-161`, `181-319`, `320-467`, `468-622`
+- `SecondaryWorkloadContext`, its accumulator, projection, UI formatter/copy, fixtures, and canonical contract wording are all active surfaces. `src/lib/recovery-aware-catalogue.ts:18-29`, `69-114`, `src/components/workouts/WorkoutDraftEditor.tsx:67-69`, `410-419`, `docs/reference/contract-surfaces.md:52-63`
+- The likely chip-width defect is the non-growing content wrapper in the horizontal card layout, not the intrinsic chip width. `src/components/workouts/WorkoutDraftEditor.tsx:376-377`, `395-408`
+- There is no component/browser test runner, so existing node tests protect data behavior while responsive and accessibility behavior remains a manual gate. `package.json:15-20`
 
 ## What We're NOT Doing
 
-- Changing recovery-window calculations, completed-history queries, or primary/secondary workload rules.
-- Adding a recovery score, medical claim, hard restriction, or recovery setting.
-- Reordering, filtering, hiding, disabling, or changing Add/Replace behavior based on recovery state.
-- Applying recovery status to the raw catalogue used by `/workouts/edit`.
-- Replacing the existing page-level advisory explanation.
+- Changing recovery windows, completed-history queries, primary-muscle deadlines, or recovery ordering.
+- Adding readiness scores, secondary-workload calculations, medical claims, or exercise restrictions.
+- Changing the public props of `WorkoutDraftEditor`, or making its create/edit callers assemble extracted child components themselves.
+- Moving feature-specific workout components into `src/components/ui/` or adding a context/provider abstraction.
+- Adding a browser/component testing framework in this change.
+- Editing historical planning/research artifacts for the completed `recovery-aware-manual-builder` change.
 
 ## Implementation Approach
 
-Keep recovery presentation local to `WorkoutDraftEditor` and conditional on the existing recovery-aware type guard. Render readable status before the muscle list, apply a restrained state border to recovery-aware cards, and use supplied recovering-muscle codes to mark only corresponding primary tags. Continue showing secondary workload as neutral context and leave ordering, filtering, and draft interactions untouched.
+First slim the recovery projection contract and update its focused tests plus the canonical contract registry. Next decompose `WorkoutDraftEditor` behind its unchanged public interface, keeping cross-panel coordination in the parent and feature-local behavior in controlled children. Finally implement the accepted chip-only recovery presentation in the extracted catalogue card and run the complete logic, lint, build, responsive, keyboard, and create/edit regression gates.
 
 ## Critical Implementation Details
 
-The visible status must not rely on colour: it is the text alternative for the card border and pill treatment. For compound movements, include every item from `recovery.recoveringMuscles`; use the existing `formatRemainingTime()` helper instead of recalculating time in React.
+Map `recoveringMuscles` by code so every affected primary tag can read its own remaining duration; do not derive time from state or from other tags. The visible compact `42h` label must have an accessible expansion such as “42 hours of recovery time remaining.” Preserve `replacingIndex` in the coordinator because catalogue selection and draft removal both update it, and preserve the drawer trigger ref/focus-restoration lifecycle across the filter extraction.
 
-## Phase 1: Present precise advisory recovery status
+## Phase 1: Remove secondary-workload presentation contract
 
 ### Overview
 
-Make ready and recovering cards scannable in the default catalogue and all recovery-sort states without widening the data contract.
+Delete secondary fractional workload from the live recovery DTO and presentation contract while keeping secondary-only work non-blocking.
 
 ### Changes Required
 
-#### 1. Recovery-aware exercise cards
+#### 1. Recovery projection model
 
-**File**: `src/components/workouts/WorkoutDraftEditor.tsx`
+**File**: `src/lib/recovery-aware-catalogue.ts`
 
-**Intent**: Give each recovery-aware card an accessible compact status near the exercise identity and visual differentiation that mirrors—but does not replace—that text.
+**Intent**: Remove data that no longer supports a user-facing catalogue decision and simplify the projection to fixed primary-muscle recovery only.
 
-**Contract**:
+**Contract**: Remove `SecondaryWorkloadContext`, `recovery.secondaryWorkload`, the secondary-set accumulator, fractional calculation, and serialized output. Preserve `RecoveryState`, `recoveringMuscles`, primary deadline aggregation, exact-boundary readiness, stable ordering, and completed-history input compatibility. Export a single recovery-aware catalogue type guard only if both extracted catalogue components need it; do not introduce a UI utility module solely for that guard.
 
-- Keep cards with no `recovery` data visually and behaviorally unchanged, so `/workouts/edit` remains a raw-catalogue experience.
-- A ready card displays `Ready to train` and a subtle ready border. A recovering card displays `Recovery:` followed by every affected primary-muscle name and its existing rounded remaining time, plus a subtle recovering border.
-- Build affected-muscle membership from `recovery.recoveringMuscles`. Apply the recovering pill treatment only when a rendered tag is both primary and present in that membership; leave all other primary and secondary tags neutral.
-- Preserve secondary-workload copy as neutral ready-card context; do not turn it into a warning or readiness modifier.
-- Preserve the semantic list/card structure, existing muscle-list label, responsive card layout, and all Add/Added/Replace states.
+#### 2. Recovery fixtures and tests
+
+**Files**: `src/lib/recovery-aware-catalogue.test.ts`, `src/lib/manual-workout-builder.test.ts`
+
+**Intent**: Update executable contracts for the slimmer recovery object and retain regression evidence that secondary muscle roles do not block readiness.
+
+**Contract**: Replace the fractional-output assertion with a secondary-only readiness assertion, remove `secondaryWorkload` from recovery-aware fixtures, and preserve coverage for empty history, unexpired primary work, exact deadline, repeated primary work, filtering, and stable recovery ordering.
+
+#### 3. Canonical contract documentation
+
+**File**: `docs/reference/contract-surfaces.md`
+
+**Intent**: Keep the live contract registry aligned with the runtime model.
+
+**Contract**: Replace the fractional-secondary-display statement under `Recovery-aware manual builder` with the invariant that secondary tags do not start or block the fixed recovery window. Preserve primary recovery and advisory/selectability statements.
 
 ### Success Criteria
 
 #### Automated Verification
 
-- `pnpm test:manual-workout` passes, protecting existing recovery projection, filtering, and ordering behavior.
+- `rg "secondaryWorkload|SecondaryWorkloadContext|fractionalSets|Recent indirect work" src docs/reference/contract-surfaces.md` finds no live references.
+- `pnpm test:manual-workout` passes with secondary-only work remaining ready.
 - `pnpm lint` passes.
 
 #### Manual Verification
 
-- A default-order catalogue with mixed ready/recovering entries shows text status and a subtle state cue on each recovery-aware card.
-- A recovering compound exercise names every recovering primary muscle and time, highlights only those primary pills, and leaves secondary pills neutral.
-- A ready exercise with secondary workload remains ready and presents workload as context.
-- Add and Replace remain available for recovering exercises.
+- `/workouts/new` loads without the `Recent indirect work` paragraph on any exercise card.
 
-**Implementation Note**: After automated checks pass, pause for manual confirmation of mixed-state and primary/secondary cases before proceeding to regression verification.
+**Implementation Note**: Pause after automated verification for confirmation that the removed copy is absent before starting the structural refactor.
 
 ---
 
-## Phase 2: Verify catalogue and raw-catalogue regressions
+## Phase 2: Decompose the shared workout draft editor
 
 ### Overview
 
-Confirm the status hierarchy works across responsive, ordering, and accessibility states while raw-catalogue edit mode stays unchanged.
+Split the oversized editor into focused feature components while preserving one shared public editor interface for create and edit flows.
 
 ### Changes Required
 
-#### 1. Catalogue regression verification
+#### 1. Shared coordinator
 
 **File**: `src/components/workouts/WorkoutDraftEditor.tsx`
 
-**Verification surfaces**: `src/pages/workouts/new.astro`, `src/pages/workouts/edit.astro`
+**Intent**: Reduce the file to orchestration, cross-panel state, shared derivations, and top-level responsive layout.
 
-**Intent**: Verify the refinement consumes existing recovery data only and does not alter route-specific catalogue behavior.
+**Contract**: Keep the existing generic props unchanged. Retain search and selected-filter state, `replacingIndex`, filter-drawer state, trigger ref/focus-restoration effect, catalogue/draft lookup maps, filtering, and draft validity in the coordinator. Compose the extracted filters, catalogue, and draft panels; translate child events through the existing pure draft helpers and `onChange` callback.
 
-**Contract**: Do not introduce a browser-test framework for this isolated presentation change. Use the existing logic-test command and manual checks to verify default order, both recovery orders, narrow-screen operation, keyboard operation, and the raw edit catalogue.
+#### 2. Controlled catalogue filters
+
+**File**: `src/components/workouts/WorkoutCatalogueFilters.tsx`
+
+**Intent**: Isolate the responsive filter drawer/sidebar and its filter controls without creating a second source of state.
+
+**Contract**: Accept controlled open/search/selection/options values and explicit search, toggle, reset, close callbacks. Preserve input IDs, labels, main/secondary/equipment groups, backdrop/close behavior, and mobile accessibility. Own no catalogue or draft state.
+
+#### 3. Catalogue panel and exercise card
+
+**Files**: `src/components/workouts/WorkoutCataloguePanel.tsx`, `src/components/workouts/WorkoutCatalogueExerciseCard.tsx`
+
+**Intent**: Separate catalogue ordering/list behavior from a reusable single-card presentation boundary.
+
+**Contract**: Let the panel own recovery sort state and derive recovery grouping plus per-exercise Add/Added/Replace/Current actions from controlled inputs. Preserve filter-first ordering, result count, empty state, group headings, and semantic lists. Let the card own exercise identity, equipment, muscle chips, optional recovery treatment, and action button. Keep card props independent of the save API and pass a resolved action label/disabled state plus a selection callback.
+
+#### 4. Draft panel
+
+**File**: `src/components/workouts/WorkoutDraftPanel.tsx`
+
+**Intent**: Isolate draft prescriptions, replacement messaging, ordering/removal controls, validation feedback, and save/cancel actions.
+
+**Contract**: Accept the controlled draft, exercise lookup, pending/validity/replacement values, and explicit callbacks. It may own item-update/move/remove helper functions, but `replacingIndex` remains controlled so removing an item can coordinate with catalogue replacement state. Do not extract individual draft rows unless the resulting panel remains materially oversized.
+
+### Success Criteria
+
+#### Automated Verification
+
+- `WorkoutDraftEditor.tsx` is a thin coordinator and no longer contains complete filter, catalogue-card, or draft-panel markup.
+- `pnpm test:manual-workout` passes without changes to filtering, recovery ordering, or draft helper semantics.
+- `pnpm lint` passes.
+- `pnpm build` passes.
+
+#### Manual Verification
+
+- `/workouts/new` preserves filter drawer opening, Escape/overlay closing, body-scroll locking, and focus restoration.
+- Add/Added/Replace/Current, draft prescription editing, reorder, remove, save, and cancel behavior remain unchanged.
+- `/workouts/edit` continues to use the shared editor with neutral raw-catalogue cards and its existing conflict/discard behavior.
+
+**Implementation Note**: Pause after automated verification for create/edit workflow confirmation before applying the final card presentation.
+
+---
+
+## Phase 3: Move recovery time into full-width muscle chips
+
+### Overview
+
+Apply the accepted catalogue presentation to the extracted exercise card and verify it across recovery, responsive, and interaction states.
+
+### Changes Required
+
+#### 1. Chip-only recovery presentation
+
+**File**: `src/components/workouts/WorkoutCatalogueExerciseCard.tsx`
+
+**Intent**: Put recovery detail on the muscle it describes and remove redundant card-level explanations.
+
+**Contract**:
+
+- Render no `Ready to train` text and no standalone `Recovery:` sentence.
+- Ready recovery-aware cards use the same neutral border and muscle chips as raw catalogue cards.
+- For each `recoveringMuscles` entry, the matching primary-muscle chip uses the recovery colour and visible `MuscleName Nh` content, such as `Quads 42h`; include an accessible expansion for the abbreviated duration.
+- Never append a duration or recovery colour to secondary chips or nonrecovering primary chips.
+- A recovering card may retain a subtle recovery border because its affected chip provides a text cue; colour is never the only status signal.
+- Support multiple recovering primary muscles with their individual times and long translated muscle names without truncating meaning.
+
+#### 2. Full-width chip region
+
+**Files**: `src/components/workouts/WorkoutCatalogueExerciseCard.tsx`, `src/components/workouts/WorkoutCataloguePanel.tsx`
+
+**Intent**: Let muscle chips flow through all horizontal space available beside the card action instead of sizing the content column to its contents.
+
+**Contract**: Make the card content region grow to the available width, make the muscle list span that region, and preserve intrinsic chip labels and wrapping. The action button remains nonshrinking and must not overlap or compress chips below legibility at 360px or just above the `sm` breakpoint.
 
 ### Success Criteria
 
@@ -104,69 +191,91 @@ Confirm the status hierarchy works across responsive, ordering, and accessibilit
 
 #### Manual Verification
 
-- In default order and both recovery sort orders, ready/recovering status text remains visible, all matching cards remain present, and grouping/order is unchanged.
-- At a 360px viewport, status text remains legible, muscle pills wrap without obscuring Add/Replace, and the filter drawer plus sort button remain usable.
-- Keyboard users can operate Filters, Sort, Add, and Replace while status text remains available without interpreting colour.
-- `/workouts/edit` continues to render neutral raw-catalogue cards without recovery status.
+- Ready cards contain no per-card readiness or indirect-work sentence and remain visually neutral.
+- A recovering exercise shows each affected primary muscle as a coloured `MuscleName Nh` chip with the correct individual duration.
+- Secondary and nonrecovering chips contain only muscle names and remain neutral.
+- Muscle-chip rows use the full available content width and wrap cleanly with long names, multiple recovering muscles, and Add/Added/Replace/Current actions.
+- Default, Ready first, and Recovery first orders preserve all matching exercises, group behavior, and selectable recovering cards.
+- At 360px and around the `sm` breakpoint, cards remain legible and action buttons do not collide with chips.
+- Keyboard and screen-reader users receive the recovery duration and muscle association without relying on colour or ambiguous `h` pronunciation.
 
-**Implementation Note**: After all gates pass, pause for human confirmation of mobile and keyboard checks before considering the change ready for review.
+**Implementation Note**: After all automated gates pass, pause for human confirmation of the screenshot cases, responsive layout, and accessible chip text before the phase commit.
 
 ## Testing Strategy
 
 ### Unit Tests
 
-- Re-run recovery projection tests for ready, recovering, deadline-boundary, secondary-workload, and stable-ordering behavior.
-- Re-run manual-builder tests for filter-before-order and draft-interaction invariants.
+- Preserve primary recovery, exact-boundary, repeated-primary, secondary-only-ready, ordering, and filter-before-order coverage.
+- Update every recovery-aware fixture to the slimmer `{ state, recoveringMuscles }` contract.
 
 ### Manual Testing Steps
 
-1. Open `/workouts/new` with a mixed recovery catalogue in default order and inspect card status, border, and muscle-pill treatment.
-2. Cycle Sort through Ready first and Recovery first; confirm only ordering and grouping change.
-3. Exercise search and muscle/equipment filters, then add and replace both a ready and recovering exercise.
-4. Repeat at 360px and using the keyboard; verify text conveys status without colour.
-5. Open `/workouts/edit`; confirm raw cards are unaffected.
+1. Open `/workouts/new` with ready, one-muscle recovering, and multi-muscle recovering exercises.
+2. Confirm ready cards have no status copy and recovering durations appear only in affected primary chips.
+3. Confirm secondary chips remain neutral even after recent secondary-only work.
+4. Exercise all three sort states, filters, Add/Added/Replace/Current, and draft editing controls.
+5. Repeat at 360px and just above `sm` with long muscle names; verify the content region fills the row and wraps around the action cleanly.
+6. Navigate and read the catalogue using keyboard and screen-reader output; verify duration abbreviations have expanded meaning.
+7. Open `/workouts/edit` and verify shared-editor behavior and neutral raw catalogue presentation.
 
 ## Performance Considerations
 
-The component already receives display-ready recovery data. Derive any recovering-muscle lookup per rendered card from its existing small array; do not add data reads, timers, or client-side recovery calculation.
+Recovery data remains server-projected once. Build a small code-to-recovery-context lookup per card from its existing `recoveringMuscles` array; do not add timers, client recovery calculations, API calls, global state, context providers, or memoization abstractions.
 
 ## References
 
+- UI review screenshot: `/tmp/codex-clipboard-c9c37802-52a4-4901-bb4a-33b7a0de6b93.png`
 - Frame brief: `context/changes/recovery-aware-manual-builder/frame.md`
-- Recovery presentation: `src/components/workouts/WorkoutDraftEditor.tsx:350-407`
-- Recovery contract: `src/lib/recovery-aware-catalogue.ts:77-115`
-- Existing tests: `src/lib/recovery-aware-catalogue.test.ts:35-110`
-- Product guidance: `context/changes/recovery-aware-manual-builder/research.md:24-45`
+- Current editor: `src/components/workouts/WorkoutDraftEditor.tsx`
+- Recovery contract: `src/lib/recovery-aware-catalogue.ts`
+- Shared callers: `src/components/workouts/ManualWorkoutBuilder.tsx`, `src/components/workouts/PlannedWorkoutEditor.tsx`
+- Canonical contract: `docs/reference/contract-surfaces.md:52-63`
 
 ## Progress
 
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
-### Phase 1: Present precise advisory recovery status
+### Phase 1: Remove secondary-workload presentation contract
 
 #### Automated
 
-- [ ] 1.1 Preserve recovery projection, filtering, and ordering with `pnpm test:manual-workout`
-- [ ] 1.2 Pass `pnpm lint`
+- [x] 1.1 Remove all live secondary-workload presentation contract references
+- [x] 1.2 Pass secondary-only readiness and manual-workout tests
+- [x] 1.3 Pass `pnpm lint`
 
 #### Manual
 
-- [ ] 1.3 Verify mixed-state cards show text status and a subtle state cue
-- [ ] 1.4 Verify recovering compound cards highlight only affected primary pills
-- [ ] 1.5 Verify ready cards retain secondary workload as neutral context
-- [ ] 1.6 Verify recovering exercises remain available to Add and Replace
+- [x] 1.4 Verify `/workouts/new` shows no `Recent indirect work` paragraph
 
-### Phase 2: Verify catalogue and raw-catalogue regressions
+### Phase 2: Decompose the shared workout draft editor
 
 #### Automated
 
-- [ ] 2.1 Re-run `pnpm test:manual-workout`
-- [ ] 2.2 Pass `pnpm lint`
-- [ ] 2.3 Pass `pnpm build`
+- [ ] 2.1 Reduce `WorkoutDraftEditor.tsx` to a thin coordinator
+- [ ] 2.2 Preserve filtering, ordering, and draft helper behavior with `pnpm test:manual-workout`
+- [ ] 2.3 Pass `pnpm lint`
+- [ ] 2.4 Pass `pnpm build`
 
 #### Manual
 
-- [ ] 2.4 Verify status visibility and unchanged grouping in default and both recovery sort orders
-- [ ] 2.5 Verify the 360px layout, card wrapping, filter drawer, and sort control
-- [ ] 2.6 Verify keyboard operation and text status without relying on colour
-- [ ] 2.7 Verify `/workouts/edit` retains neutral raw-catalogue cards
+- [ ] 2.5 Verify filter drawer lifecycle and focus restoration
+- [ ] 2.6 Verify catalogue and draft actions remain unchanged
+- [ ] 2.7 Verify `/workouts/edit` shared-editor workflows remain unchanged
+
+### Phase 3: Move recovery time into full-width muscle chips
+
+#### Automated
+
+- [ ] 3.1 Pass `pnpm test:manual-workout`
+- [ ] 3.2 Pass `pnpm lint`
+- [ ] 3.3 Pass `pnpm build`
+
+#### Manual
+
+- [ ] 3.4 Verify ready cards contain no status copy and remain neutral
+- [ ] 3.5 Verify affected primary chips show correct individual recovery times
+- [ ] 3.6 Verify secondary and nonrecovering chips remain neutral name-only chips
+- [ ] 3.7 Verify chip rows fill available width and wrap around all action states
+- [ ] 3.8 Verify default and both recovery sort orders preserve catalogue behavior
+- [ ] 3.9 Verify 360px and `sm` breakpoint layouts
+- [ ] 3.10 Verify accessible muscle-duration association without relying on colour

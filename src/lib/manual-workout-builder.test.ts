@@ -88,7 +88,7 @@ void test("requires all selected muscles while including primary and secondary t
 void test("filters recovery-aware results before preserving their selected recovery order", () => {
   const recoveryCatalogue: RecoveryAwareCatalogueExercise[] = catalogue.map((exercise, index) => ({
     ...exercise,
-    recovery: { state: index === 0 ? "recovering" : "ready", recoveringMuscles: [], secondaryWorkload: [] },
+    recovery: { state: index === 0 ? "recovering" : "ready", recoveringMuscles: [] },
   }));
   const filtered = filterCatalogue(recoveryCatalogue, {
     search: "",

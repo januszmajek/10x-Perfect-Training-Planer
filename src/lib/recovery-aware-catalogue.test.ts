@@ -75,15 +75,16 @@ void test("keeps the latest deadline across repeated primary work", () => {
   assert.equal(result[0].recovery.recoveringMuscles[0].remainingMilliseconds, 47 * 60 * 60 * 1000);
 });
 
-void test("retains secondary-only fractional workload without blocking readiness", () => {
+void test("keeps secondary-only work ready without exposing recovery context", () => {
   const result = projectRecoveryAwareCatalogue(
     catalogue,
     [completed(1, [{ sets: 4, muscles: [catalogue[0].muscles[1]] }])],
     NOW,
   );
 
+  assert.equal(result[0].recovery.state, "ready");
   assert.equal(result[1].recovery.state, "ready");
-  assert.deepEqual(result[0].recovery.secondaryWorkload, [{ code: "triceps", name: "Triceps", fractionalSets: 2 }]);
+  assert.deepEqual(result[0].recovery.recoveringMuscles, []);
 });
 
 void test("cycles and stably orders mixed recovery results without removing either state", () => {
