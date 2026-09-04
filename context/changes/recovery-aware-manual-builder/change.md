@@ -1,7 +1,7 @@
 ---
 change_id: recovery-aware-manual-builder
 title: Recovery aware manual builder
-status: implementing
+status: implemented
 created: 2026-09-04
 updated: 2026-09-04
 archived_at: null
