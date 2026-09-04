@@ -336,32 +336,32 @@ state.
 
 #### Automated
 
-- [x] 1.1 Implement and test the pure recovery-aware catalogue projection
-- [x] 1.2 Extend the catalogue and manual-builder service with owner-scoped completed-history recovery data
-- [x] 1.3 Add the focused recovery/manual Node test command
-- [x] 1.4 Pass the manual-workout Node test command
-- [x] 1.5 Pass lint
+- [x] 1.1 Implement and test the pure recovery-aware catalogue projection — 37efb29
+- [x] 1.2 Extend the catalogue and manual-builder service with owner-scoped completed-history recovery data — 37efb29
+- [x] 1.3 Add the focused recovery/manual Node test command — 37efb29
+- [x] 1.4 Pass the manual-workout Node test command — 37efb29
+- [x] 1.5 Pass lint — 37efb29
 
 #### Manual
 
-- [x] 1.6 Confirm completion-time recovery derivation and unchanged save/replacement behavior
-- [x] 1.7 Confirm recovery changes only at the configured expiry boundary
+- [x] 1.6 Confirm completion-time recovery derivation and unchanged save/replacement behavior — 37efb29
+- [x] 1.7 Confirm recovery changes only at the configured expiry boundary — 37efb29
 
 ### Phase 2: Present Recovery-aware Catalogue Guidance
 
 #### Automated
 
-- [ ] 2.1 Implement three-state recovery ordering, explanations, and filter preservation in the workout draft editor
-- [ ] 2.2 Add UI-facing ordering and filter-combination unit coverage
-- [ ] 2.3 Pass recovery ordering and filter-combination tests through the manual-workout test command
-- [ ] 2.4 Pass lint
-- [ ] 2.5 Pass the production build
+- [x] 2.1 Implement three-state recovery ordering, explanations, and filter preservation in the workout draft editor
+- [x] 2.2 Add UI-facing ordering and filter-combination unit coverage
+- [x] 2.3 Pass recovery ordering and filter-combination tests through the manual-workout test command
+- [x] 2.4 Pass lint
+- [x] 2.5 Pass the production build
 
 #### Manual
 
-- [ ] 2.6 Verify every recovery-order state and adding from either recovery group on mobile
-- [ ] 2.7 Verify a recovering-only filter still displays recovery explanations
-- [ ] 2.8 Verify keyboard operation, including the recovery-order button and filter drawer focus restoration
+- [x] 2.6 Verify every recovery-order state and adding from either recovery group on mobile
+- [x] 2.7 Verify a recovering-only filter still displays recovery explanations
+- [x] 2.8 Verify keyboard operation, including the recovery-order button and filter drawer focus restoration
 
 ### Phase 3: Record the Contract and Run Regression Gates
 

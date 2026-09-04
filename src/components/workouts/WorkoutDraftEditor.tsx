@@ -29,9 +29,16 @@ import {
   type EquipmentType,
   type ManualWorkoutDraftItem,
 } from "@/lib/manual-workout-builder";
+import {
+  RECOVERY_ORDER_LABELS,
+  nextRecoveryOrder,
+  orderRecoveryAwareCatalogue,
+  type RecoveryAwareCatalogueExercise,
+  type RecoveryOrder,
+} from "@/lib/recovery-aware-catalogue";
 
-interface Props {
-  catalogue: CatalogueExercise[];
+interface Props<T extends CatalogueExercise> {
+  catalogue: T[];
   draft: ManualWorkoutDraftItem[];
   pending: boolean;
   saveLabel: string;
@@ -48,7 +55,20 @@ function formatLabel(value: string): string {
     .join(" ");
 }
 
-export default function WorkoutDraftEditor({
+function isRecoveryAwareExercise(exercise: CatalogueExercise): exercise is RecoveryAwareCatalogueExercise {
+  return "recovery" in exercise;
+}
+
+function formatRemainingTime(milliseconds: number): string {
+  const totalHours = Math.ceil(milliseconds / (60 * 60 * 1000));
+  return totalHours <= 1 ? "1h" : `${totalHours}h`;
+}
+
+function formatFractionalSets(fractionalSets: number): string {
+  return Number.isInteger(fractionalSets) ? String(fractionalSets) : fractionalSets.toFixed(1);
+}
+
+export default function WorkoutDraftEditor<T extends CatalogueExercise>({
   catalogue,
   draft,
   pending,
@@ -57,12 +77,13 @@ export default function WorkoutDraftEditor({
   onChange,
   onSave,
   onCancel,
-}: Props) {
+}: Props<T>) {
   const [search, setSearch] = useState("");
   const [selectedMuscles, setSelectedMuscles] = useState<string[]>([]);
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentType[]>([]);
   const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [recoveryOrder, setRecoveryOrder] = useState<RecoveryOrder>("not-sorted");
   const filterTriggerRef = useRef<HTMLButtonElement>(null);
   const knownExerciseIds = useMemo(() => new Set(catalogue.map(({ id }) => id)), [catalogue]);
   const exercisesById = useMemo(() => new Map(catalogue.map((exercise) => [exercise.id, exercise])), [catalogue]);
@@ -71,6 +92,23 @@ export default function WorkoutDraftEditor({
     () => filterCatalogue(catalogue, { search, muscleGroups: selectedMuscles, equipment: selectedEquipment }),
     [catalogue, search, selectedEquipment, selectedMuscles],
   );
+  const recoveryAwareCatalogue = useMemo(() => filteredCatalogue.filter(isRecoveryAwareExercise), [filteredCatalogue]);
+  const recoveryGuidanceAvailable = catalogue.length > 0 && catalogue.every(isRecoveryAwareExercise);
+  const orderedRecoveryCatalogue = useMemo(
+    () => orderRecoveryAwareCatalogue(recoveryAwareCatalogue, recoveryOrder),
+    [recoveryAwareCatalogue, recoveryOrder],
+  );
+  const recoveryGroups = useMemo(() => {
+    if (!recoveryGuidanceAvailable || recoveryOrder === "not-sorted") return [];
+    const states =
+      recoveryOrder === "ready-first" ? (["ready", "recovering"] as const) : (["recovering", "ready"] as const);
+    return states
+      .map((state) => ({
+        state,
+        exercises: orderedRecoveryCatalogue.filter((exercise) => exercise.recovery.state === state),
+      }))
+      .filter(({ exercises }) => exercises.length > 0);
+  }, [orderedRecoveryCatalogue, recoveryGuidanceAvailable, recoveryOrder]);
   const muscleOptions = useMemo(() => {
     const options = new Map<string, string>();
     catalogue.forEach((exercise) => {
@@ -289,67 +327,117 @@ export default function WorkoutDraftEditor({
           <p className="mt-4 text-sm text-blue-100/60" role="status">
             {filteredCatalogue.length} of {catalogue.length} exercises shown
           </p>
-          <ul className="mt-4 space-y-3" aria-label="Filtered exercise catalogue">
-            {filteredCatalogue.map((exercise) => {
-              const selected = selectedExerciseIds.has(exercise.id);
-              const isReplacementTarget = replacingIndex !== null;
-              const selectedElsewhere = selected && draft[replacingIndex ?? -1]?.exerciseId !== exercise.id;
-              const isCurrentReplacement = isReplacementTarget && draft[replacingIndex]?.exerciseId === exercise.id;
-              return (
-                <li key={exercise.id} className="rounded-xl border border-white/10 bg-black/15 p-4">
-                  <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <h3 className="font-semibold break-words text-white">{exercise.name}</h3>
-                      <p className="mt-1 text-xs text-purple-200 uppercase">{formatLabel(exercise.equipment)}</p>
-                      {exercise.muscles.length > 0 && (
-                        <ul className="mt-3 flex flex-wrap gap-2" aria-label={`${exercise.name} muscle groups`}>
-                          {exercise.muscles.map((muscle) => (
-                            <li
-                              key={`${muscle.code}-${muscle.role}`}
-                              className="rounded-full bg-purple-500/15 px-2.5 py-1 text-xs text-purple-100"
+          {recoveryGuidanceAvailable && (
+            <button
+              type="button"
+              aria-label={`Recovery order: ${RECOVERY_ORDER_LABELS[recoveryOrder]}. Activate to show ${RECOVERY_ORDER_LABELS[nextRecoveryOrder(recoveryOrder)]}.`}
+              onClick={() => {
+                setRecoveryOrder((current) => nextRecoveryOrder(current));
+              }}
+              className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-emerald-300/30 px-3 py-2 text-sm font-semibold text-emerald-100 hover:bg-emerald-300/10"
+            >
+              Recovery order: {RECOVERY_ORDER_LABELS[recoveryOrder]}
+            </button>
+          )}
+          <div className="mt-4 space-y-5" aria-label="Filtered exercise catalogue">
+            {(recoveryGroups.length > 0 ? recoveryGroups : [{ state: null, exercises: filteredCatalogue }]).map(
+              ({ state, exercises }) => (
+                <div key={state ?? "all"}>
+                  {state && (
+                    <h3 className="mb-3 text-sm font-semibold tracking-wide text-emerald-200 uppercase">
+                      {state === "ready" ? "Ready to go" : "Muscles need recovery"}
+                    </h3>
+                  )}
+                  <ul className="space-y-3">
+                    {exercises.map((exercise) => {
+                      const selected = selectedExerciseIds.has(exercise.id);
+                      const isReplacementTarget = replacingIndex !== null;
+                      const selectedElsewhere = selected && draft[replacingIndex ?? -1]?.exerciseId !== exercise.id;
+                      const isCurrentReplacement =
+                        isReplacementTarget && draft[replacingIndex]?.exerciseId === exercise.id;
+                      return (
+                        <li key={exercise.id} className="rounded-xl border border-white/10 bg-black/15 p-4">
+                          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                              <h3 className="font-semibold break-words text-white">{exercise.name}</h3>
+                              <p className="mt-1 text-xs text-purple-200 uppercase">
+                                {formatLabel(exercise.equipment)}
+                              </p>
+                              {exercise.muscles.length > 0 && (
+                                <ul className="mt-3 flex flex-wrap gap-2" aria-label={`${exercise.name} muscle groups`}>
+                                  {exercise.muscles.map((muscle) => (
+                                    <li
+                                      key={`${muscle.code}-${muscle.role}`}
+                                      className="rounded-full bg-purple-500/15 px-2.5 py-1 text-xs text-purple-100"
+                                    >
+                                      {muscle.name}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                              {isRecoveryAwareExercise(exercise) && exercise.recovery.state === "recovering" && (
+                                <p className="mt-3 text-sm text-amber-100">
+                                  {exercise.recovery.recoveringMuscles.map((muscle) => (
+                                    <span key={muscle.code} className="block">
+                                      {muscle.name} recovering for {formatRemainingTime(muscle.remainingMilliseconds)}
+                                    </span>
+                                  ))}
+                                </p>
+                              )}
+                              {isRecoveryAwareExercise(exercise) &&
+                                exercise.recovery.state === "ready" &&
+                                exercise.recovery.secondaryWorkload.length > 0 && (
+                                  <p className="mt-3 text-sm text-blue-100/75">
+                                    Recent indirect work:{" "}
+                                    {exercise.recovery.secondaryWorkload
+                                      .map(
+                                        (muscle) =>
+                                          `${muscle.name} ${formatFractionalSets(muscle.fractionalSets)} sets`,
+                                      )
+                                      .join(", ")}
+                                  </p>
+                                )}
+                            </div>
+                            <button
+                              type="button"
+                              disabled={
+                                pending ||
+                                (isReplacementTarget
+                                  ? selectedElsewhere || isCurrentReplacement
+                                  : selected || draft.length >= MAX_WORKOUT_EXERCISES)
+                              }
+                              onClick={() => {
+                                if (replacingIndex !== null) {
+                                  onChange(replaceDraftItem(draft, replacingIndex, exercise.id));
+                                  setReplacingIndex(null);
+                                  return;
+                                }
+                                onChange(addDraftItem(draft, exercise.id));
+                              }}
+                              className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-lg border border-purple-300/30 px-3 py-2 text-sm font-semibold text-purple-100 disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
                             >
-                              {muscle.name}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      disabled={
-                        pending ||
-                        (isReplacementTarget
-                          ? selectedElsewhere || isCurrentReplacement
-                          : selected || draft.length >= MAX_WORKOUT_EXERCISES)
-                      }
-                      onClick={() => {
-                        if (replacingIndex !== null) {
-                          onChange(replaceDraftItem(draft, replacingIndex, exercise.id));
-                          setReplacingIndex(null);
-                          return;
-                        }
-                        onChange(addDraftItem(draft, exercise.id));
-                      }}
-                      className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-lg border border-purple-300/30 px-3 py-2 text-sm font-semibold text-purple-100 disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
-                    >
-                      {isCurrentReplacement ? (
-                        <Check aria-hidden="true" className="size-4" />
-                      ) : (
-                        <Plus aria-hidden="true" className="size-4" />
-                      )}
-                      {isReplacementTarget
-                        ? isCurrentReplacement
-                          ? "Current"
-                          : "Replace"
-                        : selected
-                          ? "Added"
-                          : "Add"}
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                              {isCurrentReplacement ? (
+                                <Check aria-hidden="true" className="size-4" />
+                              ) : (
+                                <Plus aria-hidden="true" className="size-4" />
+                              )}
+                              {isReplacementTarget
+                                ? isCurrentReplacement
+                                  ? "Current"
+                                  : "Replace"
+                                : selected
+                                  ? "Added"
+                                  : "Add"}
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ),
+            )}
+          </div>
           {filteredCatalogue.length === 0 && (
             <div className="mt-4 rounded-xl border border-dashed border-white/15 px-4 py-8 text-center">
               <Dumbbell aria-hidden="true" className="mx-auto size-8 text-white/30" />

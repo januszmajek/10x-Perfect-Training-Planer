@@ -17,6 +17,7 @@ import {
   type CatalogueExercise,
   type ManualWorkoutDraftItem,
 } from "./manual-workout-builder.ts";
+import { orderRecoveryAwareCatalogue, type RecoveryAwareCatalogueExercise } from "./recovery-aware-catalogue.ts";
 
 const IDS = Array.from(
   { length: MAX_WORKOUT_EXERCISES + 1 },
@@ -82,6 +83,33 @@ void test("requires all selected muscles while including primary and secondary t
     [],
   );
   assert.equal(filterCatalogue(catalogue, { search: "", muscleGroups: [], equipment: [] }).length, catalogue.length);
+});
+
+void test("filters recovery-aware results before preserving their selected recovery order", () => {
+  const recoveryCatalogue: RecoveryAwareCatalogueExercise[] = catalogue.map((exercise, index) => ({
+    ...exercise,
+    recovery: { state: index === 0 ? "recovering" : "ready", recoveringMuscles: [], secondaryWorkload: [] },
+  }));
+  const filtered = filterCatalogue(recoveryCatalogue, {
+    search: "",
+    muscleGroups: [],
+    equipment: ["barbell", "cable"],
+  });
+
+  assert.deepEqual(
+    filtered.map(({ name }) => name),
+    ["Barbell Bench Press", "Cable Row"],
+  );
+  assert.deepEqual(
+    orderRecoveryAwareCatalogue(filtered, "ready-first").map(({ name }) => name),
+    ["Cable Row", "Barbell Bench Press"],
+  );
+  assert.deepEqual(
+    filterCatalogue(recoveryCatalogue, { search: "bench", muscleGroups: ["chest"], equipment: ["barbell"] }).map(
+      ({ name }) => name,
+    ),
+    ["Barbell Bench Press"],
+  );
 });
 
 void test("creates 3 x 10 items, prevents duplicates, and removes by exercise ID", () => {

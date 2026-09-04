@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { projectRecoveryAwareCatalogue, type CompletedRecoveryWorkout } from "./recovery-aware-catalogue.ts";
+import {
+  nextRecoveryOrder,
+  orderRecoveryAwareCatalogue,
+  projectRecoveryAwareCatalogue,
+  type CompletedRecoveryWorkout,
+} from "./recovery-aware-catalogue.ts";
 import type { CatalogueExercise } from "./manual-workout-builder.ts";
 
 const NOW = new Date("2026-09-04T12:00:00.000Z");
@@ -79,4 +84,28 @@ void test("retains secondary-only fractional workload without blocking readiness
 
   assert.equal(result[1].recovery.state, "ready");
   assert.deepEqual(result[0].recovery.secondaryWorkload, [{ code: "triceps", name: "Triceps", fractionalSets: 2 }]);
+});
+
+void test("cycles and stably orders mixed recovery results without removing either state", () => {
+  const result = projectRecoveryAwareCatalogue(
+    catalogue,
+    [completed(24, [{ sets: 3, muscles: [catalogue[0].muscles[0]] }])],
+    NOW,
+  );
+
+  assert.equal(nextRecoveryOrder("not-sorted"), "ready-first");
+  assert.equal(nextRecoveryOrder("ready-first"), "recovering-first");
+  assert.equal(nextRecoveryOrder("recovering-first"), "not-sorted");
+  assert.deepEqual(
+    orderRecoveryAwareCatalogue(result, "not-sorted").map(({ name }) => name),
+    ["Bench Press", "Triceps Extension"],
+  );
+  assert.deepEqual(
+    orderRecoveryAwareCatalogue(result, "ready-first").map(({ name }) => name),
+    ["Triceps Extension", "Bench Press"],
+  );
+  assert.deepEqual(
+    orderRecoveryAwareCatalogue(result, "recovering-first").map(({ name }) => name),
+    ["Bench Press", "Triceps Extension"],
+  );
 });

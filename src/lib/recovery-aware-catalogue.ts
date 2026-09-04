@@ -1,6 +1,7 @@
 import type { CatalogueExercise, CatalogueMuscleTag } from "./manual-workout-builder.ts";
 
 export type RecoveryState = "ready" | "recovering";
+export type RecoveryOrder = "not-sorted" | "ready-first" | "recovering-first";
 
 export interface CompletedRecoveryWorkout {
   completedAt: string;
@@ -26,6 +27,31 @@ export interface RecoveryAwareCatalogueExercise extends CatalogueExercise {
     recoveringMuscles: RecoveryMuscleContext[];
     secondaryWorkload: SecondaryWorkloadContext[];
   };
+}
+
+export const RECOVERY_ORDER_LABELS: Record<RecoveryOrder, string> = {
+  "not-sorted": "Not sorted",
+  "ready-first": "Ready to go first",
+  "recovering-first": "Muscles need recovery first",
+};
+
+export function nextRecoveryOrder(order: RecoveryOrder): RecoveryOrder {
+  if (order === "not-sorted") return "ready-first";
+  if (order === "ready-first") return "recovering-first";
+  return "not-sorted";
+}
+
+export function orderRecoveryAwareCatalogue(
+  catalogue: readonly RecoveryAwareCatalogueExercise[],
+  order: RecoveryOrder,
+): RecoveryAwareCatalogueExercise[] {
+  if (order === "not-sorted") return [...catalogue];
+
+  const firstState: RecoveryState = order === "ready-first" ? "ready" : "recovering";
+  return [...catalogue].sort((left, right) => {
+    if (left.recovery.state === right.recovery.state) return 0;
+    return left.recovery.state === firstState ? -1 : 1;
+  });
 }
 
 function validDate(value: string): number | null {

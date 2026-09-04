@@ -70,10 +70,7 @@ export function isCanonicalUuid(value: unknown): value is string {
   return typeof value === "string" && UUID_PATTERN.test(value);
 }
 
-export function filterCatalogue(
-  catalogue: readonly CatalogueExercise[],
-  filters: CatalogueFilters,
-): CatalogueExercise[] {
+export function filterCatalogue<T extends CatalogueExercise>(catalogue: readonly T[], filters: CatalogueFilters): T[] {
   const search = filters.search.trim().toLocaleLowerCase();
   const selectedEquipment = new Set(filters.equipment);
 
