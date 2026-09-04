@@ -336,16 +336,16 @@ state.
 
 #### Automated
 
-- [ ] 1.1 Implement and test the pure recovery-aware catalogue projection
-- [ ] 1.2 Extend the catalogue and manual-builder service with owner-scoped completed-history recovery data
-- [ ] 1.3 Add the focused recovery/manual Node test command
-- [ ] 1.4 Pass the manual-workout Node test command
-- [ ] 1.5 Pass lint
+- [x] 1.1 Implement and test the pure recovery-aware catalogue projection
+- [x] 1.2 Extend the catalogue and manual-builder service with owner-scoped completed-history recovery data
+- [x] 1.3 Add the focused recovery/manual Node test command
+- [x] 1.4 Pass the manual-workout Node test command
+- [x] 1.5 Pass lint
 
 #### Manual
 
-- [ ] 1.6 Confirm completion-time recovery derivation and unchanged save/replacement behavior
-- [ ] 1.7 Confirm recovery changes only at the configured expiry boundary
+- [x] 1.6 Confirm completion-time recovery derivation and unchanged save/replacement behavior
+- [x] 1.7 Confirm recovery changes only at the configured expiry boundary
 
 ### Phase 2: Present Recovery-aware Catalogue Guidance
 

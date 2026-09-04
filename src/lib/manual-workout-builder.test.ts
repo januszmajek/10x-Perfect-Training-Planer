@@ -29,8 +29,8 @@ const catalogue: CatalogueExercise[] = [
     name: "Barbell Bench Press",
     equipment: "barbell",
     muscles: [
-      { code: "chest", name: "Chest", role: "primary" },
-      { code: "triceps", name: "Triceps", role: "secondary" },
+      { code: "chest", name: "Chest", role: "primary", recoveryHours: 48 },
+      { code: "triceps", name: "Triceps", role: "secondary", recoveryHours: 48 },
     ],
   },
   {
@@ -38,15 +38,15 @@ const catalogue: CatalogueExercise[] = [
     name: "Cable Row",
     equipment: "cable",
     muscles: [
-      { code: "upper_back", name: "Upper Back", role: "primary" },
-      { code: "biceps", name: "Biceps", role: "secondary" },
+      { code: "upper_back", name: "Upper Back", role: "primary", recoveryHours: 72 },
+      { code: "biceps", name: "Biceps", role: "secondary", recoveryHours: 48 },
     ],
   },
   {
     id: IDS[2],
     name: "Bodyweight Squat",
     equipment: "bodyweight",
-    muscles: [{ code: "quads", name: "Quads", role: "primary" }],
+    muscles: [{ code: "quads", name: "Quads", role: "primary", recoveryHours: 72 }],
   },
 ];
 

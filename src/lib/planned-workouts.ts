@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { validateDraftItems, type CatalogueExercise, type ManualWorkoutDraftItem } from "@/lib/manual-workout-builder";
+import { validateDraftItems, type CatalogueExercise, type ManualWorkoutDraftItem } from "./manual-workout-builder.ts";
 import type {
   PlannedWorkoutCompleteRequest,
   PlannedWorkoutDeleteRequest,
@@ -44,6 +44,11 @@ export interface CurrentPlannedWorkout {
 }
 
 export type ExpectedWorkoutState = "planned" | "completed" | "absent";
+
+export interface CompletedRecoveryWorkout {
+  completedAt: string;
+  exercises: { sets: number; muscles: CatalogueExercise["muscles"] }[];
+}
 
 function sanitizeTechnicalCode(code: unknown): string {
   return typeof code === "string" && /^[A-Z0-9_]{1,32}$/.test(code) ? code : "UNKNOWN";
@@ -142,7 +147,7 @@ export async function loadExpectedWorkoutState(
 export async function loadWorkoutCatalogue(client: WorkoutClient): Promise<WorkoutResult<CatalogueExercise[]>> {
   const { data, error } = await client
     .from("exercises")
-    .select("id,name,equipment,exercise_muscle_groups(muscle_group_code,role,muscle_groups(name))")
+    .select("id,name,equipment,exercise_muscle_groups(muscle_group_code,role,muscle_groups(name,recovery_hours))")
     .order("name", { ascending: true })
     .limit(200);
 
@@ -158,9 +163,84 @@ export async function loadWorkoutCatalogue(client: WorkoutClient): Promise<Worko
         code: tag.muscle_group_code,
         name: tag.muscle_groups.name,
         role: tag.role,
+        recoveryHours: tag.muscle_groups.recovery_hours,
       })),
     })),
   };
+}
+
+function isRecoveryHistory(value: unknown): CompletedRecoveryWorkout | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const workout = value as Record<string, unknown>;
+  if (typeof workout.completed_at !== "string" || !Array.isArray(workout.workout_exercises)) return null;
+  const exercises: CompletedRecoveryWorkout["exercises"] = [];
+
+  for (const value of workout.workout_exercises) {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+    const item = value as Record<string, unknown>;
+    if (
+      !Number.isSafeInteger(item.sets) ||
+      (item.sets as number) < 1 ||
+      typeof item.exercises !== "object" ||
+      item.exercises === null
+    )
+      return null;
+    const exercise = item.exercises as Record<string, unknown>;
+    if (!Array.isArray(exercise.exercise_muscle_groups)) return null;
+    const muscles: CatalogueExercise["muscles"] = [];
+    for (const value of exercise.exercise_muscle_groups) {
+      if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+      const tag = value as Record<string, unknown>;
+      if (
+        typeof tag.muscle_group_code !== "string" ||
+        (tag.role !== "primary" && tag.role !== "secondary") ||
+        typeof tag.muscle_groups !== "object" ||
+        tag.muscle_groups === null
+      )
+        return null;
+      const muscle = tag.muscle_groups as Record<string, unknown>;
+      if (
+        typeof muscle.name !== "string" ||
+        !Number.isSafeInteger(muscle.recovery_hours) ||
+        (muscle.recovery_hours as number) < 1
+      )
+        return null;
+      muscles.push({
+        code: tag.muscle_group_code,
+        name: muscle.name,
+        role: tag.role,
+        recoveryHours: muscle.recovery_hours as number,
+      });
+    }
+    exercises.push({ sets: item.sets as number, muscles });
+  }
+
+  return { completedAt: workout.completed_at, exercises };
+}
+
+export async function loadRecentCompletedRecoveryWorkouts(
+  client: WorkoutClient,
+  userId: string,
+  completedSince: string,
+): Promise<WorkoutResult<CompletedRecoveryWorkout[]>> {
+  const authFailure = await verifyOwnedSession(client, userId);
+  if (authFailure) return authFailure;
+
+  const { data, error } = await client
+    .from("workouts")
+    .select(
+      "completed_at,workout_exercises(sets,exercises(exercise_muscle_groups(muscle_group_code,role,muscle_groups(name,recovery_hours))))",
+    )
+    .eq("user_id", userId)
+    .eq("status", "completed")
+    .gte("completed_at", completedSince)
+    .order("completed_at", { ascending: false });
+  if (error) return workoutFailure("persistence_failed", "database", error.code);
+
+  const workouts = (data as unknown[]).map(isRecoveryHistory);
+  if (workouts.some((workout) => workout === null))
+    return workoutFailure("persistence_failed", "service", "INVALID_RECOVERY_HISTORY");
+  return { ok: true, data: workouts as CompletedRecoveryWorkout[] };
 }
 
 async function validateKnownExercises(

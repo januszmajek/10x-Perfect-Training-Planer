@@ -1,14 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { validateDraftItems, type CatalogueExercise, type ManualWorkoutRequest } from "@/lib/manual-workout-builder";
+import { validateDraftItems, type CatalogueExercise, type ManualWorkoutRequest } from "./manual-workout-builder.ts";
 import {
   loadCurrentPlannedWorkout,
+  loadRecentCompletedRecoveryWorkouts,
   loadWorkoutCatalogue,
   verifyOwnedSession,
   workoutFailure,
   type CurrentPlannedWorkout,
   type WorkoutErrorCode,
   type WorkoutResult,
-} from "@/lib/planned-workouts";
+} from "./planned-workouts.ts";
+import { projectRecoveryAwareCatalogue } from "./recovery-aware-catalogue.ts";
 import type { Database, Json } from "@/types/database.types";
 
 type WorkoutClient = SupabaseClient<Database>;
@@ -28,15 +30,31 @@ export async function loadManualWorkoutBuilderData(
 ): Promise<ManualWorkoutResult<ManualWorkoutBuilderData>> {
   if (!userId) return workoutFailure("unauthenticated", "service", "AUTH_MISSING");
 
-  const [catalogueResult, currentPlanResult] = await Promise.all([
-    loadWorkoutCatalogue(client),
-    loadCurrentPlannedWorkout(client, userId),
-  ]);
+  const catalogueResult = await loadWorkoutCatalogue(client);
 
   if (!catalogueResult.ok) return catalogueResult;
-  if (!currentPlanResult.ok) return currentPlanResult;
+  const maximumRecoveryHours = Math.max(
+    ...catalogueResult.data.flatMap((exercise) => exercise.muscles.map((muscle) => muscle.recoveryHours)),
+  );
+  if (!Number.isSafeInteger(maximumRecoveryHours) || maximumRecoveryHours < 1) {
+    return workoutFailure("persistence_failed", "service", "INVALID_RECOVERY_POLICY");
+  }
+  const completedSince = new Date(Date.now() - maximumRecoveryHours * 60 * 60 * 1000).toISOString();
+  const [currentPlanResult, recoveryHistoryResult] = await Promise.all([
+    loadCurrentPlannedWorkout(client, userId),
+    loadRecentCompletedRecoveryWorkouts(client, userId, completedSince),
+  ]);
 
-  return { ok: true, data: { catalogue: catalogueResult.data, currentPlan: currentPlanResult.data } };
+  if (!currentPlanResult.ok) return currentPlanResult;
+  if (!recoveryHistoryResult.ok) return recoveryHistoryResult;
+
+  return {
+    ok: true,
+    data: {
+      catalogue: projectRecoveryAwareCatalogue(catalogueResult.data, recoveryHistoryResult.data),
+      currentPlan: currentPlanResult.data,
+    },
+  };
 }
 
 export async function saveManualPlannedWorkout(

@@ -19,6 +19,7 @@ export interface CatalogueMuscleTag {
   code: string;
   name: string;
   role: MuscleRole;
+  recoveryHours: number;
 }
 
 export interface CatalogueExercise {
