@@ -3,7 +3,7 @@ project: Perfect Training Planner
 version: 3
 status: draft
 created: 2026-06-13
-updated: 2026-09-03
+updated: 2026-09-04
 prd_version: 1
 main_goal: speed
 top_blocker: time
@@ -40,8 +40,8 @@ AI speed-and-variety promise, while the manual-first sequence deliberately place
 | S-02 | manual-workout-create-and-save | browse the seeded catalogue, compose sets and reps, and save a manual workout as planned              | F-01, S-01    | FR-003, FR-006, FR-008, Data durability, Access Control                  | done     |
 | S-03 | planned-workout-editing        | edit and delete a saved planned workout                                                               | S-02          | FR-009, FR-011                                                           | done     |
 | S-04 | mark-planned-workout-done      | mark a planned workout done so it becomes completed history                                           | S-02          | US-04, FR-010, Data durability                                           | done     |
-| S-05 | history-list-and-filters       | view completed workout history with date and muscle-group filters                                     | S-04          | FR-012                                                                   | proposed |
-| S-06 | recovery-aware-manual-builder  | build and save a manual workout while recovery-aware filtering guides catalogue choices               | S-04          | US-03, FR-003, FR-006, FR-007, FR-008                                    | proposed |
+| S-05 | history-list-and-filters       | view completed workout history with date and muscle-group filters                                     | S-04          | FR-012                                                                   | done     |
+| S-06 | recovery-aware-manual-builder  | build and save a manual workout while recovery-aware filtering guides catalogue choices               | S-04          | US-03, FR-003, FR-006, FR-007, FR-008                                    | done     |
 | S-07 | cold-start-ai-planned-workout  | generate, re-roll, edit, and save a cold-start AI workout, with the completed manual path as fallback | S-03, S-06    | US-02, FR-004, FR-005, FR-008, FR-016, AI responsiveness                 | proposed |
 | S-08 | history-aware-ai-proposal      | generate, re-roll, edit, and save an AI workout that respects recent history and recovery windows     | S-07          | US-01, FR-004, FR-005, FR-008, AI responsiveness, Data durability        | proposed |
 
@@ -148,7 +148,7 @@ sequencing frame). Foundations below assume these capabilities are present and d
 - **Unknowns:** —
 - **Risk:** History display follows completion so its list and filters are exercised against real workouts instead of
   static examples.
-- **Status:** proposed
+- **Status:** done
 
 ### S-06: Recovery-aware manual builder
 
@@ -164,7 +164,7 @@ sequencing frame). Foundations below assume these capabilities are present and d
     Block: no.
 - **Risk:** Smart filtering waits for a real completion event so recovery behavior is validated with genuine history,
   while basic manual creation remains available earlier.
-- **Status:** proposed
+- **Status:** done
 
 ### S-07: Cold-start AI planned workout
 
@@ -239,3 +239,5 @@ sequencing frame). Foundations below assume these capabilities are present and d
 - **S-02: User can browse and filter the seeded exercise catalogue, compose a workout with sets and reps, and save it as a planned manual workout.** — Archived 2026-09-01 → `context/archive/2026-09-01-manual-workout-create-and-save/`. Lesson: —.
 - **S-03: User can edit a saved planned workout by swapping, adding, or removing exercises, changing sets/reps, and deleting the planned workout.** — Archived 2026-09-02 → `context/archive/2026-09-02-planned-workout-editing/`. Lesson: —.
 - **S-04: User can mark a planned workout done, moving it into completed history for future planning.** — Archived 2026-09-03 → `context/archive/2026-09-02-mark-planned-workout-done/`. Lesson: —.
+- **S-05: User can view completed workout history with date-range and muscle-group filters plus per-entry detail.** — Archived 2026-09-04 → `context/archive/2026-09-03-history-list-and-filters/`. Lesson: —.
+- **S-06: User can compose and save another manual workout while exercises for recovering muscle groups are hidden or visually demoted using recent completed history.** — Archived 2026-09-04 → `context/archive/2026-09-04-recovery-aware-manual-builder/`. Lesson: —.
