@@ -49,6 +49,19 @@ fixtures and must not contain data required by production.
 Recovery is 72 hours for `lats`, `upper_back`, `lower_back`, `quads`, `hamstrings`, `glutes`, `calves`, and
 `adductors`; every other group uses 48 hours.
 
+## Recovery-aware manual builder
+
+- Recovery guidance is derived at read time from the signed-in owner's completed workout history only; it is never
+  persisted as mutable state.
+- `workouts.completed_at` is the authoritative recovery event time. A primary muscle is recovering while
+  `now < completed_at + muscle_groups.recovery_hours`; it is ready exactly at the boundary.
+- Primary exercise-muscle tags contribute `1.0` set and start their configured recovery window. Secondary tags
+  contribute `0.5` fractional workload as display context only and never block readiness.
+- The manual-builder catalogue applies search, muscle, and equipment filters independently of recovery state. Its
+  ready/recovering presentation is advisory: every matching exercise remains available to add or replace.
+- A dynamic recovery score is out of scope until the product records additional inputs such as actual load, RIR,
+  failure, and user-reported recovery.
+
 ## Lifecycle and access invariants
 
 - `workouts_one_planned_per_user_idx` permits at most one `planned` workout per user; a conflict is PostgreSQL

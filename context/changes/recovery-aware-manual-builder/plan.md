@@ -351,30 +351,30 @@ state.
 
 #### Automated
 
-- [x] 2.1 Implement three-state recovery ordering, explanations, and filter preservation in the workout draft editor
-- [x] 2.2 Add UI-facing ordering and filter-combination unit coverage
-- [x] 2.3 Pass recovery ordering and filter-combination tests through the manual-workout test command
-- [x] 2.4 Pass lint
-- [x] 2.5 Pass the production build
+- [x] 2.1 Implement three-state recovery ordering, explanations, and filter preservation in the workout draft editor — 2910d5c
+- [x] 2.2 Add UI-facing ordering and filter-combination unit coverage — 2910d5c
+- [x] 2.3 Pass recovery ordering and filter-combination tests through the manual-workout test command — 2910d5c
+- [x] 2.4 Pass lint — 2910d5c
+- [x] 2.5 Pass the production build — 2910d5c
 
 #### Manual
 
-- [x] 2.6 Verify every recovery-order state and adding from either recovery group on mobile
-- [x] 2.7 Verify a recovering-only filter still displays recovery explanations
-- [x] 2.8 Verify keyboard operation, including the recovery-order button and filter drawer focus restoration
+- [x] 2.6 Verify every recovery-order state and adding from either recovery group on mobile — 2910d5c
+- [x] 2.7 Verify a recovering-only filter still displays recovery explanations — 2910d5c
+- [x] 2.8 Verify keyboard operation, including the recovery-order button and filter drawer focus restoration — 2910d5c
 
 ### Phase 3: Record the Contract and Run Regression Gates
 
 #### Automated
 
-- [ ] 3.1 Document the recovery-aware catalogue contract
-- [ ] 3.2 Pass the focused recovery/manual Node test command
-- [ ] 3.3 Pass the full local database suite
-- [ ] 3.4 Pass lint
-- [ ] 3.5 Pass the production build
+- [x] 3.1 Document the recovery-aware catalogue contract
+- [x] 3.2 Pass the focused recovery/manual Node test command
+- [x] 3.3 Pass the full local database suite
+- [x] 3.4 Pass lint
+- [x] 3.5 Pass the production build
 
 #### Manual
 
-- [ ] 3.6 Verify expiry transitions for a completed primary-muscle workout
-- [ ] 3.7 Verify visible secondary-only context does not move an exercise into the recovering group
-- [ ] 3.8 Verify saving a draft containing a recovering exercise preserves the normal planned-workout outcome
+- [x] 3.6 Verify expiry transitions for a completed primary-muscle workout
+- [x] 3.7 Verify visible secondary-only context does not move an exercise into the recovering group
+- [x] 3.8 Verify saving a draft containing a recovering exercise preserves the normal planned-workout outcome
