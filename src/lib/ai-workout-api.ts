@@ -8,6 +8,8 @@ function statusForAiGeneration(code: AiGenerationErrorCode): number {
     validation_failed: 400,
     unauthenticated: 401,
     origin_rejected: 403,
+    confirmation_required: 409,
+    stale_plan: 409,
     history_aware_not_available: 409,
     key_not_configured: 409,
     key_encryption_unavailable: 503,

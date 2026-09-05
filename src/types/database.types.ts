@@ -199,6 +199,15 @@ export type Database = {
         Args: { p_expected_revision: number; p_expected_workout_id: string };
         Returns: string;
       };
+      save_ai_planned_workout: {
+        Args: {
+          p_exercises: Json;
+          p_expected_revision?: number;
+          p_expected_workout_id?: string;
+          p_replace_existing: boolean;
+        };
+        Returns: string;
+      };
       save_manual_planned_workout: {
         Args: {
           p_exercises: Json;

@@ -30,6 +30,11 @@ void test("parses exact safe generation success and failure responses", () => {
     code: "rate_limited",
     requestId: "request-2",
   });
+  assert.deepEqual(parseAiWorkoutGenerationResponse({ code: "confirmation_required", requestId: "request-3" }), {
+    ok: false,
+    code: "confirmation_required",
+    requestId: "request-3",
+  });
 });
 
 void test("rejects malformed, unknown, and inconsistent browser response payloads", () => {

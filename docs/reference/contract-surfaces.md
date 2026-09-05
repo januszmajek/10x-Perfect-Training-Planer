@@ -106,6 +106,18 @@ p_expected_revision integer)` returns the newly saved workout UUID. It is `SECUR
   transaction. Any error rolls back the deletion and every child mutation, leaving completed history and other users'
   data untouched.
 
+## AI planned-workout save RPC
+
+- `public.save_ai_planned_workout(p_exercises jsonb, p_replace_existing boolean, p_expected_workout_id uuid,
+  p_expected_revision integer)` has the same validation, authentication, advisory-lock namespace, replacement, and
+  stale compare-and-swap semantics as the manual save RPC. It is a distinct `SECURITY INVOKER` function with an empty
+  `search_path`, and only `authenticated` may execute it.
+- The function derives ownership, `status = 'planned'`, zero-based positions, and `origin = 'ai'` server-side.
+  `origin = 'ai'` means the authenticated owner used the AI-assisted save route; it is not an attestation that an
+  edited prescription exactly matches a generated proposal.
+- Stable errors are `AW001` (`confirmation_required`), `AW002` (`stale_plan`), `AW003`
+  (`validation_failed`), and `AW004` (`unauthenticated`). It never changes the manual save function or its `MW` map.
+
 ## Planned workout edit and delete RPCs
 
 - `public.update_planned_workout(p_expected_workout_id uuid, p_expected_revision integer, p_exercises jsonb)` returns

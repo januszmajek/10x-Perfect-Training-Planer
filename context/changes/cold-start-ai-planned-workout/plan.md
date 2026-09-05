@@ -593,19 +593,19 @@ considered implemented.
 
 #### Automated
 
-- [ ] 3.1 Mocked AI save service and route-boundary tests pass
-- [ ] 3.2 Clean local Supabase migration run succeeds
-- [ ] 3.3 Generated database types include the AI save function
-- [ ] 3.4 AI save pgTAP contract tests pass
-- [ ] 3.5 Existing local database suite passes
-- [ ] 3.6 Existing manual and planned-workout tests pass
-- [ ] 3.7 Static lint and production build pass
+- [x] 3.1 Mocked AI save service and route-boundary tests pass
+- [x] 3.2 Clean local Supabase migration run succeeds
+- [x] 3.3 Generated database types include the AI save function
+- [x] 3.4 AI save pgTAP contract tests pass
+- [x] 3.5 Existing local database suite passes
+- [x] 3.6 Existing manual and planned-workout tests pass
+- [x] 3.7 Static lint and production build pass
 
 #### Manual
 
-- [ ] 3.8 First save creates one editable AI-origin plan
-- [ ] 3.9 Replacement requires explicit confirmation
-- [ ] 3.10 Stale replacement refreshes authoritative state without data loss
+- [x] 3.8 First save creates one editable AI-origin plan
+- [x] 3.9 Replacement requires explicit confirmation
+- [x] 3.10 Stale replacement refreshes authoritative state without data loss
 
 ### Phase 4: Shared AI Planning Interface
 

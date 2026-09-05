@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { generateColdStartAiWorkout, type AiWorkoutGenerationDependencies } from "./ai-workouts.ts";
+import {
+  generateColdStartAiWorkout,
+  saveAiPlannedWorkout,
+  type AiWorkoutGenerationDependencies,
+} from "./ai-workouts.ts";
 import type { CatalogueExercise } from "./manual-workout-builder.ts";
 
 const USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -166,4 +170,74 @@ void test("maps missing, unavailable, rejected, provider, and invalid-output cas
       assert.equal(result.code, expectedCode);
     });
   }
+});
+
+function saveRequest(replaceExisting = false) {
+  return {
+    version: 1 as const,
+    replaceExisting,
+    expectedWorkoutId: replaceExisting ? IDS[0] : null,
+    expectedRevision: replaceExisting ? 1 : null,
+    exercises: proposal.exercises,
+  };
+}
+
+function saveClient(rpcResult: { data: string | null; error: { code: string } | null }) {
+  const calls: unknown[] = [];
+  return {
+    calls,
+    client: {
+      auth: { getUser: () => Promise.resolve({ data: { user: { id: USER_ID } }, error: null }) },
+      from: () => ({
+        select: () => ({
+          in: () => ({ limit: () => Promise.resolve({ data: catalogue.map(({ id }) => ({ id })), error: null }) }),
+        }),
+      }),
+      rpc: (name: string, args: unknown) => {
+        calls.push([name, args]);
+        return Promise.resolve(rpcResult);
+      },
+    },
+  };
+}
+
+void test("saves validated drafts only through the AI-origin RPC", async () => {
+  const { client, calls } = saveClient({ data: IDS[4], error: null });
+  const result = await saveAiPlannedWorkout(client as never, USER_ID, saveRequest());
+  assert.deepEqual(result, { ok: true, data: { workoutId: IDS[4] } });
+  assert.deepEqual(calls, [
+    [
+      "save_ai_planned_workout",
+      {
+        p_exercises: proposal.exercises.map(({ exerciseId, sets, reps }) => ({ exercise_id: exerciseId, sets, reps })),
+        p_replace_existing: false,
+      },
+    ],
+  ]);
+});
+
+void test("maps AI save confirmation, stale, validation, authentication, and persistence outcomes", async () => {
+  const expected = {
+    AW001: "confirmation_required",
+    AW002: "stale_plan",
+    AW003: "validation_failed",
+    AW004: "unauthenticated",
+    XX000: "persistence_failed",
+  } as const;
+  for (const [sqlState, code] of Object.entries(expected)) {
+    const { client } = saveClient({ data: null, error: { code: sqlState } });
+    const result = await saveAiPlannedWorkout(client as never, USER_ID, saveRequest(true));
+    assert.equal(result.ok, false);
+    assert.equal(result.code, code);
+  }
+});
+
+void test("rejects an edited draft with unknown catalogue membership before the AI RPC", async () => {
+  const { client, calls } = saveClient({ data: IDS[4], error: null });
+  const request = saveRequest();
+  request.exercises[0] = { ...request.exercises[0], exerciseId: "00000000-0000-0000-0000-999999999999" };
+  const result = await saveAiPlannedWorkout(client as never, USER_ID, request);
+  assert.equal(result.ok, false);
+  assert.equal(result.code, "validation_failed");
+  assert.deepEqual(calls, []);
 });

@@ -29,6 +29,8 @@ const AI_GENERATION_ERROR_CODES = new Set<AiGenerationErrorCode>([
   "unauthenticated",
   "origin_rejected",
   "persistence_failed",
+  "confirmation_required",
+  "stale_plan",
   "history_aware_not_available",
   "key_not_configured",
   "key_encryption_unavailable",
