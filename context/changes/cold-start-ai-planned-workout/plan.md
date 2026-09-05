@@ -3,17 +3,18 @@
 ## Overview
 
 Implement roadmap slice S-07: an authenticated user with no completed workout history can explicitly generate a
-balanced full-body workout through OpenRouter, re-roll it, edit the unsaved proposal with the existing workout editor,
-and save it as an AI-origin planned workout. The same user-facing generation entry point and server boundary must be
-extendable by S-08, but this change stops at a typed eligibility response when completed history exists.
+balanced full-body workout through OpenRouter from the shared workout builder, edit the unsaved proposal with the
+existing workout editor, and save it as an AI-origin planned workout. The same user-facing generation entry point and
+server boundary must be extendable by S-08, but this change stops at a typed eligibility response when completed
+history exists.
 
 ## Current State Analysis
 
-The application already has a complete manual planning lifecycle, canonical exercise catalogue, recovery-aware manual
-builder, optimistic planned-workout replacement, and encrypted OpenRouter credential storage. It has no provider client,
-AI generation endpoint, generated-output parser, or supported persistence path that creates `origin = 'ai'` workouts.
-The catalogue also has no canonical push/pull movement metadata, so the database cannot yet support deterministic
-balanced-starter validation without a small taxonomy extension.
+The application has a complete workout-planning lifecycle, canonical exercise catalogue, recovery-aware catalogue
+guidance, optimistic planned-workout replacement, and encrypted OpenRouter credential storage. The shared
+`/workouts/new` builder now contains both the editable workout draft and a permanently visible AI proposal card;
+`/workouts/ai` has no page or navigation entry. The account card shows a masked key and supports removal; a replacement
+is intentionally a remove-then-add operation.
 
 The shared editor is controlled by its parent and can therefore receive an AI-generated draft without duplicating
 catalogue filtering, exercise replacement, ordering, or sets/reps editing. Existing planned-workout readers, editing,
@@ -21,14 +22,15 @@ completion, and history surfaces already accept and preserve AI provenance.
 
 ## Desired End State
 
-From the shared workout-planning entry point, an eligible user explicitly requests an AI workout and receives a 5–7
-exercise balanced full-body proposal within the product's 10-second end-to-end target. The proposal stays in browser
-state until Save, can be re-rolled or edited, and is persisted atomically as `origin = 'ai'` only after confirmation.
+From `/workouts/new`, an eligible user explicitly requests an AI workout from the permanently visible AI proposal card
+and receives a 5–7 exercise balanced full-body proposal. The proposal stays in browser state until Save, can be edited,
+and is persisted atomically as `origin = 'ai'` only after confirmation. The card has one action, `Generate workout`;
+using it again replaces the proposal only after a successful validated response.
 
-Users without a usable OpenRouter credential receive a clear route to account configuration and the existing manual
-builder. Users with completed history receive a stable S-08-not-available response; S-07 neither ignores that history
-nor implements history-aware generation. Provider failures preserve any existing unsaved proposal and offer the right
-retry, configuration, or manual fallback action without leaking provider responses or credentials.
+Users without a usable OpenRouter credential receive a clear route to account configuration and can still build their
+workout manually on the same page. Users with completed history receive a stable S-08-not-available response; S-07
+neither ignores that history nor implements history-aware generation. Provider failures preserve any existing unsaved
+proposal without leaking provider responses or credentials.
 
 ### Key Discoveries:
 
@@ -54,8 +56,8 @@ retry, configuration, or manual fallback action without leaking provider respons
 - No history-aware prompt construction, recovery-aware AI selection, or recent-workout context; those belong to S-08.
 - No cold-start generation for users who already have completed history.
 - No user-selectable provider or model; OpenRouter remains the sole provider and the model is server-configured.
-- No automatic generation on page load, automatic provider retries, background jobs, streaming, or server-persisted
-  proposal drafts.
+- No automatic generation on page load, automatic provider retries, background jobs, streaming, server-persisted
+  proposal drafts, or application-imposed provider deadline.
 - No unrelated exercise-catalogue expansion, recovery-policy changes, workout lifecycle redesign, or AI-key table
   redesign; the only catalogue change is curated push/pull metadata needed by the starter contract.
 - No custom exercise generation, new exercises, editable muscle tags, weights, RIR, or volume-aware programming.
@@ -65,17 +67,17 @@ retry, configuration, or manual fallback action without leaking provider respons
 
 ## Implementation Approach
 
-Use native Worker `fetch` from a server-only OpenRouter client with a fixed model read from server configuration and an
-abort deadline below 10 seconds. Request a strict JSON-schema response containing only catalogue exercise IDs and
-integer sets/reps. Serialize catalogue context deterministically and reject generation before the provider call when it
-exceeds a 64 KiB UTF-8 budget; do not truncate or sample exercises because that would silently bias the proposal. Keep
-prompt construction, provider transport, response parsing, eligibility, and final proposal validation as separable
-services so mocked tests can cover every failure without real credentials.
+Use native Worker `fetch` from a server-only OpenRouter client with a fixed model read from server configuration. The
+application does not impose an artificial provider deadline. Request a strict JSON-schema response containing only
+catalogue exercise IDs and integer sets/reps. Serialize catalogue context deterministically and reject generation before
+the provider call when it exceeds a 64 KiB UTF-8 budget; do not truncate or sample exercises because that would silently
+bias the proposal. Keep prompt construction, provider transport, response parsing, eligibility, and final proposal
+validation as separable services so mocked tests can cover every failure without real credentials.
 
 The generation API will authenticate the user, verify same origin, confirm lifetime completed-history count is zero,
 decrypt the owned credential, load the canonical catalogue, and request a proposal. It will then independently enforce
-the 5–7 exercise full-body contract and the existing draft constraints before returning browser-safe data. Re-roll is
-the same generation request and only replaces the ephemeral client proposal after a successful response.
+the 5–7 exercise full-body contract and the existing draft constraints before returning browser-safe data. Each explicit
+`Generate workout` request replaces the ephemeral client proposal only after a successful response.
 
 Saving uses a dedicated authenticated SQL function and application service that mirror the established manual save
 transaction, advisory-lock ordering, catalogue validation, and expected ID/revision replacement protocol while deriving
@@ -85,11 +87,10 @@ planned-workout refresh logic remain the shared lifecycle after generation.
 
 ## Critical Implementation Details
 
-### Timing & lifecycle
+### Lifecycle
 
-The provider abort deadline must leave time inside the 10-second end-to-end target for authentication, catalogue reads,
-parsing, validation, response transfer, and UI rendering. A failed re-roll must not clear or mutate the last successful
-proposal; only a validated replacement may update proposal state.
+The application does not impose a generation deadline. A failed generation request must not clear or mutate the current
+draft; only a validated successful response may replace it.
 
 ### State sequencing
 
@@ -167,7 +168,7 @@ returns `catalogue_context_too_large` before any provider request rather than tr
 
 **Files**: `src/lib/openrouter-client.ts`, `src/lib/openrouter-client.test.ts`
 
-**Intent**: Encapsulate the non-streaming provider call, deadline, bounded response parsing, and sanitized failure map
+**Intent**: Encapsulate the non-streaming provider call, bounded response parsing, and sanitized failure map
 behind an injectable fetch boundary.
 
 **Contract**: POST `https://openrouter.ai/api/v1/chat/completions` with Bearer authentication, the fixed model, and
@@ -241,18 +242,19 @@ workout persistence error union.
 
 **Contract**: Add generation/save operation names to the shared operation union, but define a separate
 `AiGenerationErrorCode` and AI-specific exhaustive HTTP-status mapper. Browser-safe codes cover key configuration, key
-rejection, rate limiting, timeout, provider unavailability, invalid output, oversized catalogue context, missing model
+rejection, rate limiting, provider unavailability, invalid output, oversized catalogue context, missing model
 configuration, and S-08 eligibility. AI diagnostics include elapsed time and reuse the request ID without forcing
-AI-only codes into manual-workout UI message maps.
+AI-only codes into manual-workout UI message maps. A timeout code remains available only for an upstream/runtime
+interruption; the application does not create one with an abort timer.
 
 #### 4. Generation route
 
 **File**: `src/pages/api/workouts/ai/generate.ts`
 
-**Intent**: Expose an authenticated, same-origin POST endpoint for initial generation and re-roll.
+**Intent**: Expose an authenticated, same-origin POST endpoint for explicit generation.
 
 **Contract**: Accept only a strict empty/versioned JSON command, enforce the established body-size and content-type
-rules, and return the same validated proposal shape for both initial generation and re-roll. Never accept a model,
+rules, and return the same validated proposal shape for every explicit generation request. Never accept a model,
 provider URL, provider key, catalogue, history, or workout prescription from the client.
 
 ### Success Criteria:
@@ -261,7 +263,7 @@ provider URL, provider key, catalogue, history, or workout prescription from the
 
 - AI service and client-parser tests pass with `pnpm test:ai-workout`.
 - Tests prove history-bearing users do not trigger provider calls.
-- Tests cover missing/corrupt/rejected keys, rate limits, timeout, provider failures, invalid output, and success.
+- Tests cover missing/corrupt/rejected keys, rate limits, provider failures, invalid output, and success.
 - Existing manual, planned-workout, and history tests pass with `pnpm test:manual-workout`,
   `pnpm test:planned-workout`, and `pnpm test:history`.
 - Static lint and production build pass with `pnpm lint` and `pnpm build`.
@@ -344,109 +346,82 @@ automated verification passes, pause for manual confirmation before proceeding.
 
 ---
 
-## Phase 4: Shared AI Planning Interface
+## Phase 4: Shared AI Planning Interface, End-to-End Verification, and Documentation
 
 ### Overview
 
-Deliver the explicit generate, re-roll, edit, save, configuration, manual-fallback, and S-08 handoff experience on
-mobile and desktop using the established draft editor and planned-workout conflict behavior.
+Deliver the unified workout builder: a permanently visible AI proposal card, manual editing, AI-origin save,
+configuration/deletion, and S-08 handoff on mobile and desktop using the established draft editor and planned-workout
+conflict behavior. Verify the completed S-07 boundary in the Worker runtime and document the operational and S-08
+extension contracts before closing the change.
 
 ### Changes Required:
 
-#### 1. AI planner page data
+#### 1. Shared workout-builder page data
 
-**Files**: `src/pages/workouts/ai.astro`, `src/lib/ai-workouts.ts`
+**Files**: `src/pages/workouts/new.astro`, `src/lib/manual-workouts.ts`, `src/lib/ai-provider-keys.ts`,
+`src/lib/planned-workouts.ts`
 
-**Intent**: Render the shared AI planning shell with canonical catalogue, current planned workout, masked key
+**Intent**: Render the shared workout builder with canonical catalogue, current planned workout, masked key
 availability, and cold-start eligibility while keeping credential plaintext server-only.
 
-**Contract**: Page props may contain only catalogue data, current plan, masked/configured status, and eligibility; they
-must never contain decrypted credentials or raw history. The page supports viewports at least 360px wide.
+**Contract**: `/workouts/new` is the only workout-creation page. Page props may contain only catalogue data, current
+plan, masked/configured status, and eligibility; they must never contain decrypted credentials or raw history. The page
+supports viewports at least 360px wide. `/workouts/ai` and its page component do not exist.
 
-#### 2. AI planner controller
+#### 2. Shared workout-builder controller
 
-**Files**: `src/components/workouts/AiWorkoutPlanner.tsx`, `src/components/workouts/WorkoutDraftEditor.tsx`,
-`src/components/workouts/ManualWorkoutBuilder.tsx`, `src/components/workouts/PlannedWorkoutEditor.tsx`,
+**Files**: `src/components/workouts/WorkoutBuilder.tsx`, `src/components/workouts/WorkoutDraftEditor.tsx`,
+`src/components/workouts/WorkoutDraftPanel.tsx`, `src/components/workouts/PlannedWorkoutEditor.tsx`,
 `src/lib/planned-workout-client.ts`, `src/lib/planned-workout-conflict.ts`,
 `src/lib/planned-workout-conflict.test.ts`
 
 **Intent**: Manage generation and save state around the shared controlled editor without duplicating its catalogue and
 draft interactions.
 
-**Contract**: Explicit Generate initiates the first request; Re-roll requests a replacement but preserves the current
-proposal on failure; edit actions affect only ephemeral state; Save follows expected ID/revision confirmation; pending
-operations prevent duplicate submissions. Initial generation, re-roll, and save errors remain distinct. Reuse or make a
-narrow extraction of the existing manual replacement-confirmation and planned-editor stale-refresh transitions through
-a pure conflict-transition helper; do not create a third divergent conflict protocol. The shared contract distinguishes
-first-save collision from stale replacement and covers refresh success, missing latest plan, refresh failure, overwrite
-with the refreshed ID/revision, load-latest, and preservation of the local draft and request ID. Controllers retain
-their existing presentation-specific dialog behavior.
+**Contract**: The permanently visible `AI workout proposal` card has exactly one action, `Generate workout`, which
+initiates every explicit generation request. A failed generation preserves the current draft; a successful validated
+response replaces it. Edit actions affect only ephemeral state; Save follows expected ID/revision confirmation; pending
+operations prevent duplicate submissions. The generated draft keeps AI provenance through later edits so it uses the AI
+save path; a manually built draft uses the manual save path. Reuse a narrow extraction of the existing replacement and
+stale-refresh transitions through a pure conflict-transition helper; do not create a divergent conflict protocol. The
+workout draft is not sticky and scrolls with the exercise list.
 
-#### 3. Typed recovery actions
+#### 3. Typed generation states
 
-**File**: `src/components/workouts/AiWorkoutPlanner.tsx`
+**File**: `src/components/workouts/WorkoutBuilder.tsx`
 
-**Intent**: Give each safe failure class an actionable next step while retaining the last valid proposal.
+**Intent**: Show safe generation states while retaining the current draft.
 
-**Contract**: Missing or rejected credential links to `/account`; rate limit, timeout, and temporary provider failures
-offer Retry; all failures offer `/workouts/new`; history-bearing users see that personalized AI planning is reserved for
-the next slice rather than receiving a misleading cold-start result.
+**Contract**: Missing or rejected credentials direct the user to `/account`; configured keys are removed and then added
+again rather than replaced in place. Rate-limit, upstream timeout, and temporary provider failures are explained without
+clearing the draft; the single `Generate workout` action remains the only generation control. History-bearing users see
+that personalized AI planning is reserved for the next slice rather than receiving a misleading cold-start result.
 
 #### 4. Entry points and success messaging
 
 **Files**: `src/pages/dashboard.astro`, `src/layouts/AuthenticatedLayout.astro`
 
-**Intent**: Add the shared “Generate workout” entry point and make AI-save completion understandable without weakening
-the existing manual path.
+**Intent**: Keep navigation focused on the shared workout builder and make AI-save completion understandable.
 
-**Contract**: The dashboard exposes AI and manual planning actions. Successful AI save redirects to the dashboard using
-a distinct safe status and the existing summary displays `origin = 'ai'` correctly.
+**Contract**: Navigation links only to `/workouts/new` for workout creation; the dashboard has no generation CTA and no
+account-setup card. Successful AI save redirects to the dashboard using a distinct safe status and the existing summary
+displays `origin = 'ai'` correctly.
 
-### Success Criteria:
+#### 5. Configuration and operational documentation
 
-#### Automated Verification:
+**Files**: `README.md`, `context/deployment/deployment-plan.md`, `src/components/account/AiKeyForm.tsx`,
+`src/lib/ai-provider-keys.ts`, `supabase/migrations/20260905230000_add_ai_provider_key_prefix.sql`
 
-- AI UI state/helper and shared conflict-transition tests pass with `pnpm test:ai-workout`.
-- Existing workout client and lifecycle suites pass with `pnpm test:manual-workout`, `pnpm test:planned-workout`, and
-  `pnpm test:history`.
-- Static lint and production build pass with `pnpm lint` and `pnpm build`.
-
-#### Manual Verification:
-
-- At 360px and desktop widths, an eligible user can generate, edit, re-roll, save, and confirm replacement without
-  clipped controls, lost focus, or unintended horizontal scrolling.
-- Re-roll failure preserves the previous proposal and its user edits until a later successful re-roll replaces it.
-- Missing/rejected key, timeout/rate-limit/provider failure, and manual fallback actions lead to the expected recovery
-  path without exposing technical details.
-- A history-bearing user reaches the same Generate entry point but receives the S-08 handoff state, not a cold-start
-  proposal.
-- An AI-saved plan remains editable, completable, and visible in history through the existing lifecycle.
-
-**Implementation Note**: After completing this phase and all automated verification passes, pause for manual
-confirmation before proceeding.
-
----
-
-## Phase 5: End-to-End Verification and Documentation
-
-### Overview
-
-Verify the complete S-07 boundary in the Worker runtime, document its operational requirements, and confirm that S-08
-can extend the same entry point without rewriting the completed flow.
-
-### Changes Required:
-
-#### 1. Configuration and operational documentation
-
-**Files**: `README.md`, `context/deployment/deployment-plan.md`
-
-**Intent**: Document the fixed model setting, Worker secret prerequisite, safe manual provider check, and diagnostic
-outcomes needed to operate the feature.
+**Intent**: Document the fixed model setting, Worker secret prerequisite, safe manual provider check, account-key
+masking/removal contract, and diagnostic outcomes needed to operate the feature.
 
 **Contract**: Documentation uses Workers/Wrangler commands only, never includes a real key, and distinguishes the app's
-versioned encryption root secret from each user's OpenRouter BYOK credential.
+versioned encryption root secret from each user's OpenRouter BYOK credential. The account card reveals only the first
+and last four characters, lets an existing encrypted key be removed with a compact trash icon, and intentionally has no
+in-place update input or button.
 
-#### 2. S-08 extension seam
+#### 6. S-08 extension seam
 
 **Files**: `docs/reference/contract-surfaces.md`, `context/foundation/roadmap.md`
 
@@ -460,25 +435,37 @@ history-aware requirements, progress, or status into this change.
 
 #### Automated Verification:
 
+- AI UI state/helper and shared conflict-transition tests pass with `pnpm test:ai-workout`.
+- Existing workout client and lifecycle suites pass with `pnpm test:manual-workout`, `pnpm test:planned-workout`, and
+  `pnpm test:history`.
+- Static lint and production build pass with `pnpm lint` and `pnpm build`.
 - All configured application suites pass: `pnpm test:crypto`, `pnpm test:manual-workout`,
   `pnpm test:planned-workout`, `pnpm test:history`, and `pnpm test:ai-workout`.
 - Full local database suite passes with `pnpm exec supabase test db --local supabase/tests/database`.
-- Final static and production gates pass with `pnpm lint` and `pnpm build`.
 
 #### Manual Verification:
 
-- With a disposable valid OpenRouter key on a deployed or Worker-runtime preview, cold-start generation completes within
-  10 seconds and returns an editable balanced full-body proposal.
-- Re-roll, edit, first save, replacement confirmation, dashboard display, completion, and history display work end to
-  end for an AI-origin workout.
+- At 360px and desktop widths, an eligible user can use the single `Generate workout` action, edit, save, and confirm
+  replacement without clipped controls, lost focus, unintended horizontal scrolling, or a sticky workout draft.
+- A failed generation preserves the previous proposal and its user edits until a later successful `Generate workout`
+  request replaces it.
+- Missing/rejected key, upstream timeout/rate-limit/provider failure, and the same-page manual builder lead to the
+  expected recovery path without exposing technical details.
+- A history-bearing user reaches the same Generate entry point but receives the S-08 handoff state, not a cold-start
+  proposal.
+- An AI-saved plan remains editable, completable, and visible in history through the existing lifecycle.
+- With a disposable valid OpenRouter key on a deployed or Worker-runtime preview, cold-start generation returns an
+  editable balanced full-body proposal without an application-imposed time limit.
+- Repeated explicit Generate requests, edit, first save, replacement confirmation, dashboard display, completion, and
+  history display work end to end for an AI-origin workout.
 - A deliberately invalid key and simulated provider outage produce sanitized actionable errors and preserve any prior
   proposal.
 - A user with completed history cannot receive a cold-start proposal and is directed toward the future personalized
-  behavior without breaking the manual builder.
+  behavior without breaking the shared workout builder.
 - Browser-visible payloads, logs, and persisted database rows contain no plaintext OpenRouter credential.
 
-**Implementation Note**: This phase requires human confirmation of the real-key Worker smoke test before the change is
-considered implemented.
+**Implementation Note**: This final phase requires human confirmation of the real-key Worker smoke test before the
+change is considered implemented.
 
 ---
 
@@ -492,10 +479,10 @@ considered implemented.
   for push/pull.
 - Deterministic prompt construction and proof that user/history/credential data is absent.
 - Maximum-catalogue serialization, the 64 KiB prompt budget, and pre-provider oversize rejection.
-- Provider status mapping for rejected credentials, rate limits, timeouts, transient errors, network failures, oversized
-  responses, embedded completion errors, and invalid structured output.
+- Provider status mapping for rejected credentials, rate limits, upstream timeouts, transient errors, network failures,
+  oversized responses, embedded completion errors, and invalid structured output.
 - Generation orchestration short-circuits before provider invocation for every ineligible or unsafe prerequisite.
-- Client response parsing and UI-state transitions preserve a valid proposal across failed re-rolls.
+- Client response parsing and UI-state transitions preserve a valid proposal across failed generation requests.
 - AI saving maps first-save, confirmation, stale, validation, authentication, and persistence outcomes correctly.
 
 ### Integration Tests:
@@ -508,24 +495,23 @@ considered implemented.
 ### Manual Testing Steps:
 
 1. Create a new authenticated user with no completed workouts and configure a disposable OpenRouter key.
-2. Generate a proposal and verify 5–7 canonical exercises cover lower body, push, pull, and core within 10 seconds.
-3. Edit order, exercises, sets, and reps; force a failed re-roll and verify the current proposal remains intact.
-4. Re-roll successfully and verify the proposal changes only after the validated response arrives.
+2. Open `/workouts/new`, generate a proposal, and verify 5–7 canonical exercises cover lower body, push, pull, and core.
+3. Edit order, exercises, sets, and reps; force a failed generation and verify the current proposal remains intact.
+4. Use the same `Generate workout` action again and verify the proposal changes only after the validated response arrives.
 5. Save with no existing plan, then edit, complete, and inspect the AI-origin entry in history.
 6. Repeat with an existing planned workout; cancel replacement, then confirm replacement and verify CAS behavior.
-7. Remove or invalidate the key and verify configuration, retry, and manual-builder recovery actions.
+7. Remove or invalidate the key and verify the remove-then-add account flow and the same-page workout-builder recovery.
 8. Use an account with completed history and verify the S-08 handoff state with no provider request or cold-start result.
 9. Inspect browser payloads, Worker logs, and stored rows for credential or raw-provider leakage.
-10. Repeat the principal flow at 360px and desktop widths in supported browsers available for manual QA.
+10. Repeat the principal flow at 360px and desktop widths; verify the workout draft scrolls with the exercise list.
 
 ## Performance Considerations
 
-- Set the provider abort deadline below the 10-second end-to-end requirement and measure total server-side generation
-  duration with sanitized outcome metadata.
+- Do not impose an application-level generation deadline; record only sanitized elapsed duration for diagnostics.
 - Keep the OpenRouter request bounded to the seeded catalogue (currently capped at 200 exercises), enforce the 64 KiB
   serialized-context ceiling before the call, and use non-streaming structured output to avoid client parsing complexity.
 - Cap response bytes before JSON parsing so an unexpected provider payload cannot consume unbounded Worker memory.
-- Do not automatically retry: a retry may add BYOK cost and would threaten the response target.
+- Do not automatically retry: an automatic retry may add BYOK cost. Repeated generation is always an explicit user action.
 - Initial page data may reuse catalogue/current-plan queries, but generation must recheck eligibility and prerequisites
   server-side because page state can become stale.
 
@@ -542,14 +528,14 @@ considered implemented.
 ## References
 
 - Product requirements: `context/foundation/prd.md`
-- Roadmap slices S-07 and S-08: `context/foundation/roadmap.md`
+- Roadmap slice S-07: `context/foundation/roadmap.md`
 - Infrastructure constraints: `context/foundation/infrastructure.md`
 - Database contract registry: `docs/reference/contract-surfaces.md`
 - Existing credential service: `src/lib/ai-provider-keys.ts:152`
 - Existing workout API conventions: `src/lib/workout-api.ts:4`
 - Shared draft rules: `src/lib/manual-workout-builder.ts:168`
 - Shared editor: `src/components/workouts/WorkoutDraftEditor.tsx:17`
-- Existing replacement controller: `src/components/workouts/ManualWorkoutBuilder.tsx:64`
+- Unified builder controller: `src/components/workouts/WorkoutBuilder.tsx`
 - Existing stale-refresh controller: `src/components/workouts/PlannedWorkoutEditor.tsx:104`
 - Manual save transaction pattern: `supabase/migrations/20260902120000_create_planned_workout_mutations.sql:182`
 - OpenRouter structured outputs: `https://openrouter.ai/docs/features/structured-outputs`
@@ -607,13 +593,16 @@ considered implemented.
 - [x] 3.9 Replacement requires explicit confirmation
 - [x] 3.10 Stale replacement refreshes authoritative state without data loss
 
-### Phase 4: Shared AI Planning Interface
+### Phase 4: Shared AI Planning Interface, End-to-End Verification, and Documentation
 
 #### Automated
 
 - [ ] 4.1 AI UI state, helper, and shared conflict-transition tests pass
 - [ ] 4.2 Existing workout lifecycle suites pass
 - [ ] 4.3 Static lint and production build pass
+- [ ] 4.9 All configured application suites pass
+- [ ] 4.10 Full local database suite passes
+- [ ] 4.11 Final static and production gates pass
 
 #### Manual
 
@@ -622,19 +611,8 @@ considered implemented.
 - [ ] 4.6 Typed failure actions lead to the expected recovery paths
 - [ ] 4.7 History-bearing users receive the S-08 handoff state
 - [ ] 4.8 AI-origin plans remain compatible with the existing lifecycle
-
-### Phase 5: End-to-End Verification and Documentation
-
-#### Automated
-
-- [ ] 5.1 All configured application test suites pass
-- [ ] 5.2 Full local database suite passes
-- [ ] 5.3 Final static and production gates pass
-
-#### Manual
-
-- [ ] 5.4 Real-key Worker smoke test meets the 10-second target
-- [ ] 5.5 AI generation through history display works end to end
-- [ ] 5.6 Invalid-key and provider-outage recovery is safe and actionable
-- [ ] 5.7 History-bearing users cannot receive a cold-start proposal
-- [ ] 5.8 No plaintext credential is exposed or persisted
+- [ ] 4.12 Real-key Worker smoke test meets the 10-second target
+- [ ] 4.13 AI generation through history display works end to end
+- [ ] 4.14 Invalid-key and provider-outage recovery is safe and actionable
+- [ ] 4.15 History-bearing users cannot receive a cold-start proposal
+- [ ] 4.16 No plaintext credential is exposed or persisted

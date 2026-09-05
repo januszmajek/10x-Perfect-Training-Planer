@@ -67,18 +67,17 @@ Save uses a dedicated AI-origin database function with the existing advisory-loc
 
 ## Phases at a Glance
 
-| Phase                   | What it delivers                                     | Key risk                               |
-| ----------------------- | ---------------------------------------------------- | -------------------------------------- |
-| 1. Generation contracts | Fixed config, prompt, strict parser, provider client | Model/schema compatibility             |
-| 2. Generation API       | Eligibility, orchestration, safe typed responses     | History users receiving a starter      |
-| 3. AI persistence       | Atomic AI-origin save and replacement                | Diverging from manual lock semantics   |
-| 4. Planning UI          | Generate, re-roll, edit, save, and recovery actions  | Losing proposal state on failure       |
-| 5. Final verification   | Worker smoke test and documented S-08 seam           | Provider behavior differing in runtime |
+| Phase                     | What it delivers                                                | Key risk                             |
+| ------------------------- | --------------------------------------------------------------- | ------------------------------------ |
+| 1. Generation contracts   | Fixed config, prompt, strict parser, provider client            | Model/schema compatibility           |
+| 2. Generation API         | Eligibility, orchestration, safe typed responses                | History users receiving a starter    |
+| 3. AI persistence         | Atomic AI-origin save and replacement                           | Diverging from manual lock semantics |
+| 4. UI, verification, docs | Generate, re-roll, edit, save, Worker smoke test, and S-08 seam | Losing a proposal or runtime drift   |
 
 **Prerequisites:** Working Supabase environment, `AI_KEY_ENCRYPTION_KEY_V1`, a configured fixed OpenRouter model, and a
 disposable user-owned OpenRouter key for manual verification.
 
-**Estimated effort:** Approximately 4–6 focused sessions across five independently verified phases.
+**Estimated effort:** Approximately 4–6 focused sessions across four independently verified phases.
 
 ## Open Risks & Assumptions
 
