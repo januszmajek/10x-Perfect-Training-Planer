@@ -3,7 +3,7 @@ project: Perfect Training Planner
 version: 3
 status: draft
 created: 2026-06-13
-updated: 2026-09-04
+updated: 2026-09-05
 prd_version: 1
 main_goal: speed
 top_blocker: time
@@ -42,7 +42,7 @@ AI speed-and-variety promise, while the manual-first sequence deliberately place
 | S-04 | mark-planned-workout-done      | mark a planned workout done so it becomes completed history                              | S-02          | US-04, FR-010, Data durability                                           | done        |
 | S-05 | history-list-and-filters       | view completed workout history with date and muscle-group filters                        | S-04          | FR-012                                                                   | done        |
 | S-06 | recovery-aware-manual-builder  | build and save a manual workout while recovery-aware filtering guides catalogue choices  | S-04          | US-03, FR-003, FR-006, FR-007, FR-008                                    | done        |
-| S-07 | cold-start-ai-planned-workout  | generate, edit, and save a cold-start AI workout from the shared workout builder         | S-03, S-06    | US-02, FR-004, FR-005, FR-008, FR-016, AI responsiveness                 | in progress |
+| S-07 | cold-start-ai-planned-workout  | generate, edit, and save a cold-start AI workout from the shared workout builder         | S-03, S-06    | US-02, FR-004, FR-005, FR-008, FR-016, AI responsiveness                 | done        |
 | S-08 | history-aware-ai-proposal      | generate, edit, and save an AI workout that respects recent history and recovery windows | S-07          | US-01, FR-004, FR-005, FR-008, AI responsiveness, Data durability        | proposed    |
 
 ## Baseline
@@ -178,7 +178,7 @@ sequencing frame). Foundations below assume these capabilities are present and d
 - **Unknowns:** —
 - **Risk:** S-03 and S-06 provide the shared editing and fallback capabilities this slice consumes; S-05 remains
   sequenced before AI as a manual-first delivery decision rather than a false functional dependency.
-- **Status:** in progress
+- **Status:** done
 
 ### S-08: History-aware AI proposal
 
@@ -234,6 +234,8 @@ sequencing frame). Foundations below assume these capabilities are present and d
 - **FR-014 do again from history** — Why parked: nice-to-have that may compete with the AI proposer success metric.
 
 ## Done
+
+- **S-07: User with no completed history can generate and edit an AI starter workout from the shared workout builder before saving it as planned.** — Archived 2026-09-05 → `context/archive/2026-09-05-cold-start-ai-planned-workout/`. Lesson: —.
 
 - **F-01: (foundation) minimal workout data contracts, user ownership boundaries, and seeded preset exercise catalogue are in place for planned workouts, completed history, and catalogue browsing.** — Archived 2026-08-27 → `context/archive/2026-08-19-domain-data-and-seed-catalogue/`. Lesson: —.
 - **S-01: User can sign in to a private planner workspace and manage a masked AI provider key** — Archived 2026-08-28 → `context/archive/2026-08-27-private-account-and-ai-key/`. Lesson: —.

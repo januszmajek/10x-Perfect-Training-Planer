@@ -1,10 +1,10 @@
 ---
 change_id: cold-start-ai-planned-workout
 title: Generate and save a cold-start AI workout
-status: impl_reviewed
+status: archived
 created: 2026-09-05
-updated: 2026-09-06
-archived_at: null
+updated: 2026-09-05
+archived_at: 2026-09-05T22:22:05Z
 ---
 
 ## Notes
