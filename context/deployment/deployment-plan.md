@@ -30,7 +30,6 @@
 
 3.1. `[x]` Human gate: create or reuse a Supabase account, enable MFA
 
-
 3.5. `[x]` Retrieve the project ref and low-privilege API key with the CLI, then create untracked `.env.production` without printing key values:
 
 ```powershell
@@ -93,6 +92,19 @@ Pre-deploy checks completed on 2026-06-08:
 - `pnpm exec wrangler deploy --dry-run --outdir .wrangler\deploy-dry-run` passed.
 - `pnpm exec wrangler deploy --secrets-file .env.production` passed.
 
+  4.4. `[ ]` Configure AI workout generation separately from Supabase deployment secrets:
+
+```powershell
+pnpm exec wrangler secret put AI_KEY_ENCRYPTION_KEY_V1
+pnpm exec wrangler secret put OPENROUTER_MODEL
+```
+
+`AI_KEY_ENCRYPTION_KEY_V1` is the versioned Worker root secret that encrypts and decrypts user-owned credentials.
+`OPENROUTER_MODEL` is the fixed server-selected model identifier and must support strict structured JSON output. Neither
+value is a user OpenRouter API key. Each user enters their own BYOK credential at `/account`; it is encrypted in
+Supabase and must never be copied to a Worker secret, `.env.production`, `.dev.vars`, command-line argument, log, or
+deployment output.
+
 ## 5. Supabase Auth Redirects
 
 5.1. `[x]` After Cloudflare returns the production URL, decide whether redirects are needed for the current MVP auth mode.
@@ -123,6 +135,17 @@ Smoke result on 2026-06-08:
 - `GET /auth/signup`: `200 OK`
 - `GET /dashboard`: `302 Found`, `Location: /auth/signin`
 - Missing Supabase fallback: not present on the deployed homepage
+
+  6.7. `[ ]` Perform the S-07 AI workout smoke test with a disposable user and key only after 4.4 is complete:
+
+- use a new account with no completed workouts, configure the disposable key at `/account`, and generate from the
+  AI workout proposal card at `/workouts/new`;
+- confirm the 5–7 exercise proposal arrives, can be edited, and saves as an
+  AI-origin workout;
+- confirm an invalid key and an unavailable provider lead to sanitized configuration or retry actions, without
+  clearing an existing proposal;
+- confirm an account with completed history receives the S-08 handoff and does not trigger a cold-start proposal;
+- inspect only sanitized `pnpm exec wrangler tail` output, then remove the disposable key.
 
 ## 7. Rollback And Troubleshooting
 

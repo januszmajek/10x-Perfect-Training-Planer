@@ -98,6 +98,7 @@ must not be duplicated there.
 SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_KEY=<local publishable or anon key>
 AI_KEY_ENCRYPTION_KEY_V1=<unpadded-base64url-encoding-of-32-random-bytes>
+OPENROUTER_MODEL=<fixed-openrouter-model-with-strict-structured-output-support>
 ```
 
 Never use a `service_role` or `sb_secret_...` key in the application. Both local environment files are ignored by
@@ -114,6 +115,11 @@ node -e 'const { randomBytes } = require("node:crypto"); const { appendFileSync 
 Use only placeholder text in committed examples. Never print, log, or commit the generated value. Losing the V1
 secret makes existing encrypted provider keys unrecoverable, so production backup and future rotation require an
 explicit operational procedure.
+
+`OPENROUTER_MODEL` is a server-only fixed model identifier used only by the AI workout-generation route. Pick an
+OpenRouter model that supports strict structured JSON output; users cannot provide or override it from the browser.
+The model setting is not an OpenRouter API key. Each user supplies their own disposable or personal OpenRouter key in
+the Account page, where it is encrypted before storage.
 
 4. Verify the database contract:
 
@@ -198,10 +204,31 @@ After explicit approval for hosted setup, configure the credential-encryption se
 
 ```bash
 pnpm exec wrangler secret put AI_KEY_ENCRYPTION_KEY_V1
+pnpm exec wrangler secret put OPENROUTER_MODEL
 ```
 
 Paste the 32-byte unpadded-base64url value only into Wrangler's hidden prompt. Do not pass it as a command-line
-argument or store it in `wrangler.jsonc`.
+argument or store it in `wrangler.jsonc`. Set `OPENROUTER_MODEL` to the fixed OpenRouter model identifier through its
+own hidden prompt; it must never be accepted from a browser request. This Worker encryption root secret is distinct
+from user-owned OpenRouter credentials: do not place any user API key in a Worker secret, `.dev.vars`, or
+`.env.production`.
+
+### AI workout smoke check
+
+After deploying the Worker, use a new disposable account with no completed workouts and a disposable OpenRouter key.
+Add that key through `/account`, then open `/workouts/new` to generate a proposal, edit it, and save it.
+Confirm generation completes within ten seconds and the saved AI-origin workout remains editable and completable.
+Repeat with an invalid key and with an account that has completed history; the expected outcomes are an Account/retry
+recovery action and the S-08 handoff respectively. Remove the disposable key when finished.
+
+Use only sanitized operational diagnostics while testing:
+
+```bash
+pnpm exec wrangler tail
+```
+
+Logs and browser payloads must never contain an OpenRouter credential, prompt, raw provider response, generated
+prescription, or user identifier.
 
 ## CI
 

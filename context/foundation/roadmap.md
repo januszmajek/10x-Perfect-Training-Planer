@@ -33,17 +33,17 @@ AI speed-and-variety promise, while the manual-first sequence deliberately place
 
 ## At a glance
 
-| ID   | Change ID                      | Outcome (user can ...)                                                                                | Prerequisites | PRD refs                                                                 | Status   |
-| ---- | ------------------------------ | ----------------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------ | -------- |
-| F-01 | domain-data-and-seed-catalogue | (foundation) minimal workout data contracts and seeded preset catalogue are in place                  | —             | FR-003, FR-008, FR-010, FR-012, Privacy, Data durability, Access Control | done     |
-| S-01 | private-account-and-ai-key     | sign in to a private planner workspace and manage a masked AI provider key                            | F-01          | FR-001, FR-002, FR-015                                                   | done     |
-| S-02 | manual-workout-create-and-save | browse the seeded catalogue, compose sets and reps, and save a manual workout as planned              | F-01, S-01    | FR-003, FR-006, FR-008, Data durability, Access Control                  | done     |
-| S-03 | planned-workout-editing        | edit and delete a saved planned workout                                                               | S-02          | FR-009, FR-011                                                           | done     |
-| S-04 | mark-planned-workout-done      | mark a planned workout done so it becomes completed history                                           | S-02          | US-04, FR-010, Data durability                                           | done     |
-| S-05 | history-list-and-filters       | view completed workout history with date and muscle-group filters                                     | S-04          | FR-012                                                                   | done     |
-| S-06 | recovery-aware-manual-builder  | build and save a manual workout while recovery-aware filtering guides catalogue choices               | S-04          | US-03, FR-003, FR-006, FR-007, FR-008                                    | done     |
-| S-07 | cold-start-ai-planned-workout  | generate, re-roll, edit, and save a cold-start AI workout, with the completed manual path as fallback | S-03, S-06    | US-02, FR-004, FR-005, FR-008, FR-016, AI responsiveness                 | proposed |
-| S-08 | history-aware-ai-proposal      | generate, re-roll, edit, and save an AI workout that respects recent history and recovery windows     | S-07          | US-01, FR-004, FR-005, FR-008, AI responsiveness, Data durability        | proposed |
+| ID   | Change ID                      | Outcome (user can ...)                                                                   | Prerequisites | PRD refs                                                                 | Status      |
+| ---- | ------------------------------ | ---------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------ | ----------- |
+| F-01 | domain-data-and-seed-catalogue | (foundation) minimal workout data contracts and seeded preset catalogue are in place     | —             | FR-003, FR-008, FR-010, FR-012, Privacy, Data durability, Access Control | done        |
+| S-01 | private-account-and-ai-key     | sign in to a private planner workspace and manage a masked AI provider key               | F-01          | FR-001, FR-002, FR-015                                                   | done        |
+| S-02 | manual-workout-create-and-save | browse the seeded catalogue, compose sets and reps, and save a manual workout as planned | F-01, S-01    | FR-003, FR-006, FR-008, Data durability, Access Control                  | done        |
+| S-03 | planned-workout-editing        | edit and delete a saved planned workout                                                  | S-02          | FR-009, FR-011                                                           | done        |
+| S-04 | mark-planned-workout-done      | mark a planned workout done so it becomes completed history                              | S-02          | US-04, FR-010, Data durability                                           | done        |
+| S-05 | history-list-and-filters       | view completed workout history with date and muscle-group filters                        | S-04          | FR-012                                                                   | done        |
+| S-06 | recovery-aware-manual-builder  | build and save a manual workout while recovery-aware filtering guides catalogue choices  | S-04          | US-03, FR-003, FR-006, FR-007, FR-008                                    | done        |
+| S-07 | cold-start-ai-planned-workout  | generate, edit, and save a cold-start AI workout from the shared workout builder         | S-03, S-06    | US-02, FR-004, FR-005, FR-008, FR-016, AI responsiveness                 | in progress |
+| S-08 | history-aware-ai-proposal      | generate, edit, and save an AI workout that respects recent history and recovery windows | S-07          | US-01, FR-004, FR-005, FR-008, AI responsiveness, Data durability        | proposed    |
 
 ## Baseline
 
@@ -168,8 +168,8 @@ sequencing frame). Foundations below assume these capabilities are present and d
 
 ### S-07: Cold-start AI planned workout
 
-- **Outcome:** User with no completed history can generate, re-roll, and edit an AI starter workout before saving it
-  as planned, and reach the completed manual builder when no valid AI key is available.
+- **Outcome:** User with no completed history can generate and edit an AI starter workout from the shared workout
+  builder before saving it as planned.
 - **Change ID:** cold-start-ai-planned-workout
 - **PRD refs:** US-02, FR-004, FR-005, FR-008, FR-016, AI responsiveness
 - **Prerequisites:** S-03, S-06
@@ -178,11 +178,11 @@ sequencing frame). Foundations below assume these capabilities are present and d
 - **Unknowns:** —
 - **Risk:** S-03 and S-06 provide the shared editing and fallback capabilities this slice consumes; S-05 remains
   sequenced before AI as a manual-first delivery decision rather than a false functional dependency.
-- **Status:** proposed
+- **Status:** in progress
 
 ### S-08: History-aware AI proposal
 
-- **Outcome:** User with completed history can generate, re-roll, edit, and save an AI workout that respects recent
+- **Outcome:** User with completed history can generate, edit, and save an AI workout that respects recent
   muscle-group recovery windows.
 - **Change ID:** history-aware-ai-proposal
 - **PRD refs:** US-01, FR-004, FR-005, FR-008, AI responsiveness, Data durability
@@ -191,7 +191,8 @@ sequencing frame). Foundations below assume these capabilities are present and d
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** This is the final MVP planning capability because it reuses the completed manual lifecycle, the
-  proposal-review path, and the recovery behavior already proven through the manual builder.
+  proposal-review path, and the recovery behavior already proven through the workout builder. It extends S-07's
+  `/workouts/new` AI proposal card and generation boundary rather than introducing a parallel planning flow.
 - **Status:** proposed
 
 ## Backlog Handoff

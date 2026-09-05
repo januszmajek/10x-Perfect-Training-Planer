@@ -46,6 +46,7 @@ void test("posts fixed-model non-streaming strict JSON-schema requests and retur
   const captured = calls[0];
   assert.equal(captured.input, OPENROUTER_CHAT_COMPLETIONS_URL);
   assert.equal(new Headers(captured.init?.headers).get("Authorization"), "Bearer test-key");
+  assert.equal(captured.init?.signal, undefined);
   const requestBody = captured.init?.body;
   if (typeof requestBody !== "string") throw new Error("expected JSON request body");
   const body = JSON.parse(requestBody) as {

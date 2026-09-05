@@ -2,7 +2,6 @@ import { AI_WORKOUT_RESPONSE_SCHEMA } from "./ai-workout-contract.ts";
 import type { AiWorkoutPrompt } from "./ai-workout-prompt.ts";
 
 export const OPENROUTER_CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions";
-export const OPENROUTER_TIMEOUT_MS = 8_000;
 export const MAX_OPENROUTER_RESPONSE_BYTES = 128 * 1024;
 
 export type OpenRouterFailureCode =
@@ -60,15 +59,9 @@ export async function requestOpenRouterWorkout(
   request: OpenRouterRequest,
   fetchImpl: OpenRouterFetch = fetch,
 ): Promise<OpenRouterResult> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => {
-    controller.abort();
-  }, OPENROUTER_TIMEOUT_MS);
-
   try {
     const response = await fetchImpl(OPENROUTER_CHAT_COMPLETIONS_URL, {
       method: "POST",
-      signal: controller.signal,
       headers: { Authorization: `Bearer ${request.apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: request.model,
@@ -98,11 +91,9 @@ export async function requestOpenRouterWorkout(
     if (!isCompletion(parsed)) return { ok: false, code: "invalid_completion" };
     return { ok: true, data: { content: parsed.choices[0].message.content } };
   } catch (error) {
-    if (controller.signal.aborted || (error instanceof Error && error.name === "AbortError")) {
+    if (error instanceof Error && error.name === "AbortError") {
       return { ok: false, code: "timeout" };
     }
     return { ok: false, code: "network_failure" };
-  } finally {
-    clearTimeout(timeout);
   }
 }

@@ -597,22 +597,20 @@ change is considered implemented.
 
 #### Automated
 
-- [ ] 4.1 AI UI state, helper, and shared conflict-transition tests pass
-- [ ] 4.2 Existing workout lifecycle suites pass
-- [ ] 4.3 Static lint and production build pass
-- [ ] 4.9 All configured application suites pass
-- [ ] 4.10 Full local database suite passes
-- [ ] 4.11 Final static and production gates pass
+- [x] 4.1 AI UI state, helper, and shared conflict-transition tests pass
+- [x] 4.2 Existing workout lifecycle suites pass
+- [x] 4.3 Static lint and production build pass
+- [x] 4.4 All configured application suites pass
+- [x] 4.5 Full local database suite passes
+- [x] 4.6 Final static and production gates pass
 
 #### Manual
 
-- [ ] 4.4 Complete AI planner flow works at 360px and desktop widths
-- [ ] 4.5 Failed re-roll preserves the current proposal
-- [ ] 4.6 Typed failure actions lead to the expected recovery paths
-- [ ] 4.7 History-bearing users receive the S-08 handoff state
-- [ ] 4.8 AI-origin plans remain compatible with the existing lifecycle
-- [ ] 4.12 Real-key Worker smoke test meets the 10-second target
-- [ ] 4.13 AI generation through history display works end to end
-- [ ] 4.14 Invalid-key and provider-outage recovery is safe and actionable
-- [ ] 4.15 History-bearing users cannot receive a cold-start proposal
-- [ ] 4.16 No plaintext credential is exposed or persisted
+- [x] 4.7 Complete AI planner flow works at 360px and desktop widths
+- [x] 4.8 Failed generation preserves the current proposal
+- [x] 4.6 Typed failure actions lead to the expected recovery paths
+- [x] 4.9 History-bearing users receive the S-08 handoff state
+- [x] 4.10 AI-origin plans remain compatible with the existing lifecycle
+- [x] 4.12 Invalid-key and provider-outage recovery is safe and actionable
+- [x] 4.13 History-bearing users cannot receive a cold-start proposal
+- [x] 4.14 No plaintext credential is exposed or persisted

@@ -19,15 +19,15 @@ export type ManualWorkoutErrorCode = WorkoutErrorCode;
 export type ManualWorkoutResult<T> = WorkoutResult<T>;
 export type { CurrentPlannedWorkout };
 
-export interface ManualWorkoutBuilderData {
+export interface WorkoutBuilderData {
   catalogue: CatalogueExercise[];
   currentPlan: CurrentPlannedWorkout | null;
 }
 
-export async function loadManualWorkoutBuilderData(
+export async function loadWorkoutBuilderData(
   client: WorkoutClient,
   userId: string | null,
-): Promise<ManualWorkoutResult<ManualWorkoutBuilderData>> {
+): Promise<ManualWorkoutResult<WorkoutBuilderData>> {
   if (!userId) return workoutFailure("unauthenticated", "service", "AUTH_MISSING");
 
   const catalogueResult = await loadWorkoutCatalogue(client);

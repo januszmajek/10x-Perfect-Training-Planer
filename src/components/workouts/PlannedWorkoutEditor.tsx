@@ -8,6 +8,7 @@ import {
   type ManualWorkoutDraftItem,
 } from "@/lib/manual-workout-builder";
 import { PLANNED_WORKOUT_API_PATH, parseCurrentPlanResponse } from "@/lib/planned-workout-client";
+import { resolvePlannedWorkoutConflict } from "@/lib/planned-workout-conflict";
 import { PLANNED_WORKOUT_MUTATION_VERSION } from "@/lib/planned-workout-mutation";
 import type { CurrentPlannedWorkout, WorkoutErrorCode } from "@/lib/planned-workouts";
 
@@ -121,12 +122,13 @@ export default function PlannedWorkoutEditor({ catalogue, initialPlan }: Props) 
   async function handleStaleSave() {
     try {
       const latestPlan = await loadLatestPlan();
-      if (latestPlan === null) {
+      const transition = resolvePlannedWorkoutConflict("stale_plan", latestPlan);
+      if (transition.kind === "latest-plan-missing") {
         returnToDashboard("workout-changed");
         return;
       }
-      setDisplayedPlan(latestPlan);
-      setConflictPlan(latestPlan);
+      setDisplayedPlan(transition.latestPlan);
+      setConflictPlan(transition.latestPlan);
       setConflictDialogOpen(true);
       setError(null);
     } catch {
@@ -248,7 +250,7 @@ export default function PlannedWorkoutEditor({ catalogue, initialPlan }: Props) 
               <h3 className="text-sm font-semibold text-white">Your local draft</h3>
               <ol className="mt-2 space-y-2 text-sm leading-6 text-blue-100/70">
                 {draft.map((item, index) => (
-                  <li key={item.exerciseId} className="flex gap-2 break-words">
+                  <li key={item.exerciseId} className="flex gap-2 wrap-break-word">
                     <span className="shrink-0 text-blue-100/45">{index + 1}.</span>
                     <span>
                       {exerciseNamesById.get(item.exerciseId) ?? "Unknown exercise"} ({item.sets} × {item.reps})
@@ -261,7 +263,7 @@ export default function PlannedWorkoutEditor({ catalogue, initialPlan }: Props) 
               <h3 className="text-sm font-semibold text-white">Latest saved plan</h3>
               <ol className="mt-2 space-y-2 text-sm leading-6 text-blue-100/70">
                 {conflictPlan.exercises.map((exercise, index) => (
-                  <li key={exercise.exerciseId} className="flex gap-2 break-words">
+                  <li key={exercise.exerciseId} className="flex gap-2 wrap-break-word">
                     <span className="shrink-0 text-blue-100/45">{index + 1}.</span>
                     <span>
                       {exercise.name} ({exercise.sets} × {exercise.reps})

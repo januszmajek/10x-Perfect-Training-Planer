@@ -43,7 +43,7 @@ export default function WorkoutDraftPanel({
   onCancel,
 }: Props) {
   return (
-    <section className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl sm:p-6 xl:sticky xl:top-6">
+    <section className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl sm:p-6">
       <p className="text-sm font-medium tracking-wide text-purple-300 uppercase">Workout draft</p>
       <h2 className="mt-1 text-2xl font-bold text-white">Your exercise order</h2>
       {replacingIndex !== null && (

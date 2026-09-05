@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadManualWorkoutBuilderData } from "./manual-workouts.ts";
+import { loadWorkoutBuilderData } from "./manual-workouts.ts";
 
 const USER_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -99,10 +99,7 @@ void test("loads only the authenticated owner's bounded completed recovery histo
     },
   };
 
-  const result = await loadManualWorkoutBuilderData(
-    client as Parameters<typeof loadManualWorkoutBuilderData>[0],
-    USER_ID,
-  );
+  const result = await loadWorkoutBuilderData(client as Parameters<typeof loadWorkoutBuilderData>[0], USER_ID);
 
   assert.equal(result.ok, true);
   const builderData = result as { data: { catalogue: { recovery: { state: string } }[] } };

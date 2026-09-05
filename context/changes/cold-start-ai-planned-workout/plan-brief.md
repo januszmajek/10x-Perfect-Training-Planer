@@ -5,8 +5,8 @@
 ## What & Why
 
 Build roadmap slice S-07 so a user with no completed history can generate a balanced full-body workout through their
-own OpenRouter key, edit or re-roll it, and save it as a planned workout. The experience proves the product's AI
-speed-and-variety promise while keeping the established manual lifecycle available as the fallback.
+own OpenRouter key from the shared workout builder, edit it, and save it as a planned workout. The experience keeps
+manual planning and AI generation together on one page.
 
 ## Starting Point
 
@@ -16,34 +16,34 @@ provider calls, generated-output validation, cold-start eligibility, and an atom
 
 ## Desired End State
 
-One explicit Generate action returns an editable 5–7 exercise full-body proposal within the 10-second target. The
-proposal remains ephemeral until Save, re-roll failures preserve the last valid draft, and persistence records immutable
-AI provenance. Users with completed history receive a clear S-08 handoff instead of an unsafe generic starter.
+One `Generate workout` action on the permanent AI proposal card returns an editable 5–7 exercise full-body proposal.
+The proposal remains ephemeral until Save, failed generation preserves the last valid draft, and persistence records
+immutable AI provenance. Users with completed history receive a clear S-08 handoff instead of an unsafe generic starter.
 
 ## Key Decisions Made
 
-| Decision          | Choice                       | Why                                                                    |
-| ----------------- | ---------------------------- | ---------------------------------------------------------------------- |
-| Trigger           | Explicit Generate button     | Avoids surprise BYOK charges and makes loading/errors intentional.     |
-| Model             | Fixed server configuration   | Keeps schema support, latency, and testing predictable.                |
-| Starter shape     | 5–7 exercise full body       | Makes “balanced” measurable across lower body, push, pull, and core.   |
-| Movement metadata | Curated in the database      | Prevents application or model inference of push/pull classification.   |
-| Proposal lifetime | Ephemeral until Save         | Matches the PRD and avoids unwanted planned workouts.                  |
-| Existing plan     | Explicit CAS replacement     | Prevents silent loss and follows the existing workout UX.              |
-| History boundary  | Typed S-08 handoff           | Preserves one future-facing entry point without taking S-08's work.    |
-| Failures          | Typed recovery actions       | Tells users whether to retry, configure a key, or use manual planning. |
-| Verification      | Mocked application tests     | Avoids live provider CI and new database concurrency-test scope.       |
-| AI origin         | AI-assisted route provenance | Keeps editing unrestricted without adding proposal attestation.        |
+| Decision          | Choice                       | Why                                                                  |
+| ----------------- | ---------------------------- | -------------------------------------------------------------------- |
+| Trigger           | Explicit Generate button     | Avoids surprise BYOK charges and makes loading/errors intentional.   |
+| Model             | Fixed server configuration   | Keeps schema support and testing predictable.                        |
+| Starter shape     | 5–7 exercise full body       | Makes “balanced” measurable across lower body, push, pull, and core. |
+| Movement metadata | Curated in the database      | Prevents application or model inference of push/pull classification. |
+| Proposal lifetime | Ephemeral until Save         | Matches the PRD and avoids unwanted planned workouts.                |
+| Existing plan     | Explicit CAS replacement     | Prevents silent loss and follows the existing workout UX.            |
+| History boundary  | Typed S-08 handoff           | Preserves one future-facing entry point without taking S-08's work.  |
+| Failures          | Typed generation states      | Preserves the draft without adding another generation control.       |
+| Verification      | Mocked application tests     | Avoids live provider CI and new database concurrency-test scope.     |
+| AI origin         | AI-assisted route provenance | Keeps editing unrestricted without adding proposal attestation.      |
 
 ## Scope
 
 **In scope:**
 
-- Fixed-model OpenRouter structured-output client with a bounded deadline.
+- Fixed-model OpenRouter structured-output client without an application-imposed deadline.
 - Database-owned push/pull classification for seeded exercises.
 - Strict canonical proposal validation and balanced full-body enforcement.
 - Lifetime-history cold-start eligibility checked on every generation.
-- Explicit generation and re-roll using ephemeral proposal state.
+- Explicit generation through one `Generate workout` action using ephemeral proposal state.
 - Shared draft editor for add, replace, remove, order, sets, and reps changes.
 - Atomic AI-origin first save and confirmed replacement.
 - Typed key, provider, timeout, output, and S-08 handoff states.
@@ -67,12 +67,12 @@ Save uses a dedicated AI-origin database function with the existing advisory-loc
 
 ## Phases at a Glance
 
-| Phase                     | What it delivers                                                | Key risk                             |
-| ------------------------- | --------------------------------------------------------------- | ------------------------------------ |
-| 1. Generation contracts   | Fixed config, prompt, strict parser, provider client            | Model/schema compatibility           |
-| 2. Generation API         | Eligibility, orchestration, safe typed responses                | History users receiving a starter    |
-| 3. AI persistence         | Atomic AI-origin save and replacement                           | Diverging from manual lock semantics |
-| 4. UI, verification, docs | Generate, re-roll, edit, save, Worker smoke test, and S-08 seam | Losing a proposal or runtime drift   |
+| Phase                     | What it delivers                                                       | Key risk                             |
+| ------------------------- | ---------------------------------------------------------------------- | ------------------------------------ |
+| 1. Generation contracts   | Fixed config, prompt, strict parser, provider client                   | Model/schema compatibility           |
+| 2. Generation API         | Eligibility, orchestration, safe typed responses                       | History users receiving a starter    |
+| 3. AI persistence         | Atomic AI-origin save and replacement                                  | Diverging from manual lock semantics |
+| 4. UI, verification, docs | Shared builder, generate, edit, save, Worker smoke test, and S-08 seam | Losing a proposal or runtime drift   |
 
 **Prerequisites:** Working Supabase environment, `AI_KEY_ENCRYPTION_KEY_V1`, a configured fixed OpenRouter model, and a
 disposable user-owned OpenRouter key for manual verification.
@@ -81,7 +81,7 @@ disposable user-owned OpenRouter key for manual verification.
 
 ## Open Risks & Assumptions
 
-- The selected OpenRouter model must continue supporting strict JSON-schema output within the latency target.
+- The selected OpenRouter model must continue supporting strict JSON-schema output.
 - Catalogue size is bounded at 200 today; generation fails safely rather than truncating if deterministic serialized
   context exceeds 64 KiB.
 - The selected test boundary does not add database concurrency coverage for the new AI save function; correctness relies
@@ -93,7 +93,7 @@ disposable user-owned OpenRouter key for manual verification.
 
 ## Success Criteria (Summary)
 
-- An eligible user generates, edits, re-rolls, and saves a balanced AI-origin plan within the 10-second target.
+- An eligible user generates, edits, and saves a balanced AI-origin plan from the shared workout builder.
 - Missing/invalid keys and provider failures are safe, actionable, and preserve the last valid proposal.
 - Users with completed history never receive a cold-start result, and credentials never reach browser data, logs, or
   persisted workout rows.

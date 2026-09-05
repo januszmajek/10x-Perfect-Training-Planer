@@ -109,7 +109,7 @@ p_expected_revision integer)` returns the newly saved workout UUID. It is `SECUR
 ## AI planned-workout save RPC
 
 - `public.save_ai_planned_workout(p_exercises jsonb, p_replace_existing boolean, p_expected_workout_id uuid,
-  p_expected_revision integer)` has the same validation, authentication, advisory-lock namespace, replacement, and
+p_expected_revision integer)` has the same validation, authentication, advisory-lock namespace, replacement, and
   stale compare-and-swap semantics as the manual save RPC. It is a distinct `SECURITY INVOKER` function with an empty
   `search_path`, and only `authenticated` may execute it.
 - The function derives ownership, `status = 'planned'`, zero-based positions, and `origin = 'ai'` server-side.
@@ -117,6 +117,17 @@ p_expected_revision integer)` returns the newly saved workout UUID. It is `SECUR
   edited prescription exactly matches a generated proposal.
 - Stable errors are `AW001` (`confirmation_required`), `AW002` (`stale_plan`), `AW003`
   (`validation_failed`), and `AW004` (`unauthenticated`). It never changes the manual save function or its `MW` map.
+
+## S-07 cold-start generation seam
+
+- `POST /api/workouts/ai/generate` accepts only the versioned empty generation command. It authenticates and rechecks
+  cold-start eligibility on every request, returns only a validated browser-safe proposal, and uses a fixed
+  server-configured `OPENROUTER_MODEL`; no browser request can select a provider, model, credential, or prescription.
+- `POST /api/workouts/ai/save` is the distinct authenticated AI-origin persistence route. It retains the established
+  confirmation and stale-plan contract while saving through `save_ai_planned_workout`.
+- S-07 is deliberately limited to accounts with no completed workouts. S-08 extends the same `/workouts/new` builder
+  card and server boundary with history-aware behavior; it must not create a second browser flow or weaken S-07's
+  eligibility check.
 
 ## Planned workout edit and delete RPCs
 

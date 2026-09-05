@@ -21,6 +21,7 @@ select columns_are(
     'provider',
     'ciphertext',
     'iv',
+    'key_prefix',
     'key_hint',
     'encryption_key_version',
     'created_at',
@@ -44,12 +45,13 @@ select ok(
 );
 select ok(
   (
-    select count(*) = 4
+    select count(*) = 5
     from pg_catalog.pg_constraint
     where conrelid = 'public.ai_provider_keys'::regclass
       and conname in (
         'ai_provider_keys_ciphertext_base64url_check',
         'ai_provider_keys_iv_base64url_check',
+        'ai_provider_keys_key_prefix_length_check',
         'ai_provider_keys_key_hint_length_check',
         'ai_provider_keys_encryption_key_version_positive_check'
       )
@@ -73,8 +75,19 @@ select ok(
     from information_schema.columns
     where table_schema = 'public'
       and table_name = 'ai_provider_keys'
+      and column_name <> 'key_prefix'
   ),
-  'every credential column is required'
+  'every encrypted credential column is required'
+);
+select ok(
+  (
+    select is_nullable = 'YES'
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'ai_provider_keys'
+      and column_name = 'key_prefix'
+  ),
+  'legacy credentials may omit the non-secret key prefix'
 );
 select ok(
   exists (
@@ -112,6 +125,7 @@ select ok(
     and has_column_privilege('authenticated', 'public.ai_provider_keys', 'user_id', 'INSERT, UPDATE')
     and has_column_privilege('authenticated', 'public.ai_provider_keys', 'ciphertext', 'INSERT, UPDATE')
     and has_column_privilege('authenticated', 'public.ai_provider_keys', 'iv', 'INSERT, UPDATE')
+    and has_column_privilege('authenticated', 'public.ai_provider_keys', 'key_prefix', 'INSERT, UPDATE')
     and has_column_privilege('authenticated', 'public.ai_provider_keys', 'key_hint', 'INSERT, UPDATE')
     and has_column_privilege(
       'authenticated',

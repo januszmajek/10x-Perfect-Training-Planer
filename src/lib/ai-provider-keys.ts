@@ -23,6 +23,7 @@ type AiProviderKeyResult<T> = { ok: true; data: T } | { ok: false; reason: AiPro
 
 export interface MaskedAiProviderKey {
   provider: "openrouter";
+  keyPrefix: string | null;
   keyHint: string;
   updatedAt: string;
 }
@@ -49,7 +50,7 @@ export async function getMaskedAiProviderKey(
 
   const { data, error } = await supabase
     .from("ai_provider_keys")
-    .select("provider,key_hint,updated_at")
+    .select("provider,ciphertext,iv,encryption_key_version,key_prefix,key_hint,updated_at")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -61,10 +62,38 @@ export async function getMaskedAiProviderKey(
     return { ok: true, data: null };
   }
 
+  let keyPrefix = data.key_prefix;
+
+  if (!keyPrefix) {
+    const rootSecret = getRootSecret(data.encryption_key_version);
+    if (rootSecret) {
+      try {
+        const plaintextKey = await decryptAiProviderKey(
+          {
+            ciphertext: data.ciphertext,
+            iv: data.iv,
+            encryptionKeyVersion: data.encryption_key_version,
+          },
+          rootSecret,
+          {
+            userId,
+            provider: data.provider,
+            encryptionKeyVersion: data.encryption_key_version,
+          },
+        );
+        keyPrefix = plaintextKey.slice(0, 4);
+        await supabase.from("ai_provider_keys").update({ key_prefix: keyPrefix }).eq("user_id", userId);
+      } catch {
+        // A legacy key remains safely masked by its last four characters if it cannot be decrypted for backfill.
+      }
+    }
+  }
+
   return {
     ok: true,
     data: {
       provider: data.provider,
+      keyPrefix,
       keyHint: data.key_hint,
       updatedAt: data.updated_at,
     },
@@ -119,6 +148,7 @@ export async function saveAiProviderKey(
       user_id: userId,
       ciphertext: encrypted.ciphertext,
       iv: encrypted.iv,
+      key_prefix: validation.value.slice(0, 4),
       key_hint: validation.value.slice(-4),
       encryption_key_version: encrypted.encryptionKeyVersion,
     },

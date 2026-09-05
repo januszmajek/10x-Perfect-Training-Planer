@@ -78,6 +78,7 @@ const statusMessage = status && status in statusMessages ? statusMessages[status
       <AiKeyForm
         configured={credential !== null}
         provider={credential?.provider ?? "openrouter"}
+        keyPrefix={credential?.keyPrefix}
         keyHint={credential?.keyHint}
         updatedAt={credential?.updatedAt}
         encryptionAvailable={encryptionAvailable}
