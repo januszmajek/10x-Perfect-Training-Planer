@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(40);
+select plan(46);
 
 select has_table('public', 'muscle_groups', 'muscle_groups table exists');
 select has_table('public', 'exercises', 'exercises table exists');
@@ -30,6 +30,13 @@ select enum_has_labels(
   array['primary', 'secondary'],
   'exercise_muscle_role has the exact ordered values'
 );
+select has_type('public', 'exercise_movement_pattern', 'exercise_movement_pattern enum exists');
+select enum_has_labels(
+  'public',
+  'exercise_movement_pattern',
+  array['push', 'pull'],
+  'exercise_movement_pattern has the exact ordered values'
+);
 
 select col_is_pk('public', 'muscle_groups', 'code', 'muscle_groups.code is the primary key');
 select col_is_pk('public', 'exercises', 'id', 'exercises.id is the primary key');
@@ -41,6 +48,13 @@ select col_is_pk(
 );
 select col_is_unique('public', 'exercises', 'slug', 'exercise slugs are unique');
 select col_is_unique('public', 'exercises', 'name', 'exercise names are unique');
+select col_type_is(
+  'public',
+  'exercises',
+  'movement_pattern',
+  'public.exercise_movement_pattern',
+  'exercises.movement_pattern uses the curated push/pull enum'
+);
 
 select ok(
   exists (
@@ -202,6 +216,38 @@ select is(
 );
 select is(
   (
+    select array_agg(slug || ':' || movement_pattern order by slug)
+    from public.exercises
+    where movement_pattern is not null
+  ),
+  array[
+    'barbell-bench-press:push',
+    'barbell-bent-over-row:pull',
+    'chest-supported-dumbbell-row:pull',
+    'close-grip-bench-press:push',
+    'incline-dumbbell-press:push',
+    'inverted-row:pull',
+    'landmine-press:push',
+    'lat-pulldown:pull',
+    'machine-chest-press:push',
+    'one-arm-dumbbell-row:pull',
+    'overhead-barbell-press:push',
+    'parallel-bar-dip:push',
+    'pull-up:pull',
+    'push-up:push',
+    'seated-cable-row:pull',
+    'seated-dumbbell-shoulder-press:push',
+    'straight-arm-pulldown:pull'
+  ]::text[],
+  'seeded compound upper-body movements have the canonical curated pattern'
+);
+select is(
+  (select count(*) from public.exercises where slug in ('back-squat', 'plank', 'cable-curl') and movement_pattern is not null),
+  0::bigint,
+  'lower-body, core, and isolation movements remain unclassified'
+);
+select is(
+  (
     select array_agg(tag.muscle_group_code order by tag.muscle_group_code)
     from public.exercises exercise
     join public.exercise_muscle_groups tag on tag.exercise_id = exercise.id
@@ -245,6 +291,11 @@ select ok(
     and not has_table_privilege('anon', 'public.exercises', 'SELECT')
     and not has_table_privilege('anon', 'public.exercise_muscle_groups', 'SELECT'),
   'anonymous clients have no catalogue read privileges'
+);
+select ok(
+  has_type_privilege('authenticated', 'public.exercise_movement_pattern', 'USAGE')
+    and not has_type_privilege('anon', 'public.exercise_movement_pattern', 'USAGE'),
+  'only authenticated catalogue readers receive movement-pattern type usage'
 );
 
 set local role authenticated;

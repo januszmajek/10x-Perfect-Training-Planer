@@ -59,7 +59,10 @@ export default function WorkoutCatalogueExerciseCard({
                     {recoveryContext && (
                       <>
                         <span aria-hidden="true"> {formatRemainingTime(recoveryContext.remainingMilliseconds)}</span>
-                        <span className="sr-only"> {formatRecoveryDuration(recoveryContext.remainingMilliseconds)}</span>
+                        <span className="sr-only">
+                          {" "}
+                          {formatRecoveryDuration(recoveryContext.remainingMilliseconds)}
+                        </span>
                       </>
                     )}
                   </li>

@@ -29,25 +29,28 @@ const catalogue: CatalogueExercise[] = [
     id: IDS[0],
     name: "Barbell Bench Press",
     equipment: "barbell",
+    movementPattern: "push",
     muscles: [
-      { code: "chest", name: "Chest", role: "primary", recoveryHours: 48 },
-      { code: "triceps", name: "Triceps", role: "secondary", recoveryHours: 48 },
+      { code: "chest", name: "Chest", category: "upper_body", role: "primary", recoveryHours: 48 },
+      { code: "triceps", name: "Triceps", category: "upper_body", role: "secondary", recoveryHours: 48 },
     ],
   },
   {
     id: IDS[1],
     name: "Cable Row",
     equipment: "cable",
+    movementPattern: "pull",
     muscles: [
-      { code: "upper_back", name: "Upper Back", role: "primary", recoveryHours: 72 },
-      { code: "biceps", name: "Biceps", role: "secondary", recoveryHours: 48 },
+      { code: "upper_back", name: "Upper Back", category: "upper_body", role: "primary", recoveryHours: 72 },
+      { code: "biceps", name: "Biceps", category: "upper_body", role: "secondary", recoveryHours: 48 },
     ],
   },
   {
     id: IDS[2],
     name: "Bodyweight Squat",
     equipment: "bodyweight",
-    muscles: [{ code: "quads", name: "Quads", role: "primary", recoveryHours: 72 }],
+    movementPattern: null,
+    muscles: [{ code: "quads", name: "Quads", category: "lower_body", role: "primary", recoveryHours: 72 }],
   },
 ];
 

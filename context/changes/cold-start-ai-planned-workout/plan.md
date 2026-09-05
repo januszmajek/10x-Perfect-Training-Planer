@@ -563,16 +563,16 @@ considered implemented.
 
 #### Automated
 
-- [ ] 1.1 AI contract, prompt, and provider-client tests pass
-- [ ] 1.2 Catalogue migration and catalogue contract tests pass
-- [ ] 1.3 Maximum-size prompt budget tests pass
-- [ ] 1.4 Existing crypto tests pass
-- [ ] 1.5 Static lint passes
+- [x] 1.1 AI contract, prompt, and provider-client tests pass
+- [x] 1.2 Catalogue migration and catalogue contract tests pass
+- [x] 1.3 Maximum-size prompt budget tests pass
+- [x] 1.4 Existing crypto tests pass
+- [x] 1.5 Static lint passes
 
 #### Manual
 
-- [ ] 1.6 Model configuration is documented without secrets
-- [ ] 1.7 Mocked failure logs contain no sensitive generation data
+- [x] 1.6 Model configuration is documented without secrets
+- [x] 1.7 Mocked failure logs contain no sensitive generation data
 
 ### Phase 2: Cold-Start Eligibility and Generation API
 

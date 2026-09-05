@@ -19,6 +19,7 @@ export default defineConfig({
       SUPABASE_URL: envField.string({ context: "server", access: "secret", optional: true }),
       SUPABASE_KEY: envField.string({ context: "server", access: "secret", optional: true }),
       AI_KEY_ENCRYPTION_KEY_V1: envField.string({ context: "server", access: "secret", optional: true }),
+      OPENROUTER_MODEL: envField.string({ context: "server", access: "secret", optional: true }),
     },
   },
 });

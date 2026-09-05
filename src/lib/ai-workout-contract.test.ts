@@ -1,0 +1,93 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { parseAiWorkoutProposal, parseAiWorkoutProposalJson, type AiWorkoutProposal } from "./ai-workout-contract.ts";
+import type { CatalogueExercise } from "./manual-workout-builder.ts";
+
+const IDS = Array.from({ length: 8 }, (_, index) => `00000000-0000-0000-0000-${String(index + 1).padStart(12, "0")}`);
+
+const catalogue: CatalogueExercise[] = [
+  {
+    id: IDS[0],
+    name: "Bench Press",
+    equipment: "barbell",
+    movementPattern: "push",
+    muscles: [{ code: "chest", name: "Chest", category: "upper_body", role: "primary", recoveryHours: 48 }],
+  },
+  {
+    id: IDS[1],
+    name: "Cable Row",
+    equipment: "cable",
+    movementPattern: "pull",
+    muscles: [{ code: "lats", name: "Lats", category: "upper_body", role: "primary", recoveryHours: 72 }],
+  },
+  {
+    id: IDS[2],
+    name: "Squat",
+    equipment: "barbell",
+    movementPattern: null,
+    muscles: [{ code: "quads", name: "Quads", category: "lower_body", role: "primary", recoveryHours: 72 }],
+  },
+  {
+    id: IDS[3],
+    name: "Plank",
+    equipment: "bodyweight",
+    movementPattern: null,
+    muscles: [{ code: "core", name: "Core", category: "core", role: "primary", recoveryHours: 48 }],
+  },
+  {
+    id: IDS[4],
+    name: "Lunge",
+    equipment: "dumbbell",
+    movementPattern: null,
+    muscles: [{ code: "glutes", name: "Glutes", category: "lower_body", role: "primary", recoveryHours: 72 }],
+  },
+  {
+    id: IDS[5],
+    name: "Push-Up",
+    equipment: "bodyweight",
+    movementPattern: "push",
+    muscles: [{ code: "chest", name: "Chest", category: "upper_body", role: "primary", recoveryHours: 48 }],
+  },
+  {
+    id: IDS[6],
+    name: "Pull-Up",
+    equipment: "bodyweight",
+    movementPattern: "pull",
+    muscles: [{ code: "upper_back", name: "Upper Back", category: "upper_body", role: "primary", recoveryHours: 72 }],
+  },
+];
+
+function proposal(exerciseIds = IDS.slice(0, 5)): AiWorkoutProposal {
+  return { exercises: exerciseIds.map((exerciseId) => ({ exerciseId, sets: 3, reps: 10 })) };
+}
+
+void test("accepts a balanced 5-7 exercise proposal from the canonical catalogue", () => {
+  assert.deepEqual(parseAiWorkoutProposal(proposal(), catalogue), { ok: true, data: proposal() });
+  assert.equal(parseAiWorkoutProposal(proposal(IDS.slice(0, 7)), catalogue).ok, true);
+});
+
+void test("rejects malformed JSON, unknown IDs, duplicates, extra fields, and invalid prescriptions", () => {
+  assert.deepEqual(parseAiWorkoutProposalJson("not-json", catalogue), { ok: false, code: "malformed_json" });
+  assert.equal(
+    parseAiWorkoutProposal(
+      { exercises: [{ exerciseId: IDS[7], sets: 3, reps: 10 }, ...proposal().exercises.slice(1)] },
+      catalogue,
+    ).ok,
+    false,
+  );
+  assert.equal(parseAiWorkoutProposal(proposal([IDS[0], IDS[0], ...IDS.slice(2, 5)]), catalogue).ok, false);
+  assert.equal(parseAiWorkoutProposal({ ...proposal(), unexpected: true }, catalogue).ok, false);
+  assert.equal(
+    parseAiWorkoutProposal(
+      { exercises: proposal().exercises.map((item, index) => (index === 0 ? { ...item, sets: 1.5 } : item)) },
+      catalogue,
+    ).ok,
+    false,
+  );
+});
+
+void test("rejects proposals that omit a required full-body coverage category", () => {
+  assert.equal(parseAiWorkoutProposal(proposal([IDS[0], IDS[1], IDS[2], IDS[4], IDS[5]]), catalogue).ok, false);
+  assert.equal(parseAiWorkoutProposal(proposal([IDS[0], IDS[2], IDS[3], IDS[4], IDS[5]]), catalogue).ok, false);
+  assert.equal(parseAiWorkoutProposal(proposal([IDS[0], IDS[1], IDS[3], IDS[5], IDS[6]]), catalogue).ok, false);
+});

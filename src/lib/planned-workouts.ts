@@ -147,7 +147,9 @@ export async function loadExpectedWorkoutState(
 export async function loadWorkoutCatalogue(client: WorkoutClient): Promise<WorkoutResult<CatalogueExercise[]>> {
   const { data, error } = await client
     .from("exercises")
-    .select("id,name,equipment,exercise_muscle_groups(muscle_group_code,role,muscle_groups(name,recovery_hours))")
+    .select(
+      "id,name,equipment,movement_pattern,exercise_muscle_groups(muscle_group_code,role,muscle_groups(name,category,recovery_hours))",
+    )
     .order("name", { ascending: true })
     .limit(200);
 
@@ -159,9 +161,11 @@ export async function loadWorkoutCatalogue(client: WorkoutClient): Promise<Worko
       id: exercise.id,
       name: exercise.name,
       equipment: exercise.equipment,
+      movementPattern: exercise.movement_pattern,
       muscles: exercise.exercise_muscle_groups.map((tag) => ({
         code: tag.muscle_group_code,
         name: tag.muscle_groups.name,
+        category: tag.muscle_groups.category,
         role: tag.role,
         recoveryHours: tag.muscle_groups.recovery_hours,
       })),
@@ -201,6 +205,7 @@ function isRecoveryHistory(value: unknown): CompletedRecoveryWorkout | null {
       const muscle = tag.muscle_groups as Record<string, unknown>;
       if (
         typeof muscle.name !== "string" ||
+        (muscle.category !== "upper_body" && muscle.category !== "lower_body" && muscle.category !== "core") ||
         !Number.isSafeInteger(muscle.recovery_hours) ||
         (muscle.recovery_hours as number) < 1
       )
@@ -208,6 +213,7 @@ function isRecoveryHistory(value: unknown): CompletedRecoveryWorkout | null {
       muscles.push({
         code: tag.muscle_group_code,
         name: muscle.name,
+        category: muscle.category,
         role: tag.role,
         recoveryHours: muscle.recovery_hours as number,
       });
@@ -229,7 +235,7 @@ export async function loadRecentCompletedRecoveryWorkouts(
   const { data, error } = await client
     .from("workouts")
     .select(
-      "completed_at,workout_exercises(sets,exercises(exercise_muscle_groups(muscle_group_code,role,muscle_groups(name,recovery_hours))))",
+      "completed_at,workout_exercises(sets,exercises(exercise_muscle_groups(muscle_group_code,role,muscle_groups(name,category,recovery_hours))))",
     )
     .eq("user_id", userId)
     .eq("status", "completed")

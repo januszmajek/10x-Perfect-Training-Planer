@@ -53,11 +53,12 @@ void test("loads only the authenticated owner's bounded completed recovery histo
                     id: "00000000-0000-0000-0000-000000000010",
                     name: "Bench Press",
                     equipment: "barbell",
+                    movement_pattern: "push",
                     exercise_muscle_groups: [
                       {
                         muscle_group_code: "chest",
                         role: "primary",
-                        muscle_groups: { name: "Chest", recovery_hours: 48 },
+                        muscle_groups: { name: "Chest", category: "upper_body", recovery_hours: 48 },
                       },
                     ],
                   },
@@ -81,7 +82,7 @@ void test("loads only the authenticated owner's bounded completed recovery histo
                           {
                             muscle_group_code: "chest",
                             role: "primary",
-                            muscle_groups: { name: "Chest", recovery_hours: 48 },
+                            muscle_groups: { name: "Chest", category: "upper_body", recovery_hours: 48 },
                           },
                         ],
                       },

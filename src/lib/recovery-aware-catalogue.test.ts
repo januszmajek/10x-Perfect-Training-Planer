@@ -15,16 +15,18 @@ const catalogue: CatalogueExercise[] = [
     id: "00000000-0000-0000-0000-000000000001",
     name: "Bench Press",
     equipment: "barbell",
+    movementPattern: "push",
     muscles: [
-      { code: "chest", name: "Chest", role: "primary", recoveryHours: 48 },
-      { code: "triceps", name: "Triceps", role: "secondary", recoveryHours: 48 },
+      { code: "chest", name: "Chest", category: "upper_body", role: "primary", recoveryHours: 48 },
+      { code: "triceps", name: "Triceps", category: "upper_body", role: "secondary", recoveryHours: 48 },
     ],
   },
   {
     id: "00000000-0000-0000-0000-000000000002",
     name: "Triceps Extension",
     equipment: "cable",
-    muscles: [{ code: "triceps", name: "Triceps", role: "primary", recoveryHours: 48 }],
+    movementPattern: null,
+    muscles: [{ code: "triceps", name: "Triceps", category: "upper_body", role: "primary", recoveryHours: 48 }],
   },
 ];
 

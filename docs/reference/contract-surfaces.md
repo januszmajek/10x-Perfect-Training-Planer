@@ -13,27 +13,29 @@ of truth; generated TypeScript types expose that schema to application code.
 6. `supabase/migrations/20260901120000_create_manual_workout_mutation.sql`
 7. `supabase/migrations/20260902120000_create_planned_workout_mutations.sql`
 8. `supabase/migrations/20260902130000_complete_planned_workout.sql`
+9. `supabase/migrations/20260905110000_add_exercise_movement_pattern.sql`
 
 Production catalogue data belongs in the second migration. `supabase/seed.sql` is only for non-sensitive local
 fixtures and must not contain data required by production.
 
 ## Enums
 
-| Enum                   | Ordered values                                                                           |
-| ---------------------- | ---------------------------------------------------------------------------------------- |
-| `muscle_category`      | `upper_body`, `lower_body`, `core`                                                       |
-| `equipment_type`       | `barbell`, `dumbbell`, `cable`, `machine`, `bodyweight`, `kettlebell`, `resistance_band` |
-| `exercise_muscle_role` | `primary`, `secondary`                                                                   |
-| `workout_status`       | `planned`, `completed`                                                                   |
-| `workout_origin`       | `ai`, `manual`                                                                           |
-| `ai_provider`          | `openrouter`                                                                             |
+| Enum                        | Ordered values                                                                           |
+| --------------------------- | ---------------------------------------------------------------------------------------- |
+| `muscle_category`           | `upper_body`, `lower_body`, `core`                                                       |
+| `equipment_type`            | `barbell`, `dumbbell`, `cable`, `machine`, `bodyweight`, `kettlebell`, `resistance_band` |
+| `exercise_muscle_role`      | `primary`, `secondary`                                                                   |
+| `exercise_movement_pattern` | `push`, `pull`                                                                           |
+| `workout_status`            | `planned`, `completed`                                                                   |
+| `workout_origin`            | `ai`, `manual`                                                                           |
+| `ai_provider`               | `openrouter`                                                                             |
 
 ## Tables and key columns
 
 | Table                    | Primary key                                | Load-bearing columns and relationships                                                              |
 | ------------------------ | ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
 | `muscle_groups`          | `code`                                     | `name`, `category`, `recovery_hours`                                                                |
-| `exercises`              | `id`                                       | unique `slug`, unique `name`, `equipment`                                                           |
+| `exercises`              | `id`                                       | unique `slug`, unique `name`, `equipment`, nullable curated `movement_pattern`                      |
 | `exercise_muscle_groups` | `exercise_id`, `muscle_group_code`, `role` | restrictive references to `exercises.id` and `muscle_groups.code`                                   |
 | `workouts`               | `id`                                       | `user_id` → `auth.users.id`, `status`, immutable `origin`, `revision`, `created_at`, `completed_at` |
 | `workout_exercises`      | `id`                                       | `workout_id`, `exercise_id`, `position`, `sets`, `reps`                                             |
@@ -48,6 +50,10 @@ fixtures and must not contain data required by production.
 
 Recovery is 72 hours for `lats`, `upper_back`, `lower_back`, `quads`, `hamstrings`, `glutes`, `calves`, and
 `adductors`; every other group uses 48 hours.
+
+`exercises.movement_pattern` is curated only for qualifying upper-body compound movements: `push` and `pull` are
+database taxonomy, not names or model inference. Lower-body, core, isolation, and unclassified movements remain null.
+Authenticated users may read this field but cannot mutate it with the rest of the catalogue.
 
 ## Recovery-aware manual builder
 
@@ -158,6 +164,7 @@ p_expected_revision integer)` returns the newly saved workout UUID. It is `SECUR
 - Planned-workout RPC concurrency contract: `supabase/tests/database/planned_workout_mutation_concurrency.test.sh`
 - Completion RPC pgTAP contract: `supabase/tests/database/planned_workout_completion.test.sql`
 - AI provider key pgTAP contract: `supabase/tests/database/ai_provider_keys.test.sql`
+- AI movement-pattern pgTAP coverage: `supabase/tests/database/catalogue.test.sql`
 - Full local suite: `pnpm exec supabase test db --local supabase/tests/database`
 
 After a clean local reset, regenerate types with Supabase CLI 2.102.0 and format them with the pinned Prettier:

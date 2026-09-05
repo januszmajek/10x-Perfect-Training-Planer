@@ -73,18 +73,21 @@ export type Database = {
         Row: {
           equipment: Database["public"]["Enums"]["equipment_type"];
           id: string;
+          movement_pattern: Database["public"]["Enums"]["exercise_movement_pattern"] | null;
           name: string;
           slug: string;
         };
         Insert: {
           equipment: Database["public"]["Enums"]["equipment_type"];
           id?: string;
+          movement_pattern?: Database["public"]["Enums"]["exercise_movement_pattern"] | null;
           name: string;
           slug: string;
         };
         Update: {
           equipment?: Database["public"]["Enums"]["equipment_type"];
           id?: string;
+          movement_pattern?: Database["public"]["Enums"]["exercise_movement_pattern"] | null;
           name?: string;
           slug?: string;
         };
@@ -217,6 +220,7 @@ export type Database = {
     Enums: {
       ai_provider: "openrouter";
       equipment_type: "barbell" | "dumbbell" | "cable" | "machine" | "bodyweight" | "kettlebell" | "resistance_band";
+      exercise_movement_pattern: "push" | "pull";
       exercise_muscle_role: "primary" | "secondary";
       muscle_category: "upper_body" | "lower_body" | "core";
       workout_origin: "ai" | "manual";
@@ -342,6 +346,7 @@ export const Constants = {
     Enums: {
       ai_provider: ["openrouter"],
       equipment_type: ["barbell", "dumbbell", "cable", "machine", "bodyweight", "kettlebell", "resistance_band"],
+      exercise_movement_pattern: ["push", "pull"],
       exercise_muscle_role: ["primary", "secondary"],
       muscle_category: ["upper_body", "lower_body", "core"],
       workout_origin: ["ai", "manual"],

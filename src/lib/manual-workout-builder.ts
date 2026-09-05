@@ -13,11 +13,14 @@ const REQUEST_KEYS = ["exercises", "expectedRevision", "expectedWorkoutId", "rep
 const EXERCISE_KEYS = ["exerciseId", "reps", "sets"];
 
 export type EquipmentType = Enums<"equipment_type">;
+export type ExerciseMovementPattern = Enums<"exercise_movement_pattern">;
 export type MuscleRole = Enums<"exercise_muscle_role">;
+export type MuscleCategory = Enums<"muscle_category">;
 
 export interface CatalogueMuscleTag {
   code: string;
   name: string;
+  category: MuscleCategory;
   role: MuscleRole;
   recoveryHours: number;
 }
@@ -26,6 +29,7 @@ export interface CatalogueExercise {
   id: string;
   name: string;
   equipment: EquipmentType;
+  movementPattern: ExerciseMovementPattern | null;
   muscles: CatalogueMuscleTag[];
 }
 
