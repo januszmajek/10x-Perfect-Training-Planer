@@ -549,69 +549,69 @@ change is considered implemented.
 
 #### Automated
 
-- [x] 1.1 AI contract, prompt, and provider-client tests pass
-- [x] 1.2 Catalogue migration and catalogue contract tests pass
-- [x] 1.3 Maximum-size prompt budget tests pass
-- [x] 1.4 Existing crypto tests pass
-- [x] 1.5 Static lint passes
+- [x] 1.1 AI contract, prompt, and provider-client tests pass — d057ccd
+- [x] 1.2 Catalogue migration and catalogue contract tests pass — d057ccd
+- [x] 1.3 Maximum-size prompt budget tests pass — d057ccd
+- [x] 1.4 Existing crypto tests pass — d057ccd
+- [x] 1.5 Static lint passes — d057ccd
 
 #### Manual
 
-- [x] 1.6 Model configuration is documented without secrets
-- [x] 1.7 Mocked failure logs contain no sensitive generation data
+- [x] 1.6 Model configuration is documented without secrets — d057ccd
+- [x] 1.7 Mocked failure logs contain no sensitive generation data — d057ccd
 
 ### Phase 2: Cold-Start Eligibility and Generation API
 
 #### Automated
 
-- [x] 2.1 AI service and client-parser tests pass
-- [x] 2.2 History-bearing users are proven not to trigger provider calls
-- [x] 2.3 Typed generation failure cases are covered
-- [x] 2.4 Existing workout application suites pass
-- [x] 2.5 Static lint and production build pass
+- [x] 2.1 AI service and client-parser tests pass — 7e76dd7
+- [x] 2.2 History-bearing users are proven not to trigger provider calls — 7e76dd7
+- [x] 2.3 Typed generation failure cases are covered — 7e76dd7
+- [x] 2.4 Existing workout application suites pass — 7e76dd7
+- [x] 2.5 Static lint and production build pass — 7e76dd7
 
 #### Manual
 
-- [x] 2.6 API responses and logs contain no sensitive data
-- [x] 2.7 History-bearing users receive the S-08-not-available outcome
+- [x] 2.6 API responses and logs contain no sensitive data — 7e76dd7
+- [x] 2.7 History-bearing users receive the S-08-not-available outcome — 7e76dd7
 
 ### Phase 3: Atomic AI-Origin Planned-Workout Saving
 
 #### Automated
 
-- [x] 3.1 Mocked AI save service and route-boundary tests pass
-- [x] 3.2 Clean local Supabase migration run succeeds
-- [x] 3.3 Generated database types include the AI save function
-- [x] 3.4 AI save pgTAP contract tests pass
-- [x] 3.5 Existing local database suite passes
-- [x] 3.6 Existing manual and planned-workout tests pass
-- [x] 3.7 Static lint and production build pass
+- [x] 3.1 Mocked AI save service and route-boundary tests pass — bb96910
+- [x] 3.2 Clean local Supabase migration run succeeds — bb96910
+- [x] 3.3 Generated database types include the AI save function — bb96910
+- [x] 3.4 AI save pgTAP contract tests pass — bb96910
+- [x] 3.5 Existing local database suite passes — bb96910
+- [x] 3.6 Existing manual and planned-workout tests pass — bb96910
+- [x] 3.7 Static lint and production build pass — bb96910
 
 #### Manual
 
-- [x] 3.8 First save creates one editable AI-origin plan
-- [x] 3.9 Replacement requires explicit confirmation
-- [x] 3.10 Stale replacement refreshes authoritative state without data loss
+- [x] 3.8 First save creates one editable AI-origin plan — bb96910
+- [x] 3.9 Replacement requires explicit confirmation — bb96910
+- [x] 3.10 Stale replacement refreshes authoritative state without data loss — bb96910
 
 ### Phase 4: Shared AI Planning Interface, End-to-End Verification, and Documentation
 
 #### Automated
 
-- [x] 4.1 AI UI state, helper, and shared conflict-transition tests pass
-- [x] 4.2 Existing workout lifecycle suites pass
-- [x] 4.3 Static lint and production build pass
-- [x] 4.4 All configured application suites pass
-- [x] 4.5 Full local database suite passes
-- [x] 4.6 Final static and production gates pass
+- [x] 4.1 AI UI state, helper, and shared conflict-transition tests pass — d27eab3
+- [x] 4.2 Existing workout lifecycle suites pass — d27eab3
+- [x] 4.3 Static lint and production build pass — d27eab3
+- [x] 4.4 All configured application suites pass — d27eab3
+- [x] 4.5 Full local database suite passes — d27eab3
+- [x] 4.6 Final static and production gates pass — d27eab3
 
 #### Manual
 
-- [x] 4.7 Complete AI planner flow works at 360px and desktop widths
-- [x] 4.8 Failed generation preserves the current proposal
-- [x] 4.6 Typed failure actions lead to the expected recovery paths
-- [x] 4.9 History-bearing users receive the S-08 handoff state
-- [x] 4.10 AI-origin plans remain compatible with the existing lifecycle
-- [x] 4.11 Disposable-key Worker-runtime smoke test is confirmed by a human
-- [x] 4.12 Invalid-key and provider-outage recovery is safe and actionable
-- [x] 4.13 History-bearing users cannot receive a cold-start proposal
-- [x] 4.14 No plaintext credential is exposed or persisted
+- [x] 4.7 Complete AI planner flow works at 360px and desktop widths — d27eab3
+- [x] 4.8 Failed generation preserves the current proposal — d27eab3
+- [x] 4.6 Typed failure actions lead to the expected recovery paths — d27eab3
+- [x] 4.9 History-bearing users receive the S-08 handoff state — d27eab3
+- [x] 4.10 AI-origin plans remain compatible with the existing lifecycle — d27eab3
+- [x] 4.11 Disposable-key Worker-runtime smoke test is confirmed by a human — 18d1062
+- [x] 4.12 Invalid-key and provider-outage recovery is safe and actionable — d27eab3
+- [x] 4.13 History-bearing users cannot receive a cold-start proposal — d27eab3
+- [x] 4.14 No plaintext credential is exposed or persisted — d27eab3
