@@ -578,16 +578,16 @@ considered implemented.
 
 #### Automated
 
-- [ ] 2.1 AI service and client-parser tests pass
-- [ ] 2.2 History-bearing users are proven not to trigger provider calls
-- [ ] 2.3 Typed generation failure cases are covered
-- [ ] 2.4 Existing workout application suites pass
-- [ ] 2.5 Static lint and production build pass
+- [x] 2.1 AI service and client-parser tests pass
+- [x] 2.2 History-bearing users are proven not to trigger provider calls
+- [x] 2.3 Typed generation failure cases are covered
+- [x] 2.4 Existing workout application suites pass
+- [x] 2.5 Static lint and production build pass
 
 #### Manual
 
-- [ ] 2.6 API responses and logs contain no sensitive data
-- [ ] 2.7 History-bearing users receive the S-08-not-available outcome
+- [x] 2.6 API responses and logs contain no sensitive data
+- [x] 2.7 History-bearing users receive the S-08-not-available outcome
 
 ### Phase 3: Atomic AI-Origin Planned-Workout Saving
 

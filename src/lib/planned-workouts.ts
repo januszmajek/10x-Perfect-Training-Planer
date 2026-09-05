@@ -44,6 +44,7 @@ export interface CurrentPlannedWorkout {
 }
 
 export type ExpectedWorkoutState = "planned" | "completed" | "absent";
+export type ColdStartEligibility = "eligible" | "history_aware_not_available";
 
 export interface CompletedRecoveryWorkout {
   completedAt: string;
@@ -142,6 +143,26 @@ export async function loadExpectedWorkoutState(
   if (error) return workoutFailure("persistence_failed", "database", error.code);
   if (!data) return { ok: true, data: "absent" };
   return { ok: true, data: data.status === "completed" ? "completed" : "planned" };
+}
+
+export async function loadColdStartEligibility(
+  client: WorkoutClient,
+  userId: string | null,
+): Promise<WorkoutResult<ColdStartEligibility>> {
+  if (!userId) return workoutFailure("unauthenticated", "service", "AUTH_MISSING");
+  const authFailure = await verifyOwnedSession(client, userId);
+  if (authFailure) return authFailure;
+
+  const { data, error } = await client
+    .from("workouts")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("status", "completed")
+    .limit(1)
+    .maybeSingle();
+
+  if (error) return workoutFailure("persistence_failed", "database", error.code);
+  return { ok: true, data: data ? "history_aware_not_available" : "eligible" };
 }
 
 export async function loadWorkoutCatalogue(client: WorkoutClient): Promise<WorkoutResult<CatalogueExercise[]>> {
