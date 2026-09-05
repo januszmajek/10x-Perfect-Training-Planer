@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import WorkoutDraftEditor from "@/components/workouts/WorkoutDraftEditor";
-import { applyAiGenerationResponse } from "@/lib/ai-workout-planner-state";
+import { applyAiGenerationResponse, getAiPlannerRecoveryAction } from "@/lib/ai-workout-planner-state";
 import {
   AI_WORKOUT_GENERATION_VERSION,
   parseAiWorkoutGenerationResponse,
@@ -115,7 +115,7 @@ export default function WorkoutBuilder({
       } else if (transition.draft) {
         setDraft(transition.draft);
         setDraftOrigin("ai");
-        setRequestId(transition.requestId);
+        setRequestId(null);
       }
     } catch {
       setGenerationError("provider_unavailable");
@@ -256,6 +256,11 @@ export default function WorkoutBuilder({
             className="mt-4 rounded-xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-50"
           >
             <p>{GENERATION_MESSAGES[generationError]}</p>
+            {getAiPlannerRecoveryAction(generationError) === "account" && (
+              <a className="mt-2 inline-flex underline underline-offset-2" href="/account">
+                Go to Account
+              </a>
+            )}
             {requestId && <p className="mt-2 text-xs text-amber-100/70">Support request ID: {requestId}</p>}
           </div>
         )}

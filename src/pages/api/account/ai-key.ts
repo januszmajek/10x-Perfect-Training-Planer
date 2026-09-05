@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { hasSameOrigin } from "@/lib/ai-provider-key-request";
 import { saveAiProviderKey } from "@/lib/ai-provider-keys";
 
 const ACCOUNT_PATH = "/account";
@@ -10,6 +11,10 @@ function redirectToAccount(context: Parameters<APIRoute>[0], status: string): Re
 export const POST: APIRoute = async (context) => {
   if (!context.locals.user || !context.locals.supabase) {
     return context.redirect("/auth/signin", 303);
+  }
+
+  if (!hasSameOrigin(context.request, context.url.origin)) {
+    return redirectToAccount(context, "invalid");
   }
 
   let apiKey: FormDataEntryValue;

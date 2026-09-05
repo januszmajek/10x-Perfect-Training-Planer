@@ -217,7 +217,8 @@ from user-owned OpenRouter credentials: do not place any user API key in a Worke
 
 After deploying the Worker, use a new disposable account with no completed workouts and a disposable OpenRouter key.
 Add that key through `/account`, then open `/workouts/new` to generate a proposal, edit it, and save it.
-Confirm generation completes within ten seconds and the saved AI-origin workout remains editable and completable.
+Confirm generation completes without an application-imposed deadline and the saved AI-origin workout remains editable
+and completable.
 Repeat with an invalid key and with an account that has completed history; the expected outcomes are an Account/retry
 recovery action and the S-08 handoff respectively. Remove the disposable key when finished.
 

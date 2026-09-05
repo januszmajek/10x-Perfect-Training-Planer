@@ -36,6 +36,8 @@ void test("replaces a proposal only after a validated generation response", () =
 
 void test("maps typed failures to safe recovery actions", () => {
   assert.equal(getAiPlannerRecoveryAction("key_not_configured"), "account");
+  assert.equal(getAiPlannerRecoveryAction("key_rejected"), "account");
+  assert.equal(getAiPlannerRecoveryAction("key_encryption_unavailable"), "none");
   assert.equal(getAiPlannerRecoveryAction("rate_limited"), "retry");
   assert.equal(getAiPlannerRecoveryAction("history_aware_not_available"), "manual");
 });

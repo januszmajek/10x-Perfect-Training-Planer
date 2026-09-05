@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { hasConfirmedAiProviderKeyRemoval, hasSameOrigin } from "@/lib/ai-provider-key-request";
 import { removeAiProviderKey } from "@/lib/ai-provider-keys";
 
 const ACCOUNT_PATH = "/account";
@@ -12,10 +13,14 @@ export const POST: APIRoute = async (context) => {
     return context.redirect("/auth/signin", 303);
   }
 
+  if (!hasSameOrigin(context.request, context.url.origin)) {
+    return redirectToAccount(context, "invalid");
+  }
+
   try {
     const form = await context.request.formData();
 
-    if (![...form.keys()].every((key) => key === "confirm")) {
+    if (!hasConfirmedAiProviderKeyRemoval(form.entries())) {
       return redirectToAccount(context, "invalid");
     }
   } catch {

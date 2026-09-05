@@ -29,9 +29,10 @@ export function getAiPlannerRecoveryAction(code: AiGenerationErrorCode | "invali
   switch (code) {
     case "key_not_configured":
     case "key_rejected":
+      return "account";
     case "key_encryption_unavailable":
     case "model_not_configured":
-      return "account";
+      return "none";
     case "rate_limited":
     case "timeout":
     case "provider_unavailable":

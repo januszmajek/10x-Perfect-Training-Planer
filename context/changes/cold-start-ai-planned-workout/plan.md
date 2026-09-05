@@ -611,6 +611,7 @@ change is considered implemented.
 - [x] 4.6 Typed failure actions lead to the expected recovery paths
 - [x] 4.9 History-bearing users receive the S-08 handoff state
 - [x] 4.10 AI-origin plans remain compatible with the existing lifecycle
+- [x] 4.11 Disposable-key Worker-runtime smoke test is confirmed by a human
 - [x] 4.12 Invalid-key and provider-outage recovery is safe and actionable
 - [x] 4.13 History-bearing users cannot receive a cold-start proposal
 - [x] 4.14 No plaintext credential is exposed or persisted
