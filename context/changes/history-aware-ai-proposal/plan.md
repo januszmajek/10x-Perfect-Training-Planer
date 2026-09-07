@@ -795,43 +795,43 @@ job inspection before the change is considered implemented.
 
 #### Automated
 
-- [x] 1.1 Clean local migrations apply
-- [x] 1.2 Public schema lint passes
-- [x] 1.3 Completion-profile database contract tests pass
-- [x] 1.4 Preference, telemetry, ownership, expiry, and cleanup database tests pass
-- [x] 1.5 Generated database types match the clean schema
-- [x] 1.6 Profile loader and AI tests pass
-- [x] 1.7 Existing workout database and concurrency tests remain green
-- [x] 1.8 Repository lint passes
+- [x] 1.1 Clean local migrations apply — 86a2e18
+- [x] 1.2 Public schema lint passes — 86a2e18
+- [x] 1.3 Completion-profile database contract tests pass — 86a2e18
+- [x] 1.4 Preference, telemetry, ownership, expiry, and cleanup database tests pass — 86a2e18
+- [x] 1.5 Generated database types match the clean schema — 86a2e18
+- [x] 1.6 Profile loader and AI tests pass — 86a2e18
+- [x] 1.7 Existing workout database and concurrency tests remain green — 86a2e18
+- [x] 1.8 Repository lint passes — 86a2e18
 
 #### Manual
 
-- [x] 1.9 Recommendation data remains owner-isolated across two users
-- [x] 1.10 Exactly one safe retention job is installed
-- [x] 1.11 Expired telemetry cleanup preserves preferences and workout history
-- [x] 1.12 Account deletion cascades through private recommendation data
+- [x] 1.9 Recommendation data remains owner-isolated across two users — 86a2e18
+- [x] 1.10 Exactly one safe retention job is installed — 86a2e18
+- [x] 1.11 Expired telemetry cleanup preserves preferences and workout history — 86a2e18
+- [x] 1.12 Account deletion cascades through private recommendation data — 86a2e18
 
 ### Phase 2: Recovery-constrained Recommendation Engine
 
 #### Automated
 
-- [ ] 2.1 Pure recommender tests pass
-- [ ] 2.2 Recovery and explicit exclusions always win over ranking signals
-- [ ] 2.3 Exact recovery-boundary and latest-deadline tests pass
-- [ ] 2.4 Like and familiarity precedence tests pass
-- [ ] 2.5 Sparse and established history policies apply correctly
-- [ ] 2.6 Adaptive exploration and confidence-gating tests pass
-- [ ] 2.7 Feasible coverage and MMR diversity tests pass
-- [ ] 2.8 Deterministic seed and tie behavior tests pass
-- [ ] 2.9 Candidate-count boundary tests pass
-- [ ] 2.10 Existing manual recovery tests remain green
-- [ ] 2.11 Repository lint and production build pass
+- [x] 2.1 Pure recommender tests pass
+- [x] 2.2 Recovery and explicit exclusions always win over ranking signals
+- [x] 2.3 Exact recovery-boundary and latest-deadline tests pass
+- [x] 2.4 Like and familiarity precedence tests pass
+- [x] 2.5 Sparse and established history policies apply correctly
+- [x] 2.6 Adaptive exploration and confidence-gating tests pass
+- [x] 2.7 Feasible coverage and MMR diversity tests pass
+- [x] 2.8 Deterministic seed and tie behavior tests pass
+- [x] 2.9 Candidate-count boundary tests pass
+- [x] 2.10 Existing manual recovery tests remain green
+- [x] 2.11 Repository lint and production build pass
 
 #### Manual
 
-- [ ] 2.12 Recommendation reasons remain evidence-safe and explainable
-- [ ] 2.13 Liked-recovering and familiar-excluded exercises stay ineligible
-- [ ] 2.14 Reduced mode is unreachable with five ready candidates
+- [x] 2.12 Recommendation reasons remain evidence-safe and explainable
+- [x] 2.13 Liked-recovering and familiar-excluded exercises stay ineligible
+- [x] 2.14 Reduced mode is unreachable with five ready candidates
 
 ### Phase 3: Mode-aware Generation and Reduced-workout Handshake
 

@@ -82,10 +82,11 @@ export async function loadAiExercisePreferences(
     if (!isCanonicalUuid(row.exercise_id) || preferences.has(row.exercise_id)) {
       return profileFailure("INVALID_EXERCISE_PREFERENCES");
     }
-    if (row.preference !== "liked" && row.preference !== "dont_suggest") {
+    const preference: unknown = row.preference;
+    if (preference !== "liked" && preference !== "dont_suggest") {
       return profileFailure("INVALID_EXERCISE_PREFERENCES");
     }
-    preferences.set(row.exercise_id, row.preference);
+    preferences.set(row.exercise_id, preference);
   }
 
   return { ok: true, data: preferences };

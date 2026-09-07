@@ -73,7 +73,7 @@ void test("loads only the authenticated owner's bounded completed recovery histo
             {
               data: [
                 {
-                  completed_at: "2026-09-04T11:00:00.000Z",
+                  completed_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
                   workout_exercises: [
                     {
                       sets: 3,
