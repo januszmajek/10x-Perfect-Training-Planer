@@ -795,21 +795,21 @@ job inspection before the change is considered implemented.
 
 #### Automated
 
-- [ ] 1.1 Clean local migrations apply
-- [ ] 1.2 Public schema lint passes
-- [ ] 1.3 Completion-profile database contract tests pass
-- [ ] 1.4 Preference, telemetry, ownership, expiry, and cleanup database tests pass
-- [ ] 1.5 Generated database types match the clean schema
-- [ ] 1.6 Profile loader and AI tests pass
-- [ ] 1.7 Existing workout database and concurrency tests remain green
-- [ ] 1.8 Repository lint passes
+- [x] 1.1 Clean local migrations apply
+- [x] 1.2 Public schema lint passes
+- [x] 1.3 Completion-profile database contract tests pass
+- [x] 1.4 Preference, telemetry, ownership, expiry, and cleanup database tests pass
+- [x] 1.5 Generated database types match the clean schema
+- [x] 1.6 Profile loader and AI tests pass
+- [x] 1.7 Existing workout database and concurrency tests remain green
+- [x] 1.8 Repository lint passes
 
 #### Manual
 
-- [ ] 1.9 Recommendation data remains owner-isolated across two users
-- [ ] 1.10 Exactly one safe retention job is installed
-- [ ] 1.11 Expired telemetry cleanup preserves preferences and workout history
-- [ ] 1.12 Account deletion cascades through private recommendation data
+- [x] 1.9 Recommendation data remains owner-isolated across two users
+- [x] 1.10 Exactly one safe retention job is installed
+- [x] 1.11 Expired telemetry cleanup preserves preferences and workout history
+- [x] 1.12 Account deletion cascades through private recommendation data
 
 ### Phase 2: Recovery-constrained Recommendation Engine
 

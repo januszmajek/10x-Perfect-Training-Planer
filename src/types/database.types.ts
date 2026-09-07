@@ -3,6 +3,38 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      ai_exercise_preferences: {
+        Row: {
+          created_at: string;
+          exercise_id: string;
+          preference: Database["public"]["Enums"]["ai_exercise_preference"];
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          exercise_id: string;
+          preference: Database["public"]["Enums"]["ai_exercise_preference"];
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          exercise_id?: string;
+          preference?: Database["public"]["Enums"]["ai_exercise_preference"];
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_exercise_preferences_exercise_id_fkey";
+            columns: ["exercise_id"];
+            isOneToOne: false;
+            referencedRelation: "exercises";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ai_provider_keys: {
         Row: {
           ciphertext: string;
@@ -35,6 +67,158 @@ export type Database = {
           key_prefix?: string | null;
           provider?: Database["public"]["Enums"]["ai_provider"];
           updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      ai_reduced_generation_confirmations: {
+        Row: {
+          allowed_count: number;
+          candidate_fingerprint: string;
+          consumed_at: string | null;
+          created_at: string;
+          expires_at: string;
+          nonce_digest: string;
+          user_id: string;
+        };
+        Insert: {
+          allowed_count: number;
+          candidate_fingerprint: string;
+          consumed_at?: string | null;
+          created_at?: string;
+          expires_at?: string;
+          nonce_digest: string;
+          user_id: string;
+        };
+        Update: {
+          allowed_count?: number;
+          candidate_fingerprint?: string;
+          consumed_at?: string | null;
+          created_at?: string;
+          expires_at?: string;
+          nonce_digest?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      ai_workout_proposal_events: {
+        Row: {
+          created_at: string;
+          event_type: Database["public"]["Enums"]["ai_proposal_event_type"];
+          exercise_id: string | null;
+          expires_at: string;
+          id: string;
+          proposal_id: string;
+          replacement_exercise_id: string | null;
+          user_id: string;
+          workout_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          event_type: Database["public"]["Enums"]["ai_proposal_event_type"];
+          exercise_id?: string | null;
+          expires_at?: string;
+          id?: string;
+          proposal_id: string;
+          replacement_exercise_id?: string | null;
+          user_id: string;
+          workout_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          event_type?: Database["public"]["Enums"]["ai_proposal_event_type"];
+          exercise_id?: string | null;
+          expires_at?: string;
+          id?: string;
+          proposal_id?: string;
+          replacement_exercise_id?: string | null;
+          user_id?: string;
+          workout_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_workout_proposal_events_exercise_id_fkey";
+            columns: ["exercise_id"];
+            isOneToOne: false;
+            referencedRelation: "exercises";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_workout_proposal_events_proposal_owner_fkey";
+            columns: ["proposal_id", "user_id"];
+            isOneToOne: false;
+            referencedRelation: "ai_workout_proposals";
+            referencedColumns: ["id", "user_id"];
+          },
+          {
+            foreignKeyName: "ai_workout_proposal_events_replacement_exercise_id_fkey";
+            columns: ["replacement_exercise_id"];
+            isOneToOne: false;
+            referencedRelation: "exercises";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_workout_proposal_events_workout_id_fkey";
+            columns: ["workout_id"];
+            isOneToOne: false;
+            referencedRelation: "workouts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ai_workout_proposal_exercises: {
+        Row: {
+          exercise_id: string;
+          position: number;
+          proposal_id: string;
+        };
+        Insert: {
+          exercise_id: string;
+          position: number;
+          proposal_id: string;
+        };
+        Update: {
+          exercise_id?: string;
+          position?: number;
+          proposal_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_workout_proposal_exercises_exercise_id_fkey";
+            columns: ["exercise_id"];
+            isOneToOne: false;
+            referencedRelation: "exercises";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_workout_proposal_exercises_proposal_id_fkey";
+            columns: ["proposal_id"];
+            isOneToOne: false;
+            referencedRelation: "ai_workout_proposals";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ai_workout_proposals: {
+        Row: {
+          created_at: string;
+          expires_at: string;
+          id: string;
+          lineage_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          expires_at?: string;
+          id?: string;
+          lineage_id?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          expires_at?: string;
+          id?: string;
+          lineage_id?: string;
           user_id?: string;
         };
         Relationships: [];
@@ -161,6 +345,7 @@ export type Database = {
       };
       workouts: {
         Row: {
+          ai_proposal_lineage_id: string | null;
           completed_at: string | null;
           created_at: string;
           id: string;
@@ -170,6 +355,7 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          ai_proposal_lineage_id?: string | null;
           completed_at?: string | null;
           created_at?: string;
           id?: string;
@@ -179,6 +365,7 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          ai_proposal_lineage_id?: string | null;
           completed_at?: string | null;
           created_at?: string;
           id?: string;
@@ -194,13 +381,62 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      append_ai_workout_proposal_event: {
+        Args: {
+          p_event_type: Database["public"]["Enums"]["ai_proposal_event_type"];
+          p_exercise_id?: string;
+          p_proposal_id: string;
+          p_replacement_exercise_id?: string;
+          p_workout_id?: string;
+        };
+        Returns: undefined;
+      };
       complete_planned_workout: {
         Args: { p_expected_revision: number; p_expected_workout_id: string };
         Returns: string;
       };
+      consume_ai_reduced_generation_confirmation: {
+        Args: {
+          p_allowed_count: number;
+          p_candidate_fingerprint: string;
+          p_nonce_digest: string;
+        };
+        Returns: undefined;
+      };
       delete_planned_workout: {
         Args: { p_expected_revision: number; p_expected_workout_id: string };
         Returns: string;
+      };
+      get_ai_exercise_preferences: {
+        Args: never;
+        Returns: {
+          exercise_id: string;
+          preference: Database["public"]["Enums"]["ai_exercise_preference"];
+        }[];
+      };
+      get_exercise_completion_profile: {
+        Args: never;
+        Returns: {
+          completed_count: number;
+          exercise_id: string;
+          in_last_completed_workout: boolean;
+          last_completed_at: string;
+        }[];
+      };
+      record_ai_workout_proposal: {
+        Args: { p_exercise_ids: string[] };
+        Returns: {
+          lineage_id: string;
+          proposal_id: string;
+        }[];
+      };
+      register_ai_reduced_generation_confirmation: {
+        Args: {
+          p_allowed_count: number;
+          p_candidate_fingerprint: string;
+          p_nonce_digest: string;
+        };
+        Returns: undefined;
       };
       save_ai_planned_workout: {
         Args: {
@@ -220,6 +456,13 @@ export type Database = {
         };
         Returns: string;
       };
+      set_ai_exercise_preference: {
+        Args: {
+          p_exercise_id: string;
+          p_preference?: Database["public"]["Enums"]["ai_exercise_preference"];
+        };
+        Returns: undefined;
+      };
       update_planned_workout: {
         Args: {
           p_exercises: Json;
@@ -230,6 +473,8 @@ export type Database = {
       };
     };
     Enums: {
+      ai_exercise_preference: "liked" | "dont_suggest";
+      ai_proposal_event_type: "exposure" | "reroll" | "removal" | "swap" | "retention" | "save" | "completion";
       ai_provider: "openrouter";
       equipment_type: "barbell" | "dumbbell" | "cable" | "machine" | "bodyweight" | "kettlebell" | "resistance_band";
       exercise_movement_pattern: "push" | "pull";
@@ -356,6 +601,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ai_exercise_preference: ["liked", "dont_suggest"],
+      ai_proposal_event_type: ["exposure", "reroll", "removal", "swap", "retention", "save", "completion"],
       ai_provider: ["openrouter"],
       equipment_type: ["barbell", "dumbbell", "cable", "machine", "bodyweight", "kettlebell", "resistance_band"],
       exercise_movement_pattern: ["push", "pull"],

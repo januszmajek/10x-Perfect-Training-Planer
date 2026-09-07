@@ -139,6 +139,22 @@ pnpm exec prettier --config .prettierrc.json --write src/types/database.types.ts
 Commit the regenerated file. CI repeats this pipeline and fails if the committed types drift from a clean local
 schema.
 
+### AI recommendation retention job
+
+The migration-managed `purge-expired-ai-recommendation-data` job runs daily and removes only expired proposal/event
+telemetry plus expired or consumed reduced-generation confirmations. Verify its installation and recent status with:
+
+```sql
+select schedule, jobname, command from cron.job where jobname = 'purge-expired-ai-recommendation-data';
+select * from cron.job_run_details
+where jobid = (select jobid from cron.job where jobname = 'purge-expired-ai-recommendation-data')
+order by start_time desc limit 10;
+```
+
+For a deliberate rollback/replacement, use a reviewed forward migration containing
+`select cron.unschedule('purge-expired-ai-recommendation-data');`; do not disable retention merely because application
+code is rolled back. The job does not remove durable explicit preferences or workout history.
+
 6. Start the application or stop the database stack when finished:
 
 ```bash

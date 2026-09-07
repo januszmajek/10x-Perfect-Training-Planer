@@ -14,6 +14,11 @@ of truth; generated TypeScript types expose that schema to application code.
 7. `supabase/migrations/20260902120000_create_planned_workout_mutations.sql`
 8. `supabase/migrations/20260902130000_complete_planned_workout.sql`
 9. `supabase/migrations/20260905110000_add_exercise_movement_pattern.sql`
+10. `supabase/migrations/20260905120000_create_ai_workout_mutation.sql`
+11. `supabase/migrations/20260905230000_add_ai_provider_key_prefix.sql`
+12. `supabase/migrations/20260907110000_create_exercise_completion_profile.sql`
+13. `supabase/migrations/20260907120000_create_ai_recommendation_feedback.sql`
+14. `supabase/migrations/20260907130000_schedule_ai_proposal_retention.sql`
 
 Production catalogue data belongs in the second migration. `supabase/seed.sql` is only for non-sensitive local
 fixtures and must not contain data required by production.
@@ -29,6 +34,8 @@ fixtures and must not contain data required by production.
 | `workout_status`            | `planned`, `completed`                                                                   |
 | `workout_origin`            | `ai`, `manual`                                                                           |
 | `ai_provider`               | `openrouter`                                                                             |
+| `ai_exercise_preference`    | `liked`, `dont_suggest`                                                                  |
+| `ai_proposal_event_type`    | `exposure`, `reroll`, `removal`, `swap`, `retention`, `save`, `completion`             |
 
 ## Tables and key columns
 
@@ -40,6 +47,10 @@ fixtures and must not contain data required by production.
 | `workouts`               | `id`                                       | `user_id` → `auth.users.id`, `status`, immutable `origin`, `revision`, `created_at`, `completed_at` |
 | `workout_exercises`      | `id`                                       | `workout_id`, `exercise_id`, `position`, `sets`, `reps`                                             |
 | `ai_provider_keys`       | `user_id`                                  | `provider`, `ciphertext`, `iv`, `key_hint`, `encryption_key_version`, timestamps                    |
+| `ai_exercise_preferences` | `user_id`, `exercise_id`                  | owner-only recommendation signal; `liked` and `dont_suggest` are mutually exclusive                 |
+| `ai_workout_proposals`    | `id`                                       | private owner proposal, opaque `lineage_id`, database-derived 90-day expiry                           |
+| `ai_workout_proposal_events` | `id`                                    | private typed owner events; proposal payloads and events expire independently of workouts             |
+| `ai_reduced_generation_confirmations` | `nonce_digest`                   | owner-bound short-lived single-use authorization record, not telemetry                                 |
 
 ## Muscle taxonomy
 
@@ -128,6 +139,21 @@ p_expected_revision integer)` has the same validation, authentication, advisory-
 - S-07 is deliberately limited to accounts with no completed workouts. S-08 extends the same `/workouts/new` builder
   card and server boundary with history-aware behavior; it must not create a second browser flow or weaken S-07's
   eligibility check.
+
+## S-08 private recommendation data boundary
+
+- `get_exercise_completion_profile()` is authenticated-only, `STABLE`, `SECURITY INVOKER`, has an empty search path,
+  accepts no owner argument, and returns only per-exercise count, latest completion time, and deterministic latest-
+  workout membership. Completion is weak familiarity, not a preference or performance claim.
+- Preferences, proposals, proposal exercises, events, and reduced-generation confirmations are private tables with no
+  direct authenticated access. Narrow authenticated RPCs derive ownership from `auth.uid()`; raw events are private
+  telemetry and are not used for online learning or training.
+- Proposal/event expiry is database-derived and capped at 90 days. The daily `purge-expired-ai-recommendation-data`
+  pg_cron job deletes expired events before proposals and removes expired or consumed confirmation records. It never
+  touches preferences, workouts, or the nullable opaque `workouts.ai_proposal_lineage_id` marker.
+- A proposal lineage marker is not a foreign key and does not attest that every final saved exercise was AI-selected.
+  Account deletion cascades private recommendation data; catalogue and workout relationships remain restrictive or
+  independent as specified by their own contracts.
 
 ## Planned workout edit and delete RPCs
 
