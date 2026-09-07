@@ -1,6 +1,6 @@
 ---
 project: "Perfect Training Planner"
-version: 1
+version: 2
 status: draft
 created: 2026-05-30
 context_type: greenfield
@@ -51,7 +51,7 @@ The end-to-end planning loop works:
 ### Guardrails
 
 - **Privacy**: a user's workouts and history are never visible to any other user.
-- **AI responsiveness**: AI proposal returns in < 10s p95 — user perceives it as "fast enough" relative to manual planning.
+- **AI responsiveness**: the application does not impose an artificial generation deadline. Provider or runtime interruptions are surfaced as a retryable failure while preserving the user's current draft.
 - **Data durability**: no completed workout is lost once saved.
 
 ## User Stories
@@ -60,13 +60,14 @@ The end-to-end planning loop works:
 
 - **Given** I am logged in and have at least one completed workout in history
 - **When** I click "Propose workout"
-- **Then** the app returns a workout within 10 seconds that avoids the muscle groups I trained in my most recent session, and I can either save it as planned, re-roll, or edit it before saving
+- **Then** the app returns a workout that excludes exercises whose primary muscles are still recovering, uses my completion history and explicit exercise preferences to balance familiarity with relevant variety, and I can save it as planned, re-roll, edit it, like an exercise, or mark an exercise "Don't suggest"
+- **And** when fewer than five but at least three recovery-compatible exercises are available, the app explains the reduced size before any AI-provider call and generates a 3–4 exercise proposal only after I explicitly confirm; reduced proposals are never offered when five or more recovery-compatible exercises are available
 
 ### US-02: AI proposer cold-start
 
 - **Given** I am logged in and have NO completed workouts in history
 - **When** I click "Propose workout"
-- **Then** the app returns a balanced full-body starter workout within 10 seconds, and I can save, re-roll, or edit it
+- **Then** the app returns a balanced full-body starter workout, and I can save, re-roll, or edit it
 
 ### US-03: Manual build with smart filter
 
@@ -102,6 +103,8 @@ The end-to-end planning loop works:
 - FR-004: User can request an AI-proposed workout. The proposer reads the user's recent completed history (or a cold-start signal if none) and returns a workout that (a) respects muscle-recovery windows vs the last session and (b) prefers muscle groups NOT trained in the last session. Priority: must-have
   > Socrates: stands as written. Set/rep/volume awareness is a v1.1
   > sophistication; MVP proves the muscle-group split insight first.
+- FR-017: For a history-aware AI request, the proposer uses completed in-app history as a weak familiarity signal, excludes exercises marked "Don't suggest", boosts exercises explicitly liked by the user, and may include up to two similarity-qualified exercises never completed in the app for users with 1–2 completed workouts or up to one for users with longer history. If five recovery-compatible exercises are unavailable but at least three remain, the app must obtain explicit confirmation before the provider call and may then return only the available 3–4 exercises; this reduced-size path must not be available when at least five ready exercises exist. Priority: must-have
+- FR-018: The history-aware proposal flow records owner-scoped proposal exposure, re-roll, removal, swap, retention, save, and later completion events. Explicit Like and "Don't suggest" preferences remain until changed or the account is deleted; raw proposal events are retained for at most 90 days and are not used for online model training in the MVP. Priority: must-have
 - FR-005: User can re-roll (re-request) the AI proposal if they don't like it. Priority: must-have
   > Socrates: stands as written. Cost-ceiling concern is real and is
   > captured under guardrails (NFR), not by limiting the UX.
@@ -152,8 +155,8 @@ The end-to-end planning loop works:
 
 ## Non-Functional Requirements
 
-- **Privacy**: a user's workouts, history, and API key are never visible to any other user. The API key is stored encrypted at rest.
-- **AI responsiveness**: AI proposer call returns within 10s p95 — measured user-perceived, end-to-end (including the call to the user's chosen AI provider).
+- **Privacy**: a user's workouts, history, exercise preferences, proposal events, and API key are never visible to any other user. The API key is stored encrypted at rest. Explicit exercise preferences are removed with the account; raw proposal events are automatically deleted after at most 90 days.
+- **AI responsiveness**: the application does not impose an artificial generation deadline. It records only sanitized elapsed duration for diagnostics; provider or runtime interruptions remain retryable and preserve the user's current draft.
 - **Data durability**: once a workout is saved as planned or marked done, it is never silently lost.
 - **Browser support**: works on the last 2 versions of Chrome, Firefox, Safari, and Edge.
 - **Responsive layout**: usable on mobile viewports (≥ 360px wide), since users plan from a phone. Device installability (home screen) is optional, not required.
@@ -161,7 +164,9 @@ The end-to-end planning loop works:
 
 ## Business Logic
 
-Given the user's recent completed-workout history, the app selects a set of exercises (via AI proposer or via the manual builder's smart filter) whose target muscle groups respect per-muscle-group recovery windows — default 48h, 72h for legs and back — and prefer groups NOT recently trained, producing a balanced next workout.
+Given the user's recent completed-workout history, the app selects a set of exercises (via AI proposer or via the manual builder's smart filter) whose target muscle groups respect per-muscle-group recovery windows — default 48h, 72h for legs and back — and prefer groups NOT recently trained, producing a balanced next workout. History-aware AI selection treats completion as weak familiarity rather than proof of preference, applies explicit Like and "Don't suggest" choices deterministically, and admits never-completed exercises only when structured similarity clears the configured confidence threshold.
+
+History-aware AI proposals normally contain 5–7 exercises. A reduced 3–4 exercise proposal is available only when fewer than five recovery-compatible exercises exist, never as a normal user-selected size. The server reports that condition before contacting the AI provider, and generation proceeds only after explicit confirmation. Fewer than three ready exercises produces no AI proposal and leaves manual planning available.
 
 **Inputs the rule consumes (user-facing)**:
 
@@ -195,6 +200,7 @@ Given the user's recent completed-workout history, the app selects a set of exer
 - **No hosted/paid AI** — BYOK only. The app does not pay for or proxy any AI inference.
 - **No custom exercise CRUD in MVP** — deferred to v1.1. MVP uses the seeded preset catalogue only.
 - **No favorites in MVP** — deferred to v1.1.
+- **No online-learning recommender or contextual bandit in MVP** — proposal events support evaluation and later learning, while current ranking remains deterministic and explainable.
 - **No CSV export in MVP** — deferred to v1.1.
 
 ## Open Questions
