@@ -43,15 +43,19 @@ proposal; fewer than three falls back to manual planning without an AI call. Raw
 
 **Out of scope:**
 
-- ML libraries, online learning, cross-user signals, recovery overrides, selectable smaller workouts, or new routes.
+- ML libraries, online learning, cross-user signals, recovery overrides, selectable smaller workouts, or a second
+  generation route/planning flow.
 
 ## Architecture / Approach
 
 An authenticated generation request loads a compact owner profile, preferences, and canonical catalogue; filters
 recovery/exclusions; ranks and diversifies a shortlist; then either returns a pre-provider decision or calls OpenRouter
-with only that shortlist. Application validation checks the returned prescription before a private proposal identity is
-recorded and returned to the existing editor. Preference and lifecycle APIs append constrained owner-scoped data, while
-a Supabase Cron job removes expired raw proposal records without touching workouts or durable preferences.
+with only that shortlist. Reduced confirmation uses a dedicated Worker-signed, owner-bound single-use capability because
+the app's user-scoped Supabase RPCs cannot distinguish Worker calls from direct calls by the same user. Application
+validation checks the returned prescription before a private proposal identity is recorded and returned to the existing
+editor. Preference and lifecycle APIs append constrained owner-scoped data that is not treated as adversarially
+tamper-resistant, while a Supabase Cron job removes expired raw proposal records without touching workouts, durable
+preferences, or the saved workout's opaque proposal-lineage marker.
 
 ## Phases at a Glance
 

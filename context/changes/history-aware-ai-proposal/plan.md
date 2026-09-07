@@ -50,12 +50,13 @@ short-lived server-verifiable confirmation token. Only a second request carrying
 proposal. When fewer than three ready candidates exist, generation fails before provider use and directs the user to
 manual planning.
 
-Each returned proposal has a private proposal identity. The application records exposure, re-roll, exercise removal,
-swap, retention, save, and later completion events. Optional per-exercise Like and **Don't suggest** controls persist
-until changed or account deletion and affect the next request deterministically. Raw proposal and interaction records
-expire through a database-scheduled purge and are never retained beyond the documented 90-day policy. Cold-start
-generation, manual editing, AI-origin saving, planned-workout replacement, and completed-history behavior remain
-compatible.
+Each returned proposal has a private proposal identity. The application records display exposure, re-roll, exercise
+removal, swap, retention, save, and later completion events. Optional per-exercise Like and **Don't suggest** controls
+persist until changed or account deletion and affect the next request deterministically. Raw proposal and interaction
+records expire through a database-scheduled purge and are never retained beyond the documented 90-day policy. A saved
+workout may retain only an opaque proposal-lineage UUID, without a foreign key or proposal contents, so a completion
+after raw telemetry expiry can create a new time-bounded completion event. Cold-start generation, manual editing,
+AI-origin saving, planned-workout replacement, and completed-history behavior remain compatible.
 
 ### Key Discoveries:
 
@@ -115,8 +116,8 @@ tests.
 Generalize the existing cold-start generation service into one server-selected mode pipeline. Cold start retains its
 current prompt, validator, size, and full-body contract. History-aware mode loads the profile and preferences, prepares
 the shortlist, performs the reduced-size handshake when required, calls the existing fixed-model OpenRouter transport,
-validates independently, records the proposal, and returns the same editable draft shape plus mode and proposal
-metadata.
+validates independently, records the proposal, and returns the same editable draft shape plus mode, proposal, original
+membership, and safe per-exercise preference metadata.
 
 Extend the existing builder rather than creating a new route. Remove the page-load eligibility gate, let the
 authenticated POST determine current mode, render the reduced-size confirmation dialog only for the typed server
@@ -129,9 +130,12 @@ and preserve the draft.
 ### Timing & lifecycle
 
 The reduced-workout decision must be derived from the same fresh profile, preferences, catalogue, recovery clock, and
-ranking configuration used by the eventual provider request. The confirmation token therefore binds owner, mode,
-ready-candidate fingerprint, allowed count, and expiry. The acknowledged request must recompute state and reject a stale
-token; it must never honor reduced mode if recomputation finds at least five ready candidates.
+ranking configuration used by the eventual provider request. The confirmation token is a capability signed by the
+Worker with a dedicated `AI_CONFIRMATION_SIGNING_SECRET`; it binds owner, mode, ready-candidate fingerprint, allowed
+count, expiry, and a random nonce. PostgreSQL stores only the nonce digest for atomic single-use consumption. The
+acknowledged request must verify the signature, recompute state, consume the nonce, and reject a stale token; it must
+never honor reduced mode if recomputation finds at least five ready candidates. The signing secret is independent from
+the provider-key encryption secret and requires its own provisioning and rotation notes.
 
 ### State sequencing
 
@@ -190,8 +194,9 @@ history-aware proposal a private identity that can be followed through editing, 
 and update timestamps, canonical catalogue reference, owner RLS, and account-delete cascade. Add owner-scoped proposal,
 ordered proposed-exercise, and constrained event records for exposure, re-roll, removal, swap, retention, save, and
 completion. Event shapes must use typed columns and database checks rather than arbitrary client-authored JSON. Proposal
-and event rows carry a database-derived expiry boundary implementing the 90-day maximum retention policy. Any planned
-workout linkage is nullable and owner-checked; deleting expired telemetry must not delete or mutate a workout.
+and event rows carry a database-derived expiry boundary implementing the 90-day maximum retention policy. A saved
+workout may retain an opaque proposal-lineage UUID without a foreign key or proposal payload; deleting expired telemetry
+must not delete or mutate the workout or that lineage marker.
 Add a separate short-lived, single-use reduced-generation confirmation record containing only owner, candidate
 fingerprint, allowed count, expiry, and consumption state; it is operational authorization, not 90-day telemetry.
 
@@ -200,18 +205,23 @@ fingerprint, allowed count, expiry, and consumption state; it is operational aut
 **Files**: `supabase/migrations/<timestamp>_create_ai_recommendation_feedback.sql`,
 `supabase/tests/database/ai_recommendation_feedback.test.sql`, `src/types/database.types.ts`
 
-**Intent**: Keep ownership, allowed event transitions, preference precedence, and proposal-to-workout linkage
-server-authoritative instead of exposing generic table writes.
+**Intent**: Keep ownership, allowed event transitions, preference precedence, and proposal-to-workout linkage narrow
+and application-mediated instead of exposing generic table writes.
 
-**Contract**: Add narrow authenticated functions for setting/clearing one exercise preference, atomically recording a
-validated proposal with its ordered exercise provenance, appending allowed edit/re-roll events, and linking the final
-AI save/completion lifecycle. Functions derive the owner, validate referenced proposal/exercise/workout ownership and
-state, use invoker security with empty search paths, and expose stable SQLSTATE outcomes. Browser input cannot set an
-owner, expiry, generation mode, seed, similarity score, or arbitrary event type. Preference functions are idempotent;
-`dont_suggest` and `liked` are mutually exclusive for one exercise.
-Add narrow server-only creation and authenticated consumption functions for reduced-generation confirmations. Persist
-only a digest of the random browser token, bind it to the authenticated owner and candidate fingerprint, and consume it
-atomically at most once.
+**Contract**: Add narrow authenticated functions for setting/clearing one exercise preference, recording an
+application-validated proposal with its ordered exercise provenance, appending allowed edit/re-roll events, and linking
+the final AI save/completion lifecycle. Functions derive the owner, validate referenced proposal/exercise/workout
+ownership and state, use invoker security with empty search paths, and expose stable SQLSTATE outcomes. The application
+APIs never accept an owner, expiry, generation mode, seed, similarity score, or arbitrary event type from browser
+payloads. Preference functions are idempotent; `dont_suggest` and `liked` are mutually exclusive for one exercise.
+
+These authenticated RPCs are owner-isolation boundaries, not proof that the caller is the Worker: this repository uses
+a publishable/anon Supabase key with the user's JWT, so the same user can call granted Data API functions directly and
+could poison only their own telemetry. MVP telemetry is therefore not treated as adversarially tamper-resistant and is
+not used for online ranking or training. Add authenticated nonce-registration/consumption functions for reduced
+generation, but make authorization depend on the independently verified Worker signature. Persist only the nonce
+digest, owner binding, and expiry, and consume it atomically at most once; a fabricated database row without a valid
+signature can never authorize reduced generation.
 
 #### 4. Scheduled retention cleanup
 
@@ -391,16 +401,18 @@ and add the server-authoritative two-step confirmation without changing the prov
 #### 1. Versioned command and confirmation token
 
 **Files**: `src/lib/ai-workout-client.ts`, `src/lib/ai-workout-client.test.ts`,
-`src/lib/ai-workout-confirmation.ts`, `src/lib/ai-workout-confirmation.test.ts`
+`src/lib/ai-workout-confirmation.ts`, `src/lib/ai-workout-confirmation.test.ts`, `astro.config.mjs`
 
 **Intent**: Extend the strict browser command only enough to acknowledge a server-discovered reduced proposal while
 preventing client-selected size or stale confirmation reuse.
 
-**Contract**: Preserve the current versioned normal command and add one exact optional acknowledgement form carrying
-only an opaque confirmation token. The token is random, short-lived, stored only as a database digest, and validated
-through the single-use owner-scoped confirmation function; its record binds history-aware mode, eligible-candidate
-fingerprint, allowed count, and expiry. Parsing rejects extra fields, requested counts, seeds, model/provider inputs,
-malformed tokens, replay, and expired acknowledgements. Tokens never appear in logs.
+**Contract**: Define an exact-key union with four browser commands: initial `{ version }`, re-roll
+`{ version, priorProposalId }`, confirmed reduced `{ version, confirmationToken }`, and confirmed reduced re-roll
+`{ version, confirmationToken, priorProposalId }`. `priorProposalId` is allowed only when replacing an active
+history-aware proposal and is owner-validated before linkage. The confirmation token is a random, short-lived,
+Worker-signed capability; only its nonce digest is stored in the database. Parsing rejects all other key combinations,
+requested counts, seeds, model/provider inputs, malformed signatures, replay, expiry, and cross-owner proposal IDs.
+Tokens and signing material never appear in logs.
 
 #### 2. Mode-aware generation orchestration
 
@@ -452,11 +464,15 @@ validation.
 **Intent**: Make generation mode, proposal identity, reduced confirmation, and insufficient-candidate recovery exact and
 browser-safe.
 
-**Contract**: Replace the hard-coded metadata literal with a discriminated `cold_start | history_aware` union including
-proposal ID, exercise count, and reduced flag only on success. Add typed failure/decision codes for reduced confirmation,
-stale confirmation, and insufficient candidates with an optional safe available count/token only on the confirmation
-response. Exact-key parsers reject unknown metadata. Failed requests preserve the current draft. Success request IDs
-remain diagnostic metadata and are not rendered as errors.
+**Contract**: Replace the hard-coded metadata literal with a discriminated `cold_start | history_aware` union. A
+history-aware success includes proposal ID, exercise count, reduced flag, the original proposed exercise IDs, and the
+safe `liked | neutral` preference state for each returned exercise; cold start retains only its compatible public
+metadata. Add typed failure/decision codes for reduced confirmation, stale confirmation, and insufficient candidates
+with an optional safe available count/token only on the confirmation response. Exact-key parsers reject unknown
+metadata. `applyAiGenerationResponse` returns an active-proposal state containing mode, proposal ID, original exercise
+IDs, and preference states alongside the draft. Failed requests preserve both the current draft and active-proposal
+state. A later successful proposal replaces both. Success request IDs remain diagnostic metadata and are not rendered
+as errors.
 
 #### 6. Proposal recording and re-roll linkage
 
@@ -467,10 +483,10 @@ remain diagnostic metadata and are not rendered as errors.
 state to the browser.
 
 **Contract**: After provider output passes validation, record the exact returned proposal and permitted derived
-provenance through the narrow database function before returning its ID. A re-roll request links the newly exposed
-proposal to the prior browser-held proposal ID only after owner validation. Database failures map to safe outcomes;
-provider content and private profile data never enter diagnostics. Cold-start behavior remains compatible and is not
-required to create the history-aware feedback trail.
+provenance through the narrow database function before returning its ID, but do not call that record an exposure yet.
+A re-roll command carries and owner-validates the prior browser-held proposal ID before linking the new proposal.
+Database failures map to safe outcomes; provider content and private profile data never enter diagnostics. Cold-start
+behavior remains compatible and is not required to create the history-aware feedback trail.
 
 ### Success Criteria:
 
@@ -482,11 +498,13 @@ required to create the history-aware feedback trail.
 - History-bearing normal requests cannot use cold-start validation or metadata
 - Confirmation-required and insufficient-candidate outcomes make zero provider calls
 - Cancelled confirmation makes no second request; valid confirmation is required before reduced provider use
-- Stale, expired, cross-owner, and candidate-mismatched tokens are rejected before provider use
+- Stale, expired, tampered, cross-owner, and candidate-mismatched tokens are rejected before provider use; missing
+  signing configuration fails closed
 - Recomputed five-plus eligibility invalidates reduced mode even with a formerly valid token
 - History-aware prompts contain only the vetted shortlist/reasons and stay below the 64 KiB ceiling
 - Provider output outside shortlist, recovery, size, uniqueness, prescription, or feasible-coverage contracts fails
-- Proposal identity and re-roll linkage remain owner-scoped and browser responses contain no raw history
+- Proposal identity, active-proposal state, preference hydration, and re-roll linkage remain owner-scoped and browser
+  responses contain no raw history
 - Existing crypto, manual, planned-workout, and history suites remain green
 - Repository lint and production build pass with `pnpm lint` and `pnpm build`
 
@@ -522,10 +540,13 @@ the workout lifecycle, add the missing CI gate, and verify the privacy/retention
 mode plus the approved reduced-workout decision.
 
 **Contract**: Stop loading/passing `initialEligibility`; the authenticated POST is authoritative. Keep one Generate
-action and the current draft-preservation behavior. On the typed 3–4 candidate response, open an accessible dialog that
-states the count and offers **Generate smaller workout** or **Keep planning manually**. Cancel preserves the draft and
-makes no provider call. Confirm sends the acknowledgement token, prevents duplicate actions, and replaces the draft only
-after validated success. Fewer-than-three feedback keeps manual editing available.
+action and the current draft-preservation behavior. Store the active proposal state returned by the planner transition;
+edits retain it, a failed request preserves it, a re-roll supplies its proposal ID, a new success replaces it, and
+clearing/cancelling the draft clears it. On the typed 3–4 candidate response, open an accessible dialog that states the
+count and offers **Generate smaller workout** or **Keep planning manually**. Cancel preserves the draft and makes no
+provider call. Confirm sends the acknowledgement token plus the prior proposal ID when confirming a re-roll, prevents
+duplicate actions, and replaces the draft only after validated success. Fewer-than-three feedback keeps manual editing
+available.
 
 #### 2. Like and Don't suggest controls
 
@@ -536,46 +557,61 @@ after validated success. Fewer-than-three feedback keeps manual editing availabl
 **Intent**: Let users create durable, immediately effective preference signals without conflating them with catalogue
 favorites or implicit completion.
 
-**Contract**: Show optional Like and **Don't suggest** controls for exercises in a history-aware generated proposal.
-Controls expose current pressed state, keyboard/focus semantics, touch-sized targets, pending state, and safe retryable
-failure feedback. One state replaces the other; clearing returns to neutral. Preference API requests are authenticated,
-same-origin, strictly versioned, and operate on canonical exercise IDs through the narrow database function. A
-successful change affects future generation only and does not silently remove or reorder the current draft.
+**Contract**: Show optional Like and **Don't suggest** controls only for IDs in the active proposal's original exercise
+set, not for exercises added later through manual editing. Hydrate initial pressed states from the history-aware
+generation response and update them locally only after a successful mutation. Controls expose keyboard/focus semantics,
+touch-sized targets, pending state, and safe retryable failure feedback. One state replaces the other; clearing returns
+to neutral. Preference API requests are authenticated, same-origin, strictly versioned, and operate on canonical
+exercise IDs through the narrow database function. A successful change affects future generation only and does not
+silently remove or reorder the current draft. Reloading does not restore an unsaved proposal; durable preferences are
+reflected whenever the exercise next appears in a generated proposal.
 
 #### 3. Edit, retention, re-roll, and save telemetry
 
 **Files**: `src/components/workouts/WorkoutBuilder.tsx`, `src/lib/ai-workout-planner-state.ts`,
-`src/lib/ai-workout-feedback-client.ts`, `src/pages/api/workouts/ai/events.ts`,
+`src/lib/ai-workout-feedback-client.ts`, `src/lib/ai-workout-save-request.ts`,
+`src/lib/ai-workout-save-request.test.ts`, `src/pages/api/workouts/ai/events.ts`,
 `src/pages/api/workouts/ai/save.ts`, `src/lib/ai-workouts.ts`, corresponding test files
 
 **Intent**: Record the approved behavioral evidence while preserving local editing responsiveness and the existing
 atomic AI-save outcome.
 
-**Contract**: Track proposal exposure server-side. Associate subsequent re-rolls with the prior proposal. Record
-exercise remove and swap actions against the active owner-validated proposal through a bounded, strictly typed event
-API. At AI save, compare the submitted canonical draft with the recorded proposal server-side and record retained
-exercises plus the save/workout linkage; do not trust browser-authored “retained” claims. The proposal ID is optional for
-legacy/cold-start save compatibility but mandatory for history-aware telemetry. Extend
+**Contract**: After a validated history-aware response is committed to active browser state, send an idempotent
+`exposure` acknowledgement through the event API; proposal creation before the HTTP response is not counted as display
+exposure. Failure to acknowledge never blocks or removes the local draft and remains distinguishable from a confirmed
+exposure in analysis. Associate subsequent re-rolls with the prior proposal. Record exercise remove and swap actions
+against the active owner-validated proposal through a bounded, strictly typed event API. At AI save, compare the
+submitted canonical draft with the recorded proposal server-side and record retained exercises plus the save/workout
+linkage; do not trust browser-authored “retained” claims.
+
+Define a separate exact-key AI-save request parser that composes the existing manual-save fields with nullable
+`proposalId` without widening `parseManualWorkoutRequest` or the manual endpoint. The browser always supplies a valid
+proposal ID for an active history-aware proposal and null for cold-start/legacy drafts; the server validates ownership
+and state whenever an ID is supplied. Because MVP telemetry is not an adversarial trust boundary, omission by a user
+calling the Data API directly is treated as owner-local metric poisoning rather than an authorization bypass. Extend
 `save_ai_planned_workout` with an optional proposal-ID argument, remove the superseded callable signature, and keep null
 as the cold-start/legacy path. When supplied, the same save transaction validates owner/proposal state, writes retained
-and save events, and links the resulting workout without adding a cascading workout-to-telemetry foreign key. Telemetry
-errors preserve local draft state and use safe retry/error behavior; saving must not silently claim complete telemetry
-when linkage fails.
+and save events, and copies the proposal's opaque lineage UUID onto the workout without adding a cascading
+workout-to-telemetry foreign key. Telemetry errors preserve local draft state and use safe retry/error behavior; saving
+must not silently claim complete telemetry when linkage fails.
 
 #### 4. Completion telemetry linkage
 
-**Files**: `src/lib/planned-workouts.ts`, `src/pages/api/workouts/planned/complete.ts`,
-`supabase/migrations/<timestamp>_create_ai_recommendation_feedback.sql`, corresponding application and pgTAP tests
+**Files**: `src/lib/planned-workouts.ts`, `src/pages/api/workouts/planned.ts`,
+`src/components/workouts/PlannedWorkoutSummary.tsx`, `src/lib/planned-workout-completion.test.ts`,
+`supabase/migrations/<timestamp>_create_ai_recommendation_feedback.sql`, corresponding pgTAP tests
 
 **Intent**: Record that a retained history-aware proposal reached completed history without changing completion's
 terminal workout semantics.
 
 **Contract**: Replace the body of the existing `complete_planned_workout(uuid, integer)` function in a forward
 migration without changing its callable signature. In the same transaction, after the normal state transition, insert
-one idempotent completion event when the completed workout has a live owner-matched history-aware proposal link.
-Manual, cold-start, expired-link, and unlinked legacy AI workouts complete exactly as before. Telemetry linkage cannot
-change server-owned completion time, prescription immutability, revision behavior, owner isolation, or the planned-
-workout advisory lock order; missing or expired proposal data never blocks workout completion.
+one idempotent, independently expiring completion event when the completed workout carries an owner-matched
+history-aware proposal-lineage UUID. The event may link to a live proposal when one remains, but raw proposal expiry
+does not remove the lineage marker or prevent the completion event. Manual, cold-start, and unlinked legacy AI workouts
+complete exactly as before. Telemetry linkage cannot change server-owned completion time, prescription immutability,
+revision behavior, owner isolation, or the planned-workout advisory lock order; malformed or missing telemetry state
+never blocks workout completion.
 
 #### 5. Responsive, accessible, and privacy-safe presentation
 
@@ -594,16 +630,18 @@ the contracts—never raw history or telemetry collections.
 #### 6. CI, documentation, and operational verification
 
 **Files**: `.github/workflows/ci.yml`, `package.json`, `README.md`,
-`context/deployment/deployment-plan.md`, `docs/reference/contract-surfaces.md`
+`context/deployment/deployment-plan.md`, `docs/reference/contract-surfaces.md`, `astro.config.mjs`
 
 **Intent**: Make recommendation, feedback, retention, and history-aware generation executable release gates and leave a
 safe operating/rollback path.
 
 **Contract**: Include every new Node test in `pnpm test:ai-workout` and add that command as a distinct CI step before
 Astro sync/lint/build. Preserve all existing database, concurrency, generated-type, crypto, manual, planned, and history
-gates. Document the history-aware Worker smoke flow, reduced confirmation/no-call check, preference behavior, 90-day
-cleanup verification, safe diagnostics, migration rollout, and additive rollback. Do not deploy, push linked migrations,
-or modify real secrets during implementation.
+gates. Declare the dedicated confirmation-signing secret in the server environment schema and document its independent
+provisioning and rotation without exposing its value or reusing the provider-key encryption secret. Document the
+history-aware Worker smoke flow, reduced confirmation/no-call check, preference behavior, 90-day cleanup verification,
+safe diagnostics, migration rollout, and additive rollback. Do not deploy, push linked migrations, or modify real
+secrets during implementation.
 
 ### Success Criteria:
 
@@ -624,11 +662,12 @@ or modify real secrets during implementation.
 - With exactly 3–4 ready candidates, the dialog appears before provider use; cancel preserves the draft and confirm
   produces only the available ready exercises.
 - With fewer than three ready candidates, AI generation is unavailable while manual planning remains usable.
-- Like and **Don't suggest** persist across reloads, are mutually exclusive, and deterministically affect the next
-  proposal without changing the current draft.
-- Re-roll, remove, swap, retention, save, and later completion create only owner-scoped typed events; cross-user IDs and
-  expired proposal IDs are rejected safely.
-- Expired telemetry is purged on schedule while durable preferences, planned workouts, and completed history remain.
+- Like and **Don't suggest** persist in the database across reloads, are mutually exclusive, and are reflected when an
+  exercise next appears in a generated proposal without changing the current draft.
+- Display acknowledgement, re-roll, remove, swap, retention, save, and later completion create only owner-scoped typed
+  events; proposal creation alone is not counted as exposure, and cross-user IDs are rejected safely.
+- Expired raw telemetry is purged on schedule while durable preferences, planned workouts, opaque workout lineage, and
+  later completion-event creation remain intact.
 - Cold-start generation, failed-request draft preservation, edit, first save, replacement confirmation, completion,
   and history display remain unchanged.
 - At 360px and desktop widths, generation, confirmation, preference controls, editing, and error recovery work with
@@ -653,21 +692,21 @@ job inspection before the change is considered implemented.
   invalid transition rejection.
 - Verify scheduled cleanup identity, non-duplication, expired-row deletion, durable preference preservation, and no
   workout mutation.
-- Verify save/completion linkage is idempotent and preserves existing AI/manual lifecycle, CAS, locking, rollback, RLS,
-  and immutable-history contracts.
+- Verify save/completion linkage is idempotent, survives raw proposal expiry through the opaque lineage marker, and
+  preserves existing AI/manual lifecycle, CAS, locking, rollback, RLS, and immutable-history contracts.
 
 ### Unit Tests:
 
 - Pure recovery-first ranking across no/sparse/established history, explicit positive/negative preferences, similarity
   thresholds, adaptive exploration, MMR, feasible coverage, ties, seed variation, and all candidate-count boundaries.
-- Confirmation token creation/verification, expiry, owner binding, candidate fingerprint mismatch, and reduced-mode
-  rejection after state changes.
+- Confirmation token signing/verification, nonce consumption, expiry, owner binding, tampering, missing signing
+  configuration, candidate fingerprint mismatch, and reduced-mode rejection after state changes.
 - Cold-start and history-aware prompt isolation, byte ceilings, response validation, mode metadata, and exact browser
   parsing.
 - Orchestration call ordering and no-provider guarantees for confirmation, insufficient candidates, missing key/model,
   persistence failures, invalid acknowledgements, and oversized prompts.
-- UI state transitions for dialog cancel/confirm, pending prevention, draft preservation, preference state, re-roll
-  linkage, safe error recovery, and proposal identity.
+- UI state transitions for dialog cancel/confirm, pending prevention, draft and active-proposal preservation, preference
+  hydration, display acknowledgement, re-roll linkage, safe error recovery, and proposal identity.
 
 ### Integration Tests:
 
@@ -715,11 +754,12 @@ job inspection before the change is considered implemented.
 ## Migration Notes
 
 - Use forward-only migrations for the completion-profile function, feedback/proposal/confirmation schema, narrow RPCs,
-  the revised AI-save signature, same-signature completion function body, and scheduled cleanup. Never edit an applied
-  migration.
+  the revised AI-save signature, opaque workout lineage marker, same-signature completion function body, and scheduled
+  cleanup. Never edit an applied migration.
 - Regenerate `src/types/database.types.ts` from a clean local database and normalize it with the pinned Prettier.
-- The new schema is additive. Rolling application code back leaves unused private tables/functions and the cleanup job;
-  preserve them until a deliberate follow-up migration verifies no active S-08 client depends on them.
+- The new schema is additive. Rolling application code back leaves unused private tables/functions, opaque workout
+  lineage markers, and the cleanup job; preserve them until a deliberate follow-up migration verifies no active S-08
+  client depends on them.
 - Unscheduling or replacing the cleanup job is a distinct migration/operational action. Do not disable retention merely
   because application code is rolled back.
 - Hosted migration application requires the existing human review and explicit approval flow. This plan does not
@@ -749,7 +789,7 @@ job inspection before the change is considered implemented.
 
 ## Progress
 
-> Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles. See `references/progress-format.md`.
+> Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Private Recommendation and Telemetry Data Contracts
 
@@ -802,11 +842,11 @@ job inspection before the change is considered implemented.
 - [ ] 3.3 History-aware normal requests use only history-aware contracts
 - [ ] 3.4 Pre-provider confirmation and insufficient-candidate short-circuits pass
 - [ ] 3.5 Confirmation acceptance and cancellation behavior tests pass
-- [ ] 3.6 Confirmation token ownership, expiry, and freshness tests pass
+- [ ] 3.6 Confirmation token signature, ownership, expiry, and freshness tests pass
 - [ ] 3.7 Five-plus recomputation invalidates reduced mode
 - [ ] 3.8 History-aware prompt privacy and byte-budget tests pass
 - [ ] 3.9 History-aware provider-output validation tests pass
-- [ ] 3.10 Proposal identity and re-roll linkage tests pass
+- [ ] 3.10 Active proposal identity, preference hydration, and re-roll linkage tests pass
 - [ ] 3.11 Existing application suites remain green
 - [ ] 3.12 Repository lint and production build pass
 
@@ -836,8 +876,8 @@ job inspection before the change is considered implemented.
 - [ ] 4.10 Three-to-four candidate confirmation precedes provider use and preserves cancel state
 - [ ] 4.11 Fewer than three candidates keep the manual builder available
 - [ ] 4.12 Like and Don't suggest persist and affect only future proposals
-- [ ] 4.13 Full proposal lifecycle telemetry remains owner-scoped and typed
-- [ ] 4.14 Scheduled expiry preserves durable preferences and workouts
+- [ ] 4.13 Full proposal lifecycle telemetry remains owner-scoped, typed, and display-accurate
+- [ ] 4.14 Scheduled expiry preserves durable preferences, workouts, lineage, and later completion
 - [ ] 4.15 Cold-start and existing workout lifecycle behavior remain unchanged
 - [ ] 4.16 Mobile, desktop, keyboard, screen-reader, focus, and overflow behavior is correct
 - [ ] 4.17 Disposable-key Worker-runtime history-aware smoke test is confirmed by a human
