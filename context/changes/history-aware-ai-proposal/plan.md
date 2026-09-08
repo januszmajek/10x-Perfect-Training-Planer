@@ -539,12 +539,17 @@ ownership, compare-and-swap, lock-order, and immutable-history contracts intact.
 
 **Contract**: Define a separate exact-key AI-save request parser that composes the existing manual-save fields with nullable
 `proposalId` without widening `parseManualWorkoutRequest` or the manual endpoint. The browser supplies the active
-history-aware proposal ID or null for cold-start/legacy drafts. Replace the callable four-argument
-`save_ai_planned_workout` signature in a forward migration with a five-argument version that validates live
-owner-scoped proposal state in the same transaction, derives retained exercises from the canonical submitted draft,
-records retained/save events, and copies only the opaque lineage UUID to the new workout. A null proposal ID preserves
-cold-start and legacy saves. Telemetry failure rolls back the save transaction and leaves the local draft available for a
-safe retry.
+history-aware proposal ID or null for cold-start/legacy drafts. Keep the existing four-argument
+`save_ai_planned_workout` callable, which remains the cold-start/legacy path. Add the uniquely named, non-overloaded
+`save_history_aware_ai_planned_workout` RPC for a supplied proposal ID; the route selects it only when `proposalId` is
+non-null. The public history-aware RPC remains `SECURITY INVOKER` and calls the narrow owner-derived
+`private.link_history_aware_ai_save_for_current_user` `SECURITY DEFINER` helper for the otherwise ungranted
+lineage-column write and event inserts. That helper validates live owner-scoped proposal state,
+derives retained exercises from the canonical submitted draft, records retained/save events, and copies only the opaque
+lineage UUID to the new workout in the same transaction. Do not grant direct authenticated write access to
+`workouts.ai_proposal_lineage_id`, drop the legacy RPC, or add an overload; migration tests assert the exact
+PostgREST-visible function set, grants, and old-client rollback compatibility. Telemetry failure rolls back the new
+history-aware save transaction and leaves the local draft available for a safe retry.
 
 #### 2. Expiry-surviving completion telemetry
 
@@ -574,10 +579,11 @@ completion record.
 
 #### Automated Verification:
 
-- AI-save parser/service tests prove exact keys, owner validation, null legacy behavior, atomic retention/save events,
-  lineage copying, and rollback on linkage failure.
-- Database tests prove the new save signature, completion idempotency, owner isolation, CAS/advisory-lock preservation,
-  and completion-event creation after raw proposal expiry.
+- AI-save parser/service tests prove exact keys, legacy/history-aware RPC selection, owner validation, atomic
+  retention/save events, lineage copying, and rollback on linkage failure.
+- Database tests prove the distinct non-overloaded RPC set, least-privilege lineage write, completion idempotency,
+  owner isolation, CAS/advisory-lock preservation, completion-event creation after raw proposal expiry, and normal
+  completion with no or unmatched lineage marker.
 - Clean reset, schema lint, pgTAP, generated-type drift, and existing lifecycle/concurrency gates pass.
 
 #### Manual Verification:
@@ -605,7 +611,7 @@ delivered by Phase 3 and are explicitly out of scope here.
 
 **Files**: `src/components/workouts/WorkoutBuilder.tsx`, `src/components/workouts/WorkoutDraftEditor.tsx`,
 `src/lib/ai-workout-feedback-client.ts`, `src/lib/ai-workout-feedback-client.test.ts`,
-`src/pages/api/workouts/ai/preferences.ts`, and matching route/component tests.
+`src/pages/api/workouts/ai/preferences.ts`, and pure Node parser/client tests.
 
 **Contract**: Show optional Like and **Don't suggest** controls only for IDs in the active proposal's original exercise
 set, never for later manual additions. Hydrate pressed state from the history-aware response and update it only after a
@@ -615,13 +621,20 @@ the current draft.
 
 #### 2. Display and edit telemetry
 
-**Files**: `src/components/workouts/WorkoutBuilder.tsx`, `src/lib/ai-workout-planner-state.ts`,
-`src/lib/ai-workout-feedback-client.ts`, `src/pages/api/workouts/ai/events.ts`, and matching tests.
+**Files**: `src/components/workouts/WorkoutBuilder.tsx`, `src/components/workouts/WorkoutDraftEditor.tsx`,
+`src/lib/ai-workout-planner-state.ts`, `src/lib/ai-workout-feedback-client.ts`,
+`src/lib/ai-workout-feedback-client.test.ts`, `src/pages/api/workouts/ai/events.ts`, a forward telemetry migration,
+`supabase/tests/database/ai_recommendation_feedback.test.sql`, and pure Node tests.
 
 **Contract**: After a validated history-aware response commits to active browser state, send an idempotent non-blocking
-`exposure` acknowledgement. Proposal creation before the HTTP response is not display exposure. Record removal and
-swap actions through a bounded typed API against the active owner-validated proposal; event failures preserve the local
-draft and active proposal. Do not add a browser re-roll event because Phase 3 records that provenance atomically.
+`exposure` acknowledgement. Proposal creation before the HTTP response is not display exposure. Enforce one exposure
+per proposal in the database with a partial unique index and an `ON CONFLICT DO NOTHING` path in the narrow event helper;
+test a duplicate delivery produces exactly one row. Define a strictly versioned exact-key event request and a
+discriminated editor mutation contract: `remove` carries the removed original proposal exercise ID and `swap` carries
+the original proposal exercise plus its replacement. The editor emits that mutation before the draft-state callback;
+add, reorder, prescription-only edits, and edits of manually added exercises emit no proposal event. Event failures
+preserve the local draft and active proposal. Do not add a browser re-roll event because Phase 3 records that provenance
+atomically.
 
 #### 3. Accessible, private presentation
 
@@ -636,13 +649,15 @@ responses expose only safe active-proposal metadata, opaque IDs, and necessary c
 
 #### Automated Verification:
 
-- Preference request/client, component, and interaction-event tests pass through `pnpm test:ai-workout`.
+- Pure preference request/parser/client and discriminated interaction-mutation tests pass through `pnpm test:ai-workout`.
+- Database tests prove duplicate exposure delivery creates exactly one event.
 - Existing AI, manual, planned-workout, and history suites remain green; Astro sync and repository lint pass.
 
 #### Manual Verification:
 
 - Like and **Don't suggest** persist, are mutually exclusive, and affect only later proposals.
-- Display acknowledgement, removal, and swap are owner-scoped, typed, and non-blocking; re-roll is recorded once.
+- Display acknowledgement is idempotent; removal and swap are owner-scoped, typed, and non-blocking; re-roll is
+  recorded once. Reordering, prescription-only edits, and manually added exercises create no proposal event.
 - Feedback controls work with keyboard and screen-reader semantics at mobile and desktop widths.
 
 **Implementation Note**: Do not change the AI-save/completion transaction or CI configuration in this checkpoint.
@@ -736,8 +751,10 @@ and additive rollback. Do not deploy, push linked migrations, or modify real sec
    subsequent generation.
 6. Generate and re-roll with sparse and established histories; confirm the adaptive unseen quota, safe wording, feasible
    coverage, and seeded variation.
-7. Remove, swap, restore, save, replace an existing plan, and complete the saved workout; inspect only owner-scoped typed
-   events and the correct proposal/workout linkage.
+7. Retry an exposure acknowledgement and confirm exactly one exposure row exists. Remove and swap original proposal
+   exercises, then add/reorder/change prescriptions on manual items; inspect that only the removal/swap actions create
+   owner-scoped typed events. Restore, save, replace an existing plan, and complete the saved workout; inspect the
+   correct proposal/workout linkage.
 8. Run the retention job against expired fixtures and confirm workout history/preferences remain intact; inspect job
    status through the documented safe query.
 9. Repeat preference, event, proposal, save, and completion requests as another user with supplied IDs and confirm
@@ -762,8 +779,9 @@ and additive rollback. Do not deploy, push linked migrations, or modify real sec
 ## Migration Notes
 
 - Use forward-only migrations for the completion-profile function, feedback/proposal/confirmation schema, narrow RPCs,
-  the revised AI-save signature, opaque workout lineage marker, same-signature completion function body, and scheduled
-  cleanup. Never edit an applied migration.
+  a distinct history-aware AI-save RPC plus private linkage helper while retaining the legacy AI-save RPC, opaque
+  workout lineage marker, same-signature completion function body, and scheduled cleanup. Never edit an applied
+  migration.
 - Regenerate `src/types/database.types.ts` from a clean local database and normalize it with the pinned Prettier.
 - The new schema is additive. Rolling application code back leaves unused private tables/functions, opaque workout
   lineage markers, and the cleanup job; preserve them until a deliberate follow-up migration verifies no active S-08
@@ -869,9 +887,9 @@ and additive rollback. Do not deploy, push linked migrations, or modify real sec
 
 #### Automated
 
-- [ ] 4A.1 AI-save parser and service contract tests pass
-- [ ] 4A.2 Save linkage, retention, and completion database tests pass
-- [ ] 4A.3 Save signature, types, reset, schema lint, and generated-type drift gates pass
+- [ ] 4A.1 AI-save parser and legacy/history-aware RPC selection tests pass
+- [ ] 4A.2 Save linkage, retention, completion, grants, and database contract tests pass
+- [ ] 4A.3 RPC signatures, types, reset, schema lint, and generated-type drift gates pass
 - [ ] 4A.4 Existing lifecycle and concurrency gates remain green
 
 #### Manual
@@ -883,8 +901,8 @@ and additive rollback. Do not deploy, push linked migrations, or modify real sec
 
 #### Automated
 
-- [ ] 4B.1 Preference request, client, route, and component tests pass
-- [ ] 4B.2 Exposure, removal, and swap interaction-event tests pass
+- [ ] 4B.1 Pure preference request, parser, and client tests pass
+- [ ] 4B.2 Exposure deduplication and discriminated removal/swap mutation tests pass
 - [ ] 4B.3 Existing AI, manual, planned-workout, and history suites remain green
 - [ ] 4B.4 Astro sync and repository lint pass
 
