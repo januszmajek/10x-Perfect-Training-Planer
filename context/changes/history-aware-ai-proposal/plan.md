@@ -529,6 +529,30 @@ confirmation of provider-call ordering, token invalidation, and cold-start compa
 Deliver the history-aware experience through the existing shared builder, connect explicit and behavioral feedback to
 the workout lifecycle, add the missing CI gate, and verify the privacy/retention contract in the Worker runtime.
 
+### Scope correction (2026-09-08)
+
+This is not a reasonable single implementation or commit slice after Phases 1–3: it combines an irreversible
+database-contract migration, two new authenticated browser APIs, cross-component interaction state, the terminal
+planned-workout transaction, CI, documentation, and a human-only production smoke check. Execute it as three ordered,
+independently reviewable checkpoints and commits:
+
+1. **Lifecycle data contract first** — add the AI-save proposal linkage and expiry-surviving completion record with
+   generated types and database tests. The existing `ai_workout_proposal_events.proposal_id` is non-null and cascades
+   on proposal deletion, so it cannot itself represent a completion after raw proposal expiry. Use a new private,
+   independently expiring completion record keyed by workout and opaque lineage UUID, rather than weakening the
+   applied event table's proposal foreign key.
+2. **Preference and interaction UI second** — add the preference/event client and routes, then wire Like, Don't
+   suggest, exposure, removal, and swap into the active proposal state. Do not duplicate the stale eligibility-gate
+   removal or reduced-workout dialog: Phase 3 already delivered them. Re-roll provenance is also already recorded
+   atomically by Phase 3 and must not gain a second browser event.
+3. **Release gates last** — add the AI suite to CI, update documentation/runbooks, run automated gates, then request
+   the human-only Worker smoke and retention-job inspection. These operational confirmations cannot be self-attested by
+   implementation code.
+
+The checkpoint order is mandatory: the UI must target the final save/completion contracts, and the release gate must
+exercise their integrated behavior. The existing numbered requirements below remain the acceptance contract; the
+checkpoints constrain how they are implemented and committed.
+
 ### Changes Required:
 
 #### 1. Shared builder mode and reduced confirmation UI
@@ -837,25 +861,25 @@ job inspection before the change is considered implemented.
 
 #### Automated
 
-- [x] 3.1 Mode-aware command, confirmation, prompt, validator, service, client, and state tests pass
-- [x] 3.2 Cold-start 5–7 full-body regressions remain green
-- [x] 3.3 History-aware normal requests use only history-aware contracts
-- [x] 3.4 Pre-provider confirmation and insufficient-candidate short-circuits pass
-- [x] 3.5 Confirmation acceptance and cancellation behavior tests pass
-- [x] 3.6 Confirmation token signature, ownership, expiry, and freshness tests pass
-- [x] 3.7 Five-plus recomputation invalidates reduced mode
-- [x] 3.8 History-aware prompt privacy and byte-budget tests pass
-- [x] 3.9 History-aware provider-output validation tests pass
-- [x] 3.10 Active proposal identity, preference hydration, and re-roll linkage tests pass
-- [x] 3.11 Existing application suites remain green
-- [x] 3.12 Repository lint and production build pass
+- [x] 3.1 Mode-aware command, confirmation, prompt, validator, service, client, and state tests pass — 846418b, 601b9b7
+- [x] 3.2 Cold-start 5–7 full-body regressions remain green — 846418b, 601b9b7
+- [x] 3.3 History-aware normal requests use only history-aware contracts — 846418b, 601b9b7
+- [x] 3.4 Pre-provider confirmation and insufficient-candidate short-circuits pass — 846418b, 601b9b7
+- [x] 3.5 Confirmation acceptance and cancellation behavior tests pass — 846418b, 601b9b7
+- [x] 3.6 Confirmation token signature, ownership, expiry, and freshness tests pass — 846418b, 601b9b7
+- [x] 3.7 Five-plus recomputation invalidates reduced mode — 846418b, 601b9b7
+- [x] 3.8 History-aware prompt privacy and byte-budget tests pass — 846418b, 601b9b7
+- [x] 3.9 History-aware provider-output validation tests pass — 846418b, 601b9b7
+- [x] 3.10 Active proposal identity, preference hydration, and re-roll linkage tests pass — 846418b, 601b9b7
+- [x] 3.11 Existing application suites remain green — 846418b, 601b9b7
+- [x] 3.12 Repository lint and production build pass — 846418b, 601b9b7
 
 #### Manual
 
-- [x] 3.13 API responses and logs exclude private generation data
-- [x] 3.14 Five-plus candidates never expose or accept reduced mode
-- [x] 3.15 Confirmed 3–4 candidate generation calls the provider only after acceptance
-- [x] 3.16 Fewer than three candidates preserve manual planning
+- [x] 3.13 API responses and logs exclude private generation data — 846418b, 601b9b7
+- [x] 3.14 Five-plus candidates never expose or accept reduced mode — 846418b, 601b9b7
+- [x] 3.15 Confirmed 3–4 candidate generation calls the provider only after acceptance — 846418b, 601b9b7
+- [x] 3.16 Fewer than three candidates preserve manual planning — 846418b, 601b9b7
 
 ### Phase 4: Preference UI, Lifecycle Telemetry, and Release Gates
 

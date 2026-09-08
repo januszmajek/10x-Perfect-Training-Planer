@@ -29,3 +29,8 @@ archived_at: null
   the generation minimum immediately after a workout. The user approved treating similarity and exploration limits as
   ranking preferences with recovery-safe backfill when needed. Recovery and Don't suggest remain hard constraints;
   candidate-count decisions use that hard-eligible pool, and expected availability decisions no longer log as errors.
+- 2026-09-08: Pre-Phase-4 scope review compared Phase 1 (database contracts), Phase 2 (pure ranking), and Phase 3
+  (generation plus review fixes). The final phase is broader than any prior single slice and contains a latent retention
+  conflict: proposal events cascade with raw proposals, so they cannot record a completion after telemetry expiry.
+  Split execution into lifecycle-data-contract, feedback-UI, and release-gate commits. Phase 3 already owns the stale
+  eligibility-gate removal, reduced-workout dialog, and atomic re-roll provenance; do not reimplement them.

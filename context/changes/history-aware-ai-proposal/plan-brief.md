@@ -59,15 +59,19 @@ preferences, or the saved workout's opaque proposal-lineage marker.
 
 ## Phases at a Glance
 
-| Phase                     | What it delivers                                                          | Key risk                                                 |
-| ------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------- |
-| 1. Private data contracts | Completion profile, preferences, telemetry, lifecycle linkage, cleanup    | RLS or expiry could leak/delete the wrong data           |
-| 2. Recommendation engine  | Pure recovery-first ranking and candidate-count decisions                 | Weak signals could be represented too confidently        |
-| 3. Generation handshake   | Mode-aware prompt/validation and confirmed reduced requests               | Stale confirmation could bypass the five-ready invariant |
-| 4. UI and release gates   | Preference controls, lifecycle telemetry, CI, documentation, smoke checks | Telemetry must not regress editing or completion         |
+| Phase                       | What it delivers                                                       | Key risk                                                 |
+| --------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------- |
+| 1. Private data contracts   | Completion profile, preferences, telemetry, lifecycle linkage, cleanup | RLS or expiry could leak/delete the wrong data           |
+| 2. Recommendation engine    | Pure recovery-first ranking and candidate-count decisions              | Weak signals could be represented too confidently        |
+| 3. Generation handshake     | Mode-aware prompt/validation and confirmed reduced requests            | Stale confirmation could bypass the five-ready invariant |
+| 4A. Lifecycle data contract | AI-save linkage and post-expiry completion telemetry                   | Proposal-event FK cannot survive raw expiry              |
+| 4B. Feedback UI             | Preference controls and display/edit telemetry                         | Telemetry must not regress local editing                 |
+| 4C. Release gates           | CI, documentation, full verification, human smoke checks               | Operational evidence cannot be self-attested             |
 
 **Prerequisites:** S-07 is complete; local Supabase and existing AI/recovery suites must be available.
-**Estimated effort:** Approximately four implementation sessions, one phase per reviewed `/10x-implement` run.
+**Estimated effort:** Approximately six implementation sessions, one reviewed implementation checkpoint per run. The
+original final phase was split after Phase 3 because its database, UI, and operational concerns were too broad for one
+safe commit.
 
 ## Open Risks & Assumptions
 
