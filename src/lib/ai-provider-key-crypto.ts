@@ -9,6 +9,12 @@ const CRYPTO_ERROR_MESSAGE = "AI provider key cryptographic operation failed";
 
 const textEncoder = new TextEncoder();
 
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
+}
+
 export type AiProvider = "openrouter";
 
 export interface AiProviderKeyCryptoContext {
@@ -100,16 +106,20 @@ function normalizeContext(context: AiProviderKeyCryptoContext) {
 }
 
 async function deriveEncryptionKey(rootSecret: string, hkdfInfo: string): Promise<CryptoKey> {
-  const inputKeyMaterial = await crypto.subtle.importKey("raw", decodeRootSecret(rootSecret), "HKDF", false, [
-    "deriveKey",
-  ]);
+  const inputKeyMaterial = await crypto.subtle.importKey(
+    "raw",
+    toArrayBuffer(decodeRootSecret(rootSecret)),
+    "HKDF",
+    false,
+    ["deriveKey"],
+  );
 
   return crypto.subtle.deriveKey(
     {
       name: "HKDF",
       hash: "SHA-256",
-      salt: textEncoder.encode(HKDF_SALT),
-      info: textEncoder.encode(hkdfInfo),
+      salt: toArrayBuffer(textEncoder.encode(HKDF_SALT)),
+      info: toArrayBuffer(textEncoder.encode(hkdfInfo)),
     },
     inputKeyMaterial,
     { name: "AES-GCM", length: 256 },
@@ -143,11 +153,11 @@ export async function encryptAiProviderKey(
     const ciphertext = await crypto.subtle.encrypt(
       {
         name: "AES-GCM",
-        iv,
-        additionalData: textEncoder.encode(normalizedContext.additionalData),
+        iv: toArrayBuffer(iv),
+        additionalData: toArrayBuffer(textEncoder.encode(normalizedContext.additionalData)),
       },
       encryptionKey,
-      textEncoder.encode(plaintextKey),
+      toArrayBuffer(textEncoder.encode(plaintextKey)),
     );
 
     return {
@@ -177,11 +187,11 @@ export async function decryptAiProviderKey(
     const plaintext = await crypto.subtle.decrypt(
       {
         name: "AES-GCM",
-        iv,
-        additionalData: textEncoder.encode(normalizedContext.additionalData),
+        iv: toArrayBuffer(iv),
+        additionalData: toArrayBuffer(textEncoder.encode(normalizedContext.additionalData)),
       },
       encryptionKey,
-      decodeBase64Url(encryptedKey.ciphertext),
+      toArrayBuffer(decodeBase64Url(encryptedKey.ciphertext)),
     );
 
     return new TextDecoder("utf-8", { fatal: true }).decode(plaintext);

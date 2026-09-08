@@ -51,6 +51,8 @@ const AI_GENERATION_ERROR_CODES = new Set<AiGenerationErrorCode>([
   "confirmation_required",
   "stale_confirmation",
   "insufficient_recovered_candidates",
+  "stale_plan",
+  "history_aware_not_available",
   "key_not_configured",
   "key_encryption_unavailable",
   "key_rejected",
@@ -92,9 +94,11 @@ function isProposal(value: unknown): value is { exercises: ManualWorkoutDraftIte
     if (ids.has(item.exerciseId)) return false;
     ids.add(item.exerciseId);
     return (
+      typeof item.sets === "number" &&
       Number.isSafeInteger(item.sets) &&
       item.sets >= MIN_SETS &&
       item.sets <= MAX_SETS &&
+      typeof item.reps === "number" &&
       Number.isSafeInteger(item.reps) &&
       item.reps >= MIN_REPS &&
       item.reps <= MAX_REPS
@@ -160,6 +164,7 @@ export function parseAiWorkoutGenerationResponse(input: unknown): AiWorkoutGener
   if (
     hasExactKeys(input.metadata, ["exerciseCount", "kind"]) &&
     input.metadata.kind === "cold_start" &&
+    typeof input.metadata.exerciseCount === "number" &&
     input.metadata.exerciseCount === input.proposal.exercises.length &&
     input.proposal.exercises.length >= 5
   ) {
@@ -184,6 +189,7 @@ export function parseAiWorkoutGenerationResponse(input: unknown): AiWorkoutGener
     input.metadata.kind !== "history_aware" ||
     !isCanonicalUuid(input.metadata.proposalId) ||
     typeof input.metadata.reduced !== "boolean" ||
+    typeof input.metadata.exerciseCount !== "number" ||
     input.metadata.exerciseCount !== input.proposal.exercises.length ||
     !Array.isArray(input.metadata.originalExerciseIds) ||
     !input.metadata.originalExerciseIds.every(isCanonicalUuid) ||
@@ -192,8 +198,24 @@ export function parseAiWorkoutGenerationResponse(input: unknown): AiWorkoutGener
     return null;
   const count = input.proposal.exercises.length;
   if ((input.metadata.reduced && (count < 3 || count > 4)) || (!input.metadata.reduced && count < 5)) return null;
+  const proposalIds = input.proposal.exercises.map(({ exerciseId }) => exerciseId);
+  const originalExerciseIds = input.metadata.originalExerciseIds;
+  if (
+    new Set(originalExerciseIds).size !== originalExerciseIds.length ||
+    originalExerciseIds.length !== proposalIds.length ||
+    originalExerciseIds.some((id) => !proposalIds.includes(id))
+  ) {
+    return null;
+  }
+  const preferenceIds = Object.keys(input.metadata.preferences);
+  if (
+    preferenceIds.length !== originalExerciseIds.length ||
+    preferenceIds.some((id) => !originalExerciseIds.includes(id))
+  ) {
+    return null;
+  }
   const preferences: Record<string, "liked" | "neutral"> = {};
-  for (const id of input.metadata.originalExerciseIds) {
+  for (const id of originalExerciseIds) {
     const preference = input.metadata.preferences[id];
     if (preference !== "liked" && preference !== "neutral") return null;
     preferences[id] = preference;
@@ -207,7 +229,7 @@ export function parseAiWorkoutGenerationResponse(input: unknown): AiWorkoutGener
         proposalId: input.metadata.proposalId,
         exerciseCount: count,
         reduced: input.metadata.reduced,
-        originalExerciseIds: [...input.metadata.originalExerciseIds],
+        originalExerciseIds: [...originalExerciseIds],
         preferences,
       },
       requestId: input.requestId,

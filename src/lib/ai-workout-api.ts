@@ -11,6 +11,7 @@ function statusForAiGeneration(code: AiGenerationErrorCode): number {
     confirmation_required: 409,
     stale_confirmation: 409,
     insufficient_recovered_candidates: 409,
+    history_aware_not_available: 409,
     stale_plan: 409,
     key_not_configured: 409,
     key_encryption_unavailable: 503,

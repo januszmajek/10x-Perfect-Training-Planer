@@ -1,5 +1,9 @@
-import { parseAiWorkoutProposalJson, type AiWorkoutProposal } from "./ai-workout-contract.ts";
-import { parseHistoryAwareAiWorkoutProposalJson } from "./ai-workout-contract.ts";
+import {
+  parseAiWorkoutProposalJson,
+  parseHistoryAwareAiWorkoutProposalJson,
+  type AiWorkoutProposal,
+  type HistoryAwareRequestedExerciseCount,
+} from "./ai-workout-contract.ts";
 import { buildColdStartWorkoutPrompt, buildHistoryAwareWorkoutPrompt } from "./ai-workout-prompt.ts";
 import { requestOpenRouterWorkout } from "./openrouter-client.ts";
 import { validateDraftItems, type ManualWorkoutRequest } from "./manual-workout-builder.ts";
@@ -249,7 +253,7 @@ export async function generateHistoryAwareAiWorkout(
   if (recommendation.decision.kind === "insufficient_recovered_candidates")
     return failure("insufficient_recovered_candidates", "service", "INSUFFICIENT_READY_CANDIDATES");
   const now = dependencies.now?.() ?? new Date();
-  let requested: { min: 3 | 5; max: 4 | 7 };
+  let requested: HistoryAwareRequestedExerciseCount;
   if (recommendation.decision.kind === "reduced_confirmation_required") {
     const fingerprint = await fingerprintCandidates(ids);
     if (!("confirmationToken" in command)) {
@@ -296,10 +300,7 @@ export async function generateHistoryAwareAiWorkout(
       p_allowed_count: confirmation.allowedCount,
     });
     if (error) return failure("stale_confirmation", "database", error.code);
-    requested = {
-      min: recommendation.decision.availableExerciseCount,
-      max: recommendation.decision.availableExerciseCount,
-    };
+    requested = recommendation.decision.availableExerciseCount === 3 ? { min: 3, max: 3 } : { min: 4, max: 4 };
   } else {
     if ("confirmationToken" in command) return failure("stale_confirmation", "service", "REDUCED_NOT_ALLOWED");
     requested = recommendation.decision.requestedExerciseCount;

@@ -7,6 +7,7 @@ import {
   type AiWorkoutGenerationDependencies,
 } from "./ai-workouts.ts";
 import { aiGenerationFailureResponse } from "./ai-workout-api.ts";
+import { createReducedGenerationConfirmation, fingerprintCandidates } from "./ai-workout-confirmation.ts";
 import type { CatalogueExercise } from "./manual-workout-builder.ts";
 
 const USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -95,8 +96,8 @@ void test("returns only a validated proposal after cold-start prerequisites succ
   });
 });
 
-void test("routes initial history-aware proposal recording through the two-argument RPC overload", async () => {
-  const calls: unknown[] = [];
+void test("records history-aware proposal lineage for initial generation and re-rolls", async () => {
+  const calls: [string, unknown][] = [];
   const client = {
     rpc: (name: string, args: unknown) => {
       calls.push([name, args]);
@@ -137,14 +138,211 @@ void test("routes initial history-aware proposal recording through the two-argum
   );
 
   assert.equal(result.ok, true);
-  assert.deepEqual(calls, [["record_ai_workout_proposal", { p_exercise_ids: IDS, p_rerolled_from_proposal_id: null }]]);
+  const reroll = await generateHistoryAwareAiWorkout(
+    client as never,
+    USER_ID,
+    "provider/model",
+    { version: 1, priorProposalId: IDS[1] },
+    dependencies({
+      loadHistoryAwareAiProfile: () =>
+        Promise.resolve({
+          ok: true,
+          data: {
+            completions: [
+              {
+                exerciseId: IDS[0],
+                completedCount: 1,
+                lastCompletedAt: "2025-01-01T00:00:00.000Z",
+                inLastCompletedWorkout: false,
+              },
+            ],
+            preferences: new Map(),
+          },
+        }),
+      recommendHistoryAwareWorkout: () => recommendation,
+      buildHistoryAwareWorkoutPrompt: () => ({ ok: true, data: { system: "system", user: "shortlist" } }),
+      parseHistoryAwareAiWorkoutProposalJson: () => ({ ok: true, data: proposal }),
+    }),
+  );
+  assert.equal(reroll.ok, true);
+  assert.deepEqual(calls, [
+    ["record_ai_workout_proposal", { p_exercise_ids: IDS, p_rerolled_from_proposal_id: null }],
+    ["record_ai_workout_proposal", { p_exercise_ids: IDS, p_rerolled_from_proposal_id: IDS[1] }],
+  ]);
+});
+
+void test("requires a fresh owner-bound confirmation before reduced provider use", async () => {
+  const calls: [string, unknown][] = [];
+  let providerCalls = 0;
+  let confirmationConsumed = false;
+  const reducedCatalogue = catalogue.slice(0, 3);
+  const recommendation = {
+    decision: { kind: "reduced_confirmation_required", availableExerciseCount: 3 as const },
+    readyCandidates: reducedCatalogue,
+    shortlist: reducedCatalogue,
+    feasibleCoverage: ["upper_body_push", "upper_body_pull", "lower_body"],
+  } as never;
+  const client = {
+    rpc: (name: string, args: unknown) => {
+      calls.push([name, args]);
+      if (name === "consume_ai_reduced_generation_confirmation") {
+        if (confirmationConsumed) return Promise.resolve({ data: null, error: { code: "P0001" } });
+        confirmationConsumed = true;
+        return Promise.resolve({ data: null, error: null });
+      }
+      return Promise.resolve(
+        name === "record_ai_workout_proposal"
+          ? { data: [{ proposal_id: IDS[3], lineage_id: IDS[4] }], error: null }
+          : { data: null, error: null },
+      );
+    },
+  };
+  const now = new Date(1_000);
+  const token = await createReducedGenerationConfirmation(
+    {
+      ownerId: USER_ID,
+      candidateFingerprint: await fingerprintCandidates(reducedCatalogue.map(({ id }) => id)),
+      allowedCount: 3,
+      expiresAt: 2_000,
+      nonce: "12345678-1234-1234-1234-123456789abc",
+    },
+    "confirmation-secret",
+  );
+  assert.ok(token);
+  const historyDependencies = dependencies({
+    loadHistoryAwareAiProfile: () =>
+      Promise.resolve({
+        ok: true as const,
+        data: {
+          completions: [
+            {
+              exerciseId: IDS[0],
+              completedCount: 1,
+              lastCompletedAt: now.toISOString(),
+              inLastCompletedWorkout: false,
+            },
+          ],
+          preferences: new Map(),
+        },
+      }),
+    recommendHistoryAwareWorkout: () => recommendation,
+    buildHistoryAwareWorkoutPrompt: () => ({ ok: true as const, data: { system: "system", user: "shortlist" } }),
+    parseHistoryAwareAiWorkoutProposalJson: () => ({
+      ok: true as const,
+      data: { exercises: proposal.exercises.slice(0, 3) },
+    }),
+    requestOpenRouterWorkout: () => {
+      providerCalls += 1;
+      return Promise.resolve({ ok: true as const, data: { content: "provider-content" } });
+    },
+    confirmationSecret: "confirmation-secret",
+    now: () => now,
+  });
+
+  const initial = await generateHistoryAwareAiWorkout(
+    client as never,
+    USER_ID,
+    "provider/model",
+    { version: 1 },
+    historyDependencies,
+  );
+  assert.equal(initial.ok, false);
+  assert.equal(initial.code, "confirmation_required");
+  assert.equal(providerCalls, 0);
+
+  const confirmed = await generateHistoryAwareAiWorkout(
+    client as never,
+    USER_ID,
+    "provider/model",
+    { version: 1, confirmationToken: token },
+    historyDependencies,
+  );
+  assert.equal(confirmed.ok, true);
+  assert.equal(providerCalls, 1);
+  assert.equal(calls.filter(([name]) => name === "consume_ai_reduced_generation_confirmation").length, 1);
+
+  const replay = await generateHistoryAwareAiWorkout(
+    client as never,
+    USER_ID,
+    "provider/model",
+    { version: 1, confirmationToken: token },
+    historyDependencies,
+  );
+  assert.equal(replay.ok, false);
+  assert.equal(replay.code, "stale_confirmation");
+  assert.equal(providerCalls, 1);
+
+  const otherOwnerToken = await createReducedGenerationConfirmation(
+    {
+      ownerId: "00000000-0000-0000-0000-000000000002",
+      candidateFingerprint: await fingerprintCandidates(reducedCatalogue.map(({ id }) => id)),
+      allowedCount: 3,
+      expiresAt: 2_000,
+      nonce: "12345678-1234-1234-1234-123456789abd",
+    },
+    "confirmation-secret",
+  );
+  assert.ok(otherOwnerToken);
+  const crossOwner = await generateHistoryAwareAiWorkout(
+    client as never,
+    USER_ID,
+    "provider/model",
+    { version: 1, confirmationToken: otherOwnerToken },
+    historyDependencies,
+  );
+  assert.equal(crossOwner.ok, false);
+  assert.equal(crossOwner.code, "stale_confirmation");
+  assert.equal(providerCalls, 1);
+});
+
+void test("rejects a reduced token when recomputation finds five ready candidates", async () => {
+  let providerCalls = 0;
+  const recommendation = {
+    decision: { kind: "normal", requestedExerciseCount: { min: 5, max: 7 } },
+    readyCandidates: catalogue,
+    shortlist: catalogue,
+    feasibleCoverage: ["lower_body", "core", "upper_body_push", "upper_body_pull"],
+  } as never;
+  const result = await generateHistoryAwareAiWorkout(
+    { rpc: () => Promise.resolve({ data: null, error: null }) } as never,
+    USER_ID,
+    "provider/model",
+    { version: 1, confirmationToken: "stale-token" },
+    dependencies({
+      loadHistoryAwareAiProfile: () =>
+        Promise.resolve({
+          ok: true as const,
+          data: {
+            completions: [
+              {
+                exerciseId: IDS[0],
+                completedCount: 1,
+                lastCompletedAt: "2025-01-01T00:00:00.000Z",
+                inLastCompletedWorkout: false,
+              },
+            ],
+            preferences: new Map(),
+          },
+        }),
+      recommendHistoryAwareWorkout: () => recommendation,
+      buildHistoryAwareWorkoutPrompt: () => ({ ok: true as const, data: { system: "system", user: "shortlist" } }),
+      parseHistoryAwareAiWorkoutProposalJson: () => ({ ok: true as const, data: proposal }),
+      requestOpenRouterWorkout: () => {
+        providerCalls += 1;
+        return Promise.resolve({ ok: true as const, data: { content: "provider-content" } });
+      },
+    }),
+  );
+  assert.equal(result.ok, false);
+  assert.equal(result.code, "stale_confirmation");
+  assert.equal(providerCalls, 0);
 });
 
 void test("short-circuits missing model, credential, and catalogue prerequisites before provider use", async () => {
   let providerCalls = 0;
   const provider = () => {
     providerCalls += 1;
-    return Promise.resolve({ ok: true, data: { content: "provider-content" } });
+    return Promise.resolve({ ok: true as const, data: { content: "provider-content" } });
   };
 
   const missingModel = await generateColdStartAiWorkout(
@@ -153,6 +351,7 @@ void test("short-circuits missing model, credential, and catalogue prerequisites
     undefined,
     dependencies({ requestOpenRouterWorkout: provider }),
   );
+  assert.equal(missingModel.ok, false);
   assert.equal(missingModel.code, "model_not_configured");
 
   const missingKey = await generateColdStartAiWorkout(
@@ -180,6 +379,7 @@ void test("short-circuits missing model, credential, and catalogue prerequisites
       requestOpenRouterWorkout: provider,
     }),
   );
+  assert.equal(catalogueFailure.ok, false);
   assert.equal(catalogueFailure.code, "persistence_failed");
   assert.equal(providerCalls, 0);
 });
@@ -193,18 +393,22 @@ void test("maps missing, unavailable, rejected, provider, and invalid-output cas
     ],
     [
       "rejected credential",
-      { requestOpenRouterWorkout: () => Promise.resolve({ ok: false, code: "invalid_credential" }) },
+      { requestOpenRouterWorkout: () => Promise.resolve({ ok: false as const, code: "invalid_credential" }) },
       "key_rejected",
     ],
     [
       "rate limit",
-      { requestOpenRouterWorkout: () => Promise.resolve({ ok: false, code: "rate_limited" }) },
+      { requestOpenRouterWorkout: () => Promise.resolve({ ok: false as const, code: "rate_limited" }) },
       "rate_limited",
     ],
-    ["timeout", { requestOpenRouterWorkout: () => Promise.resolve({ ok: false, code: "timeout" }) }, "timeout"],
+    [
+      "timeout",
+      { requestOpenRouterWorkout: () => Promise.resolve({ ok: false as const, code: "timeout" }) },
+      "timeout",
+    ],
     [
       "provider failure",
-      { requestOpenRouterWorkout: () => Promise.resolve({ ok: false, code: "network_failure" }) },
+      { requestOpenRouterWorkout: () => Promise.resolve({ ok: false as const, code: "network_failure" }) },
       "provider_unavailable",
     ],
     [
@@ -217,6 +421,7 @@ void test("maps missing, unavailable, rejected, provider, and invalid-output cas
   for (const [name, overrides, expectedCode] of cases) {
     await test(name, async () => {
       const result = await generateColdStartAiWorkout({} as never, USER_ID, "provider/model", dependencies(overrides));
+      assert.equal(result.ok, false);
       assert.equal(result.code, expectedCode);
     });
   }

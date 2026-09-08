@@ -117,7 +117,7 @@ void test("history-aware validation rejects extra provider fields", () => {
     parseHistoryAwareAiWorkoutProposal(input, {
       shortlist: catalogue.slice(0, 4),
       feasibleCoverage: ["lower_body", "core", "upper_body_push", "upper_body_pull"],
-      requestedExerciseCount: { min: 3, max: 4 },
+      requestedExerciseCount: { min: 3, max: 3 },
     }),
     { ok: false, code: "invalid_proposal" },
   );

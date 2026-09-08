@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
+import PlanReplacementDialog from "@/components/workouts/PlanReplacementDialog";
+import ReducedWorkoutConfirmationDialog from "@/components/workouts/ReducedWorkoutConfirmationDialog";
 import WorkoutDraftEditor from "@/components/workouts/WorkoutDraftEditor";
 import { applyAiGenerationResponse, getAiPlannerRecoveryAction } from "@/lib/ai-workout-planner-state";
 import {
@@ -6,6 +8,7 @@ import {
   parseAiWorkoutGenerationResponse,
   type AiWorkoutGenerationCommand,
   type AiWorkoutGenerationResponse,
+  type AiWorkoutGenerationMetadata,
 } from "@/lib/ai-workout-client";
 import type { AiGenerationErrorCode } from "@/lib/ai-workouts";
 import {
@@ -26,6 +29,7 @@ interface Props {
 
 type DraftOrigin = "manual" | "ai";
 type PendingOperation = "generate" | "save" | null;
+type ActiveProposal = Extract<AiWorkoutGenerationMetadata, { kind: "history_aware" }>;
 
 const GENERATION_MESSAGES: Record<AiGenerationErrorCode | "invalid_output", string> = {
   validation_failed: "The generation request could not be validated. Reload the page and try again.",
@@ -74,27 +78,18 @@ export default function WorkoutBuilder({ catalogue, initialCurrentPlan, credenti
   const [replacementPlan, setReplacementPlan] = useState<CurrentPlannedWorkout | null>(null);
   const [replacementDialogOpen, setReplacementDialogOpen] = useState(false);
   const [reducedConfirmation, setReducedConfirmation] = useState<{ count: 3 | 4; token: string } | null>(null);
-  const replacementDialogRef = useRef<HTMLDialogElement>(null);
-  const reducedConfirmationDialogRef = useRef<HTMLDialogElement>(null);
+  const [activeProposal, setActiveProposal] = useState<ActiveProposal | null>(null);
   const knownExerciseIds = useMemo(() => new Set(catalogue.map(({ id }) => id)), [catalogue]);
   const draftValid = validateDraftItems(draft, knownExerciseIds);
   const operationsPending = pending !== null;
 
-  useEffect(() => {
-    const dialog = replacementDialogRef.current;
-    if (!dialog) return;
-    if (replacementDialogOpen && !dialog.open) dialog.showModal();
-    if (!replacementDialogOpen && dialog.open) dialog.close();
-  }, [replacementDialogOpen]);
+  function generationCommand(): AiWorkoutGenerationCommand {
+    return activeProposal
+      ? { version: AI_WORKOUT_GENERATION_VERSION, priorProposalId: activeProposal.proposalId }
+      : { version: AI_WORKOUT_GENERATION_VERSION };
+  }
 
-  useEffect(() => {
-    const dialog = reducedConfirmationDialogRef.current;
-    if (!dialog) return;
-    if (reducedConfirmation && !dialog.open) dialog.showModal();
-    if (!reducedConfirmation && dialog.open) dialog.close();
-  }, [reducedConfirmation]);
-
-  async function generateWorkout(command: AiWorkoutGenerationCommand = { version: AI_WORKOUT_GENERATION_VERSION }) {
+  async function generateWorkout(command: AiWorkoutGenerationCommand = generationCommand()) {
     if (operationsPending || !credentialConfigured) return;
     setPending("generate");
     setGenerationError(null);
@@ -113,7 +108,7 @@ export default function WorkoutBuilder({ catalogue, initialCurrentPlan, credenti
       } catch {
         parsed = null;
       }
-      const transition = applyAiGenerationResponse(draft, parsed);
+      const transition = applyAiGenerationResponse(draft, parsed, activeProposal);
       if (!parsed?.ok && parsed?.code === "confirmation_required" && parsed.confirmationToken) {
         setReducedConfirmation({ count: parsed.availableExerciseCount ?? 3, token: parsed.confirmationToken });
         return;
@@ -124,6 +119,7 @@ export default function WorkoutBuilder({ catalogue, initialCurrentPlan, credenti
       } else if (transition.draft) {
         setDraft(transition.draft);
         setDraftOrigin("ai");
+        setActiveProposal(transition.activeProposal);
         setReducedConfirmation(null);
         setRequestId(null);
       }
@@ -202,7 +198,7 @@ export default function WorkoutBuilder({ catalogue, initialCurrentPlan, credenti
       if (failure.ok) throw new Error("UNEXPECTED_SUCCESS_RESPONSE");
       setRequestId(failure.requestId);
       if (failure.code === "confirmation_required" || failure.code === "stale_plan") {
-        setSaveError(SAVE_ERROR_MESSAGES[failure.code]);
+        setSaveError(SAVE_ERROR_MESSAGES[failure.code] ?? "The planned workout changed before it could be saved.");
         await handleSaveConflict(failure.code, failure.requestId);
       } else {
         setReplacementDialogOpen(false);
@@ -270,51 +266,19 @@ export default function WorkoutBuilder({ catalogue, initialCurrentPlan, credenti
         )}
       </section>
 
-      <dialog
-        ref={reducedConfirmationDialogRef}
-        aria-labelledby="reduced-confirmation-title"
-        className="m-auto w-[calc(100%-2rem)] max-w-[30rem] rounded-2xl border border-white/15 bg-slate-950 p-0 text-white shadow-2xl backdrop:bg-black/70"
-        onCancel={(event) => {
-          event.preventDefault();
+      <ReducedWorkoutConfirmationDialog
+        confirmation={reducedConfirmation}
+        pending={operationsPending}
+        onCancel={() => {
           if (!operationsPending) setReducedConfirmation(null);
         }}
-      >
-        <div className="space-y-4 p-6">
-          <h2 id="reduced-confirmation-title" className="text-lg font-semibold">
-            Generate a smaller workout?
-          </h2>
-          <p className="text-sm leading-6 text-blue-100/75">
-            Only {reducedConfirmation?.count ?? 0} recovery-compatible exercises are available right now. You can keep
-            planning manually, or generate a workout with exactly that many exercises.
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              disabled={operationsPending}
-              onClick={() => {
-                setReducedConfirmation(null);
-              }}
-              className="min-h-11 rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold disabled:opacity-45"
-            >
-              Keep planning manually
-            </button>
-            <button
-              type="button"
-              disabled={operationsPending || !reducedConfirmation}
-              onClick={() => {
-                if (!reducedConfirmation) return;
-                void generateWorkout({
-                  version: AI_WORKOUT_GENERATION_VERSION,
-                  confirmationToken: reducedConfirmation.token,
-                });
-              }}
-              className="min-h-11 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold disabled:opacity-45"
-            >
-              {pending === "generate" ? "Generating…" : "Generate smaller workout"}
-            </button>
-          </div>
-        </div>
-      </dialog>
+        onConfirm={(confirmationToken) => {
+          const command: AiWorkoutGenerationCommand = activeProposal
+            ? { version: AI_WORKOUT_GENERATION_VERSION, confirmationToken, priorProposalId: activeProposal.proposalId }
+            : { version: AI_WORKOUT_GENERATION_VERSION, confirmationToken };
+          void generateWorkout(command);
+        }}
+      />
 
       <WorkoutDraftEditor
         catalogue={catalogue}
@@ -334,50 +298,18 @@ export default function WorkoutBuilder({ catalogue, initialCurrentPlan, credenti
       />
       {requestId && !generationError && <p className="text-xs text-red-100/70">Support request ID: {requestId}</p>}
 
-      {replacementPlan && (
-        <dialog
-          ref={replacementDialogRef}
-          aria-labelledby="replacement-title"
-          aria-describedby="replacement-description"
-          onCancel={(event) => {
-            if (operationsPending) event.preventDefault();
-            else setReplacementDialogOpen(false);
-          }}
-          onClose={() => {
-            setReplacementDialogOpen(false);
-          }}
-          className="m-auto w-[calc(100%-2rem)] max-w-2xl rounded-2xl border border-amber-300/30 bg-slate-950 p-5 text-white shadow-2xl backdrop:bg-slate-950/80 sm:p-6"
-        >
-          <p className="text-sm font-medium tracking-wide text-amber-200 uppercase">Replacement confirmation</p>
-          <h2 id="replacement-title" className="mt-2 text-xl font-bold">
-            Replace the current planned workout?
-          </h2>
-          <p id="replacement-description" className="mt-2 text-sm leading-6 text-blue-100/70">
-            This draft is still local. It will replace this plan only if its current revision still matches the one
-            shown here.
-          </p>
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row-reverse">
-            <button
-              type="button"
-              disabled={operationsPending || !draftValid}
-              onClick={() => void submitSave(true, replacementPlan)}
-              className="min-h-11 rounded-lg bg-amber-300 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-45"
-            >
-              {pending === "save" ? "Replacing…" : "Replace planned workout"}
-            </button>
-            <button
-              type="button"
-              disabled={operationsPending}
-              onClick={() => {
-                setReplacementDialogOpen(false);
-              }}
-              className="min-h-11 rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-blue-50 disabled:opacity-45"
-            >
-              Keep editing
-            </button>
-          </div>
-        </dialog>
-      )}
+      <PlanReplacementDialog
+        plan={replacementPlan}
+        open={replacementDialogOpen}
+        pending={operationsPending}
+        draftValid={draftValid}
+        onCancel={() => {
+          setReplacementDialogOpen(false);
+        }}
+        onConfirm={(plan) => {
+          void submitSave(true, plan);
+        }}
+      />
     </div>
   );
 }

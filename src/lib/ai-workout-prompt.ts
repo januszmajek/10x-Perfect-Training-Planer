@@ -1,5 +1,6 @@
 import type { CatalogueExercise } from "./manual-workout-builder.ts";
 import type { HistoryAwareRecommendation } from "./ai-workout-recommender.ts";
+import type { HistoryAwareRequestedExerciseCount } from "./ai-workout-contract.ts";
 
 export const MAX_AI_CATALOGUE_CONTEXT_BYTES = 64 * 1024;
 
@@ -46,7 +47,7 @@ export function buildColdStartWorkoutPrompt(catalogue: readonly CatalogueExercis
 
 export function buildHistoryAwareWorkoutPrompt(
   recommendation: Pick<HistoryAwareRecommendation, "shortlist" | "feasibleCoverage">,
-  requestedExerciseCount: { min: 3 | 5; max: 4 | 7 },
+  requestedExerciseCount: HistoryAwareRequestedExerciseCount,
 ): AiWorkoutPromptResult {
   const shortlist = [...recommendation.shortlist]
     .sort((left, right) => left.id.localeCompare(right.id))
@@ -55,12 +56,15 @@ export function buildHistoryAwareWorkoutPrompt(
       name,
       equipment,
       movementPattern,
-      muscles: muscles.map(({ code, category, role }) => ({ code, category, role })),
-      reasons,
+      muscles: [...muscles]
+        .sort((left, right) => `${left.code}:${left.role}`.localeCompare(`${right.code}:${right.role}`))
+        .map(({ code, category, role }) => ({ code, category, role })),
+      eligibility: "recovery_compatible",
+      reasons: [...reasons].sort(),
     }));
   const context = JSON.stringify({
     shortlist,
-    feasibleCoverage: recommendation.feasibleCoverage,
+    feasibleCoverage: [...recommendation.feasibleCoverage].sort(),
     requestedExerciseCount,
   });
   if (new TextEncoder().encode(context).byteLength > MAX_AI_CATALOGUE_CONTEXT_BYTES)

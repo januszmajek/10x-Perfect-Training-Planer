@@ -65,7 +65,9 @@ export async function verifyReducedGenerationConfirmation(
     difference |= signature.charCodeAt(index) ^ expected.charCodeAt(index);
   if (difference !== 0) return null;
   try {
-    const decoded = new TextDecoder().decode(fromBase64Url(body));
+    const encodedBody = fromBase64Url(body);
+    if (!encodedBody) return null;
+    const decoded = new TextDecoder().decode(encodedBody);
     const value: unknown = JSON.parse(decoded);
     if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
     const payload = value as Record<string, unknown>;
@@ -73,6 +75,7 @@ export async function verifyReducedGenerationConfirmation(
       typeof payload.ownerId !== "string" ||
       typeof payload.candidateFingerprint !== "string" ||
       (payload.allowedCount !== 3 && payload.allowedCount !== 4) ||
+      typeof payload.expiresAt !== "number" ||
       !Number.isSafeInteger(payload.expiresAt) ||
       payload.expiresAt <= now ||
       typeof payload.nonce !== "string" ||
@@ -80,7 +83,13 @@ export async function verifyReducedGenerationConfirmation(
     ) {
       return null;
     }
-    return payload as ReducedGenerationConfirmation;
+    return {
+      ownerId: payload.ownerId,
+      candidateFingerprint: payload.candidateFingerprint,
+      allowedCount: payload.allowedCount,
+      expiresAt: payload.expiresAt,
+      nonce: payload.nonce,
+    };
   } catch {
     return null;
   }

@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildColdStartWorkoutPrompt, MAX_AI_CATALOGUE_CONTEXT_BYTES } from "./ai-workout-prompt.ts";
+import {
+  buildColdStartWorkoutPrompt,
+  buildHistoryAwareWorkoutPrompt,
+  MAX_AI_CATALOGUE_CONTEXT_BYTES,
+} from "./ai-workout-prompt.ts";
 import type { CatalogueExercise } from "./manual-workout-builder.ts";
+import type { HistoryAwareRecommendation } from "./ai-workout-recommender.ts";
 
 const catalogue: CatalogueExercise[] = [
   {
@@ -41,4 +46,30 @@ void test("rejects oversized catalogue context without truncating it", () => {
     },
   ];
   assert.deepEqual(buildColdStartWorkoutPrompt(oversized), { ok: false, code: "catalogue_context_too_large" });
+});
+
+void test("builds deterministic, recovery-safe history-aware prompts without private history", () => {
+  const recommendation: Pick<HistoryAwareRecommendation, "shortlist" | "feasibleCoverage"> = {
+    shortlist: catalogue.map((exercise) => ({
+      ...exercise,
+      reasons: ["familiar"],
+      familiarityScore: 1,
+      similarityScore: 0,
+      recovery: { state: "ready" as const, recoveringUntil: null },
+    })),
+    feasibleCoverage: ["upper_body_pull", "upper_body_push"],
+  };
+  const first = buildHistoryAwareWorkoutPrompt(recommendation, { min: 3, max: 3 });
+  const second = buildHistoryAwareWorkoutPrompt(
+    {
+      ...recommendation,
+      shortlist: [...recommendation.shortlist].reverse(),
+      feasibleCoverage: [...recommendation.feasibleCoverage].reverse(),
+    },
+    { min: 3, max: 3 },
+  );
+  assert.deepEqual(first, second);
+  assert.equal(first.ok, true);
+  assert.match(first.data.user, /"eligibility":"recovery_compatible"/);
+  assert.doesNotMatch(`${first.data.system}\n${first.data.user}`, /timestamp|user id|credential|proposal/i);
 });

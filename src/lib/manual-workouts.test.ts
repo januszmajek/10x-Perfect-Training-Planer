@@ -99,11 +99,10 @@ void test("loads only the authenticated owner's bounded completed recovery histo
     },
   };
 
-  const result = await loadWorkoutBuilderData(client as Parameters<typeof loadWorkoutBuilderData>[0], USER_ID);
+  const result = await loadWorkoutBuilderData(client as never, USER_ID);
 
   assert.equal(result.ok, true);
-  const builderData = result as { data: { catalogue: { recovery: { state: string } }[] } };
-  assert.equal(builderData.data.catalogue[0].recovery.state, "recovering");
+  assert.equal(result.data.catalogue[0].recovery.state, "recovering");
   assert.ok(actions.some((action) => JSON.stringify(action) === JSON.stringify(["eq", "user_id", USER_ID])));
   assert.ok(actions.some((action) => JSON.stringify(action) === JSON.stringify(["eq", "status", "completed"])));
   const boundary = actions.find(

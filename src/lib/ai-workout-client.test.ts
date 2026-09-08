@@ -11,10 +11,24 @@ const exercises = [1, 2, 3, 4, 5].map((number) => ({
   sets: 3,
   reps: 10,
 }));
+const proposalId = "00000000-0000-0000-0000-000000000099";
 
-void test("accepts only the versioned empty generation command", () => {
+void test("accepts only the four exact versioned generation commands", () => {
   assert.deepEqual(parseAiWorkoutGenerationCommand({ version: AI_WORKOUT_GENERATION_VERSION }), { version: 1 });
+  assert.deepEqual(parseAiWorkoutGenerationCommand({ version: 1, priorProposalId: proposalId }), {
+    version: 1,
+    priorProposalId: proposalId,
+  });
+  assert.deepEqual(parseAiWorkoutGenerationCommand({ version: 1, confirmationToken: "signed-token" }), {
+    version: 1,
+    confirmationToken: "signed-token",
+  });
+  assert.deepEqual(
+    parseAiWorkoutGenerationCommand({ version: 1, confirmationToken: "signed-token", priorProposalId: proposalId }),
+    { version: 1, confirmationToken: "signed-token", priorProposalId: proposalId },
+  );
   assert.equal(parseAiWorkoutGenerationCommand({ version: 1, model: "not-allowed" }), null);
+  assert.equal(parseAiWorkoutGenerationCommand({ version: 1, confirmationToken: "", requestedCount: 3 }), null);
   assert.equal(parseAiWorkoutGenerationCommand({}), null);
 });
 
@@ -35,6 +49,34 @@ void test("parses exact safe generation success and failure responses", () => {
     code: "confirmation_required",
     requestId: "request-3",
   });
+  assert.deepEqual(parseAiWorkoutGenerationResponse({ code: "stale_plan", requestId: "request-4" }), {
+    ok: false,
+    code: "stale_plan",
+    requestId: "request-4",
+  });
+});
+
+void test("parses history-aware metadata only when it matches the displayed proposal", () => {
+  const metadata = {
+    kind: "history_aware",
+    proposalId,
+    exerciseCount: exercises.length,
+    reduced: false,
+    originalExerciseIds: exercises.map(({ exerciseId }) => exerciseId),
+    preferences: Object.fromEntries(exercises.map(({ exerciseId }) => [exerciseId, "neutral"])),
+  } as const;
+  assert.equal(
+    parseAiWorkoutGenerationResponse({ proposal: { exercises }, metadata, requestId: "request-history" })?.ok,
+    true,
+  );
+  assert.equal(
+    parseAiWorkoutGenerationResponse({
+      proposal: { exercises },
+      metadata: { ...metadata, originalExerciseIds: [...metadata.originalExerciseIds.slice(1), proposalId] },
+      requestId: "request-history",
+    }),
+    null,
+  );
 });
 
 void test("rejects malformed, unknown, and inconsistent browser response payloads", () => {

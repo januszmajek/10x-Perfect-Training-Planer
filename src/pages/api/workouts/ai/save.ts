@@ -25,7 +25,23 @@ export const POST: APIRoute = async (context) => {
 
   const result = await saveAiPlannedWorkout(supabase, user.id, validation.value);
   if (!result.ok) {
-    return failureResponse(requestId, operation, result.code, result.internal.layer, result.internal.technicalCode);
+    let code:
+      | "validation_failed"
+      | "unauthenticated"
+      | "origin_rejected"
+      | "confirmation_required"
+      | "stale_plan"
+      | "persistence_failed" = "persistence_failed";
+    switch (result.code) {
+      case "validation_failed":
+      case "unauthenticated":
+      case "origin_rejected":
+      case "confirmation_required":
+      case "stale_plan":
+        code = result.code;
+        break;
+    }
+    return failureResponse(requestId, operation, code, result.internal.layer, result.internal.technicalCode);
   }
 
   return new Response(null, {

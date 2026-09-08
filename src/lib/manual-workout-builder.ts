@@ -210,11 +210,16 @@ export function parseManualWorkoutRequest(input: unknown): ManualWorkoutRequestV
     typeof input.replaceExisting !== "boolean" ||
     (input.expectedWorkoutId !== null && !isCanonicalUuid(input.expectedWorkoutId)) ||
     (input.expectedRevision !== null &&
-      (!Number.isSafeInteger(input.expectedRevision) || (input.expectedRevision as number) < 1)) ||
+      (typeof input.expectedRevision !== "number" ||
+        !Number.isSafeInteger(input.expectedRevision) ||
+        input.expectedRevision < 1)) ||
     !Array.isArray(input.exercises)
   ) {
     return { valid: false };
   }
+
+  const expectedWorkoutId = input.expectedWorkoutId;
+  const expectedRevision = typeof input.expectedRevision === "number" ? input.expectedRevision : null;
 
   if (
     (input.replaceExisting && (input.expectedWorkoutId === null || input.expectedRevision === null)) ||
@@ -246,8 +251,8 @@ export function parseManualWorkoutRequest(input: unknown): ManualWorkoutRequestV
     value: {
       version: MANUAL_WORKOUT_REQUEST_VERSION,
       replaceExisting: input.replaceExisting,
-      expectedWorkoutId: input.expectedWorkoutId,
-      expectedRevision: input.expectedRevision,
+      expectedWorkoutId,
+      expectedRevision,
       exercises,
     },
   };

@@ -38,24 +38,35 @@ function hasExactKeys(value: Record<string, unknown>, expected: readonly string[
   return Object.keys(value).sort().join("\0") === [...expected].sort().join("\0");
 }
 
-function hasValidToken(value: Record<string, unknown>): value is Record<string, string | number> {
-  return (
+interface PlannedWorkoutMutationToken {
+  version: typeof PLANNED_WORKOUT_MUTATION_VERSION;
+  expectedWorkoutId: string;
+  expectedRevision: number;
+}
+
+function parseValidToken(value: Record<string, unknown>): PlannedWorkoutMutationToken | null {
+  if (
     value.version === PLANNED_WORKOUT_MUTATION_VERSION &&
     isCanonicalUuid(value.expectedWorkoutId) &&
+    typeof value.expectedRevision === "number" &&
     Number.isSafeInteger(value.expectedRevision) &&
-    (value.expectedRevision as number) > 0
-  );
+    value.expectedRevision > 0
+  ) {
+    return {
+      version: PLANNED_WORKOUT_MUTATION_VERSION,
+      expectedWorkoutId: value.expectedWorkoutId,
+      expectedRevision: value.expectedRevision,
+    };
+  }
+  return null;
 }
 
 export function parsePlannedWorkoutUpdateRequest(input: unknown): PlannedWorkoutUpdateValidation {
-  if (
-    !isPlainRecord(input) ||
-    !hasExactKeys(input, UPDATE_KEYS) ||
-    !hasValidToken(input) ||
-    !Array.isArray(input.exercises)
-  ) {
+  if (!isPlainRecord(input) || !hasExactKeys(input, UPDATE_KEYS) || !Array.isArray(input.exercises)) {
     return { valid: false };
   }
+  const token = parseValidToken(input);
+  if (!token) return { valid: false };
 
   const exercises: ManualWorkoutDraftItem[] = [];
   for (const item of input.exercises) {
@@ -69,35 +80,39 @@ export function parsePlannedWorkoutUpdateRequest(input: unknown): PlannedWorkout
     valid: true,
     value: {
       version: PLANNED_WORKOUT_MUTATION_VERSION,
-      expectedWorkoutId: input.expectedWorkoutId,
-      expectedRevision: input.expectedRevision,
+      expectedWorkoutId: token.expectedWorkoutId,
+      expectedRevision: token.expectedRevision,
       exercises,
     },
   };
 }
 
 export function parsePlannedWorkoutDeleteRequest(input: unknown): PlannedWorkoutDeleteValidation {
-  if (!isPlainRecord(input) || !hasExactKeys(input, DELETE_KEYS) || !hasValidToken(input)) return { valid: false };
+  if (!isPlainRecord(input) || !hasExactKeys(input, DELETE_KEYS)) return { valid: false };
+  const token = parseValidToken(input);
+  if (!token) return { valid: false };
 
   return {
     valid: true,
     value: {
       version: PLANNED_WORKOUT_MUTATION_VERSION,
-      expectedWorkoutId: input.expectedWorkoutId,
-      expectedRevision: input.expectedRevision,
+      expectedWorkoutId: token.expectedWorkoutId,
+      expectedRevision: token.expectedRevision,
     },
   };
 }
 
 export function parsePlannedWorkoutCompleteRequest(input: unknown): PlannedWorkoutCompleteValidation {
-  if (!isPlainRecord(input) || !hasExactKeys(input, COMPLETE_KEYS) || !hasValidToken(input)) return { valid: false };
+  if (!isPlainRecord(input) || !hasExactKeys(input, COMPLETE_KEYS)) return { valid: false };
+  const token = parseValidToken(input);
+  if (!token) return { valid: false };
 
   return {
     valid: true,
     value: {
       version: PLANNED_WORKOUT_MUTATION_VERSION,
-      expectedWorkoutId: input.expectedWorkoutId,
-      expectedRevision: input.expectedRevision,
+      expectedWorkoutId: token.expectedWorkoutId,
+      expectedRevision: token.expectedRevision,
     },
   };
 }

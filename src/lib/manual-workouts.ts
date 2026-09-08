@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { validateDraftItems, type CatalogueExercise, type ManualWorkoutRequest } from "./manual-workout-builder.ts";
+import { validateDraftItems, type ManualWorkoutRequest } from "./manual-workout-builder.ts";
 import {
   loadCurrentPlannedWorkout,
   loadRecentCompletedRecoveryWorkouts,
@@ -10,7 +10,7 @@ import {
   type WorkoutErrorCode,
   type WorkoutResult,
 } from "./planned-workouts.ts";
-import { projectRecoveryAwareCatalogue } from "./recovery-aware-catalogue.ts";
+import { projectRecoveryAwareCatalogue, type RecoveryAwareCatalogueExercise } from "./recovery-aware-catalogue.ts";
 import type { Database, Json } from "@/types/database.types";
 
 type WorkoutClient = SupabaseClient<Database>;
@@ -20,7 +20,7 @@ export type ManualWorkoutResult<T> = WorkoutResult<T>;
 export type { CurrentPlannedWorkout };
 
 export interface WorkoutBuilderData {
-  catalogue: CatalogueExercise[];
+  catalogue: RecoveryAwareCatalogueExercise[];
   currentPlan: CurrentPlannedWorkout | null;
 }
 

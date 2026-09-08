@@ -27,3 +27,11 @@ void test("uses deterministic candidate fingerprints and opaque nonce digests", 
   assert.equal(await fingerprintCandidates(["b", "a"]), await fingerprintCandidates(["a", "b"]));
   assert.notEqual(await digestConfirmationNonce(payload.nonce), payload.nonce);
 });
+
+void test("rejects tampered and malformed confirmation capabilities", async () => {
+  const token = await createReducedGenerationConfirmation(payload, "test-secret");
+  assert.ok(token);
+  assert.equal(await verifyReducedGenerationConfirmation(`${token}x`, "test-secret", 1_000), null);
+  assert.equal(await verifyReducedGenerationConfirmation("not-a-token", "test-secret", 1_000), null);
+  assert.equal(await verifyReducedGenerationConfirmation(token, undefined, 1_000), null);
+});

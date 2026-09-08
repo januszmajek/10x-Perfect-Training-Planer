@@ -270,10 +270,13 @@ function isHistoryExercise(value: unknown): value is CompletedWorkoutExercise {
     isCanonicalUuid(value.exerciseId) &&
     typeof value.name === "string" &&
     value.name.trim().length > 0 &&
+    typeof value.position === "number" &&
     Number.isSafeInteger(value.position) &&
     value.position >= 0 &&
+    typeof value.sets === "number" &&
     Number.isSafeInteger(value.sets) &&
     value.sets > 0 &&
+    typeof value.reps === "number" &&
     Number.isSafeInteger(value.reps) &&
     value.reps > 0 &&
     Array.isArray(value.muscles) &&

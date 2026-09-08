@@ -13,10 +13,12 @@ export interface AiWorkoutProposal {
   exercises: ManualWorkoutDraftItem[];
 }
 
+export type HistoryAwareRequestedExerciseCount = { min: 5; max: 7 } | { min: 3; max: 3 } | { min: 4; max: 4 };
+
 export interface HistoryAwareValidationContext {
   shortlist: readonly CatalogueExercise[];
   feasibleCoverage: readonly ("lower_body" | "core" | "upper_body_push" | "upper_body_pull")[];
-  requestedExerciseCount: { min: 3 | 5; max: 4 | 7 };
+  requestedExerciseCount: HistoryAwareRequestedExerciseCount;
 }
 
 export type AiWorkoutProposalFailure = "malformed_json" | "invalid_proposal";

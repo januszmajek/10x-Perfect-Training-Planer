@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isCanonicalUuid } from "./manual-workout-builder.ts";
 import {
   encodeWorkoutHistoryCursor,
   isCompletedWorkoutHistoryEntry,
@@ -42,15 +43,35 @@ function asHistoryMembership(value: unknown): HistoryMembership | null {
 
 function mapHistoryDetail(value: unknown): CompletedWorkoutHistoryEntry | null {
   if (!isRecord(value) || !Array.isArray(value.workout_exercises)) return null;
-  const exercises = [];
+  const exercises: CompletedWorkoutHistoryEntry["exercises"] = [];
 
   for (const item of value.workout_exercises) {
     if (!isRecord(item) || !isRecord(item.exercises) || !Array.isArray(item.exercises.exercise_muscle_groups))
       return null;
-    const muscles = [];
+    if (
+      !isCanonicalUuid(item.exercise_id) ||
+      typeof item.exercises.name !== "string" ||
+      typeof item.position !== "number" ||
+      !Number.isSafeInteger(item.position) ||
+      typeof item.sets !== "number" ||
+      !Number.isSafeInteger(item.sets) ||
+      typeof item.reps !== "number" ||
+      !Number.isSafeInteger(item.reps)
+    ) {
+      return null;
+    }
+    const muscles: CompletedWorkoutHistoryEntry["exercises"][number]["muscles"] = [];
     for (const tag of item.exercises.exercise_muscle_groups) {
       if (!isRecord(tag) || !isRecord(tag.muscle_groups)) return null;
-      muscles.push({ code: tag.muscle_group_code, name: tag.muscle_groups.name, role: tag.role });
+      const role = tag.role;
+      if (
+        typeof tag.muscle_group_code !== "string" ||
+        typeof tag.muscle_groups.name !== "string" ||
+        (role !== "primary" && role !== "secondary")
+      ) {
+        return null;
+      }
+      muscles.push({ code: tag.muscle_group_code, name: tag.muscle_groups.name, role });
     }
     exercises.push({
       exerciseId: item.exercise_id,
@@ -88,11 +109,16 @@ export async function loadHistoryMuscleOptions(
     .select("role,muscle_groups(code,name)")
     .limit(100);
   if (error) return workoutFailure("persistence_failed", "database", error.code);
-  const options = (data as unknown[]).flatMap((item) => {
-    if (!isRecord(item) || (item.role !== "primary" && item.role !== "secondary") || !isRecord(item.muscle_groups))
-      return [];
+  const options = (data as unknown[]).flatMap<HistoryFilterMuscleOption>((item) => {
+    if (!isRecord(item) || !isRecord(item.muscle_groups)) return [];
     const { code, name } = item.muscle_groups;
-    return typeof code === "string" && typeof name === "string" && name.trim() ? [{ code, name, role: item.role }] : [];
+    const role = item.role;
+    return typeof code === "string" &&
+      typeof name === "string" &&
+      name.trim() &&
+      (role === "primary" || role === "secondary")
+      ? [{ code, name, role }]
+      : [];
   });
   if (options.length === 0) return historyFailure("INVALID_MUSCLE_OPTION");
   return {
