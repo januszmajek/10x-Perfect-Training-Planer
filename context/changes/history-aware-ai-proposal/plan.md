@@ -522,185 +522,169 @@ confirmation of provider-call ordering, token invalidation, and cold-start compa
 
 ---
 
-## Phase 4: Preference UI, Lifecycle Telemetry, and Release Gates
+## Phase 4A: Save and Completion Lifecycle Data Contract
 
 ### Overview
 
-Deliver the history-aware experience through the existing shared builder, connect explicit and behavioral feedback to
-the workout lifecycle, add the missing CI gate, and verify the privacy/retention contract in the Worker runtime.
-
-### Scope correction (2026-09-08)
-
-This is not a reasonable single implementation or commit slice after Phases 1–3: it combines an irreversible
-database-contract migration, two new authenticated browser APIs, cross-component interaction state, the terminal
-planned-workout transaction, CI, documentation, and a human-only production smoke check. Execute it as three ordered,
-independently reviewable checkpoints and commits:
-
-1. **Lifecycle data contract first** — add the AI-save proposal linkage and expiry-surviving completion record with
-   generated types and database tests. The existing `ai_workout_proposal_events.proposal_id` is non-null and cascades
-   on proposal deletion, so it cannot itself represent a completion after raw proposal expiry. Use a new private,
-   independently expiring completion record keyed by workout and opaque lineage UUID, rather than weakening the
-   applied event table's proposal foreign key.
-2. **Preference and interaction UI second** — add the preference/event client and routes, then wire Like, Don't
-   suggest, exposure, removal, and swap into the active proposal state. Do not duplicate the stale eligibility-gate
-   removal or reduced-workout dialog: Phase 3 already delivered them. Re-roll provenance is also already recorded
-   atomically by Phase 3 and must not gain a second browser event.
-3. **Release gates last** — add the AI suite to CI, update documentation/runbooks, run automated gates, then request
-   the human-only Worker smoke and retention-job inspection. These operational confirmations cannot be self-attested by
-   implementation code.
-
-The checkpoint order is mandatory: the UI must target the final save/completion contracts, and the release gate must
-exercise their integrated behavior. The existing numbered requirements below remain the acceptance contract; the
-checkpoints constrain how they are implemented and committed.
+Extend the existing AI-save and planned-completion transactions with opaque proposal lineage while keeping their
+ownership, compare-and-swap, lock-order, and immutable-history contracts intact.
 
 ### Changes Required:
 
-#### 1. Shared builder mode and reduced confirmation UI
+#### 1. Exact AI-save parser and atomic proposal linkage
 
-**Files**: `src/pages/workouts/new.astro`, `src/components/workouts/WorkoutBuilder.tsx`,
-`src/lib/ai-workout-planner-state.ts`, corresponding test files
+**Files**: `src/lib/ai-workout-save-request.ts`, `src/lib/ai-workout-save-request.test.ts`,
+`src/components/workouts/WorkoutBuilder.tsx`, `src/pages/api/workouts/ai/save.ts`, `src/lib/ai-workouts.ts`,
+`src/lib/ai-workouts.test.ts`, a new forward migration, `src/types/database.types.ts`, and matching pgTAP tests.
 
-**Intent**: Remove the stale page-load cold-start gate and let one generation control handle current server-selected
-mode plus the approved reduced-workout decision.
+**Contract**: Define a separate exact-key AI-save request parser that composes the existing manual-save fields with nullable
+`proposalId` without widening `parseManualWorkoutRequest` or the manual endpoint. The browser supplies the active
+history-aware proposal ID or null for cold-start/legacy drafts. Replace the callable four-argument
+`save_ai_planned_workout` signature in a forward migration with a five-argument version that validates live
+owner-scoped proposal state in the same transaction, derives retained exercises from the canonical submitted draft,
+records retained/save events, and copies only the opaque lineage UUID to the new workout. A null proposal ID preserves
+cold-start and legacy saves. Telemetry failure rolls back the save transaction and leaves the local draft available for a
+safe retry.
 
-**Contract**: Stop loading/passing `initialEligibility`; the authenticated POST is authoritative. Keep one Generate
-action and the current draft-preservation behavior. Store the active proposal state returned by the planner transition;
-edits retain it, a failed request preserves it, a re-roll supplies its proposal ID, a new success replaces it, and
-clearing/cancelling the draft clears it. On the typed 3–4 candidate response, open an accessible dialog that states the
-count and offers **Generate smaller workout** or **Keep planning manually**. Cancel preserves the draft and makes no
-provider call. Confirm sends the acknowledgement token plus the prior proposal ID when confirming a re-roll, prevents
-duplicate actions, and replaces the draft only after validated success. Fewer-than-three feedback keeps manual editing
-available.
+#### 2. Expiry-surviving completion telemetry
 
-#### 2. Like and Don't suggest controls
+**Files**: a new forward migration, `src/lib/planned-workouts.ts`,
+`src/lib/planned-workout-completion.test.ts`, `supabase/tests/database/ai_recommendation_feedback.test.sql`,
+`supabase/tests/database/ai_workout_mutation.test.sql`, `supabase/tests/database/planned_workout_completion.test.sql`,
+and `src/types/database.types.ts`.
 
-**Files**: `src/components/workouts/WorkoutBuilder.tsx`,
-`src/components/workouts/WorkoutDraftEditor.tsx`, `src/lib/ai-workout-feedback-client.ts`,
-`src/lib/ai-workout-feedback-client.test.ts`, `src/pages/api/workouts/ai/preferences.ts`
+**Contract**: The applied `ai_workout_proposal_events.proposal_id` is non-null and cascade-deleted with raw proposals,
+so it cannot represent a completion after raw telemetry expiry. Add a private, independently expiring completion record
+keyed by workout and carrying only owner, opaque proposal-lineage UUID, completion time, and expiry; it has no foreign
+key to proposal telemetry. Replace the body of `complete_planned_workout(uuid, integer)` in a forward migration without
+changing its callable signature. After the normal terminal transition, it inserts this record idempotently only when the
+completed workout has an owner-matched lineage marker. Manual, cold-start, and unlinked legacy AI workouts complete
+exactly as before; absent or malformed telemetry state never changes completion time, revision, lock order, or immutable
+prescriptions.
 
-**Intent**: Let users create durable, immediately effective preference signals without conflating them with catalogue
-favorites or implicit completion.
+#### 3. Retention and contract updates
 
-**Contract**: Show optional Like and **Don't suggest** controls only for IDs in the active proposal's original exercise
-set, not for exercises added later through manual editing. Hydrate initial pressed states from the history-aware
-generation response and update them locally only after a successful mutation. Controls expose keyboard/focus semantics,
-touch-sized targets, pending state, and safe retryable failure feedback. One state replaces the other; clearing returns
-to neutral. Preference API requests are authenticated, same-origin, strictly versioned, and operate on canonical
-exercise IDs through the narrow database function. A successful change affects future generation only and does not
-silently remove or reorder the current draft. Reloading does not restore an unsaved proposal; durable preferences are
-reflected whenever the exercise next appears in a generated proposal.
+**Files**: new forward migration, `README.md`, `docs/reference/contract-surfaces.md`, and the database tests above.
 
-#### 3. Edit, retention, re-roll, and save telemetry
-
-**Files**: `src/components/workouts/WorkoutBuilder.tsx`, `src/lib/ai-workout-planner-state.ts`,
-`src/lib/ai-workout-feedback-client.ts`, `src/lib/ai-workout-save-request.ts`,
-`src/lib/ai-workout-save-request.test.ts`, `src/pages/api/workouts/ai/events.ts`,
-`src/pages/api/workouts/ai/save.ts`, `src/lib/ai-workouts.ts`, corresponding test files
-
-**Intent**: Record the approved behavioral evidence while preserving local editing responsiveness and the existing
-atomic AI-save outcome.
-
-**Contract**: After a validated history-aware response is committed to active browser state, send an idempotent
-`exposure` acknowledgement through the event API; proposal creation before the HTTP response is not counted as display
-exposure. Failure to acknowledge never blocks or removes the local draft and remains distinguishable from a confirmed
-exposure in analysis. Associate subsequent re-rolls with the prior proposal. Record exercise remove and swap actions
-against the active owner-validated proposal through a bounded, strictly typed event API. At AI save, compare the
-submitted canonical draft with the recorded proposal server-side and record retained exercises plus the save/workout
-linkage; do not trust browser-authored “retained” claims.
-
-Define a separate exact-key AI-save request parser that composes the existing manual-save fields with nullable
-`proposalId` without widening `parseManualWorkoutRequest` or the manual endpoint. The browser always supplies a valid
-proposal ID for an active history-aware proposal and null for cold-start/legacy drafts; the server validates ownership
-and state whenever an ID is supplied. Because MVP telemetry is not an adversarial trust boundary, omission by a user
-calling the Data API directly is treated as owner-local metric poisoning rather than an authorization bypass. Extend
-`save_ai_planned_workout` with an optional proposal-ID argument, remove the superseded callable signature, and keep null
-as the cold-start/legacy path. When supplied, the same save transaction validates owner/proposal state, writes retained
-and save events, and copies the proposal's opaque lineage UUID onto the workout without adding a cascading
-workout-to-telemetry foreign key. Telemetry errors preserve local draft state and use safe retry/error behavior; saving
-must not silently claim complete telemetry when linkage fails.
-
-#### 4. Completion telemetry linkage
-
-**Files**: `src/lib/planned-workouts.ts`, `src/pages/api/workouts/planned.ts`,
-`src/components/workouts/PlannedWorkoutSummary.tsx`, `src/lib/planned-workout-completion.test.ts`,
-`supabase/migrations/<timestamp>_create_ai_recommendation_feedback.sql`, corresponding pgTAP tests
-
-**Intent**: Record that a retained history-aware proposal reached completed history without changing completion's
-terminal workout semantics.
-
-**Contract**: Replace the body of the existing `complete_planned_workout(uuid, integer)` function in a forward
-migration without changing its callable signature. In the same transaction, after the normal state transition, insert
-one idempotent, independently expiring completion event when the completed workout carries an owner-matched
-history-aware proposal-lineage UUID. The event may link to a live proposal when one remains, but raw proposal expiry
-does not remove the lineage marker or prevent the completion event. Manual, cold-start, and unlinked legacy AI workouts
-complete exactly as before. Telemetry linkage cannot change server-owned completion time, prescription immutability,
-revision behavior, owner isolation, or the planned-workout advisory lock order; malformed or missing telemetry state
-never blocks workout completion.
-
-#### 5. Responsive, accessible, and privacy-safe presentation
-
-**Files**: `src/components/workouts/WorkoutBuilder.tsx`,
-`src/components/workouts/WorkoutDraftEditor.tsx`, `src/pages/workouts/new.astro`
-
-**Intent**: Keep generation, confirmation, preferences, and manual fallback usable from 360px through desktop without
-exposing the private profile.
-
-**Contract**: Preserve 44px targets, visible focus, dialog focus containment/restoration, live pending/error messaging,
-long-name wrapping, and no horizontal overflow. Copy says “never completed in this app,” not “never tried,” and frames
-recovery as a planning constraint for AI rather than medical advice. Browser props and network responses contain only
-the active proposal, safe preference state for its exercises, public metadata, and opaque identifiers/tokens needed by
-the contracts—never raw history or telemetry collections.
-
-#### 6. CI, documentation, and operational verification
-
-**Files**: `.github/workflows/ci.yml`, `package.json`, `README.md`,
-`context/deployment/deployment-plan.md`, `docs/reference/contract-surfaces.md`, `astro.config.mjs`
-
-**Intent**: Make recommendation, feedback, retention, and history-aware generation executable release gates and leave a
-safe operating/rollback path.
-
-**Contract**: Include every new Node test in `pnpm test:ai-workout` and add that command as a distinct CI step before
-Astro sync/lint/build. Preserve all existing database, concurrency, generated-type, crypto, manual, planned, and history
-gates. Declare the dedicated confirmation-signing secret in the server environment schema and document its independent
-provisioning and rotation without exposing its value or reusing the provider-key encryption secret. Document the
-history-aware Worker smoke flow, reduced confirmation/no-call check, preference behavior, 90-day cleanup verification,
-safe diagnostics, migration rollout, and additive rollback. Do not deploy, push linked migrations, or modify real
-secrets during implementation.
+**Contract**: Extend the daily cleanup job idempotently to remove expired independent completion records without touching
+durable preferences or workouts. Document the additive rollback behavior and that proposal expiry cannot prevent a later
+completion record.
 
 ### Success Criteria:
 
 #### Automated Verification:
 
-- Final AI workout and feedback suite passes: `pnpm test:ai-workout`
-- Existing cryptography, manual, planned-workout, and history suites pass
-- Clean local database reset, schema lint, pgTAP suite, and generated-type drift check pass
-- Existing workout lifecycle and mutation concurrency gates remain green
-- CI contains and executes a distinct AI workout test step
-- Astro types synchronize successfully: `pnpm astro sync`
-- Repository lint passes: `pnpm lint`
-- Production Cloudflare Worker build succeeds: `pnpm build`
+- AI-save parser/service tests prove exact keys, owner validation, null legacy behavior, atomic retention/save events,
+  lineage copying, and rollback on linkage failure.
+- Database tests prove the new save signature, completion idempotency, owner isolation, CAS/advisory-lock preservation,
+  and completion-event creation after raw proposal expiry.
+- Clean reset, schema lint, pgTAP, generated-type drift, and existing lifecycle/concurrency gates pass.
 
 #### Manual Verification:
 
-- With five or more ready candidates, generation never offers or accepts a reduced-size proposal.
-- With exactly 3–4 ready candidates, the dialog appears before provider use; cancel preserves the draft and confirm
-  produces only the available ready exercises.
-- With fewer than three ready candidates, AI generation is unavailable while manual planning remains usable.
-- Like and **Don't suggest** persist in the database across reloads, are mutually exclusive, and are reflected when an
-  exercise next appears in a generated proposal without changing the current draft.
-- Display acknowledgement, re-roll, remove, swap, retention, save, and later completion create only owner-scoped typed
-  events; proposal creation alone is not counted as exposure, and cross-user IDs are rejected safely.
-- Expired raw telemetry is purged on schedule while durable preferences, planned workouts, opaque workout lineage, and
-  later completion-event creation remain intact.
-- Cold-start generation, failed-request draft preservation, edit, first save, replacement confirmation, completion,
-  and history display remain unchanged.
-- At 360px and desktop widths, generation, confirmation, preference controls, editing, and error recovery work with
-  keyboard and screen-reader semantics, correct focus restoration, and no overflow.
-- A disposable-key Worker-runtime smoke test proves history-aware normal and confirmed-reduced generation, explicit
-  preferences, safe failure handling, and absence of private data in browser payloads and logs.
+- Saving a history-aware draft records server-derived retained/save evidence and only an opaque lineage UUID on the
+  workout.
+- Completing after raw proposal expiry creates time-bounded completion telemetry while leaving the workout and durable
+  preferences intact.
 
-**Implementation Note**: This final phase requires human confirmation of the real-key Worker smoke test and retention
-job inspection before the change is considered implemented.
+**Implementation Note**: This is the only checkpoint permitted to change the AI-save or completion SQL contracts.
+
+---
+
+## Phase 4B: Preference Feedback and Interaction UI
+
+### Overview
+
+Build the remaining history-aware browser controls against the final lifecycle contracts from Phase 4A. The stale
+page-load eligibility gate, reduced-workout dialog, active-proposal state, and atomic re-roll provenance were already
+delivered by Phase 3 and are explicitly out of scope here.
+
+### Changes Required:
+
+#### 1. Like and Don't suggest controls
+
+**Files**: `src/components/workouts/WorkoutBuilder.tsx`, `src/components/workouts/WorkoutDraftEditor.tsx`,
+`src/lib/ai-workout-feedback-client.ts`, `src/lib/ai-workout-feedback-client.test.ts`,
+`src/pages/api/workouts/ai/preferences.ts`, and matching route/component tests.
+
+**Contract**: Show optional Like and **Don't suggest** controls only for IDs in the active proposal's original exercise
+set, never for later manual additions. Hydrate pressed state from the history-aware response and update it only after a
+successful authenticated, same-origin, strictly versioned preference mutation. One preference replaces the other;
+clearing returns to neutral. A successful change affects only future generations and never silently reorders or removes
+the current draft.
+
+#### 2. Display and edit telemetry
+
+**Files**: `src/components/workouts/WorkoutBuilder.tsx`, `src/lib/ai-workout-planner-state.ts`,
+`src/lib/ai-workout-feedback-client.ts`, `src/pages/api/workouts/ai/events.ts`, and matching tests.
+
+**Contract**: After a validated history-aware response commits to active browser state, send an idempotent non-blocking
+`exposure` acknowledgement. Proposal creation before the HTTP response is not display exposure. Record removal and
+swap actions through a bounded typed API against the active owner-validated proposal; event failures preserve the local
+draft and active proposal. Do not add a browser re-roll event because Phase 3 records that provenance atomically.
+
+#### 3. Accessible, private presentation
+
+**Files**: `src/components/workouts/WorkoutBuilder.tsx`, `src/components/workouts/WorkoutDraftEditor.tsx`, and
+corresponding tests.
+
+**Contract**: Preserve 44px targets, visible focus, live pending/error messaging, long-name wrapping, and no horizontal
+overflow from 360px through desktop. Copy says “never completed in this app,” not “never tried,” and browser props or
+responses expose only safe active-proposal metadata, opaque IDs, and necessary confirmation tokens.
+
+### Success Criteria:
+
+#### Automated Verification:
+
+- Preference request/client, component, and interaction-event tests pass through `pnpm test:ai-workout`.
+- Existing AI, manual, planned-workout, and history suites remain green; Astro sync and repository lint pass.
+
+#### Manual Verification:
+
+- Like and **Don't suggest** persist, are mutually exclusive, and affect only later proposals.
+- Display acknowledgement, removal, and swap are owner-scoped, typed, and non-blocking; re-roll is recorded once.
+- Feedback controls work with keyboard and screen-reader semantics at mobile and desktop widths.
+
+**Implementation Note**: Do not change the AI-save/completion transaction or CI configuration in this checkpoint.
+
+---
+
+## Phase 4C: Release Gates and Operational Verification
+
+### Overview
+
+Make the completed S-08 behavior continuously verifiable and collect the explicitly human-only Worker and retention
+evidence. This checkpoint contains no product-feature changes.
+
+### Changes Required:
+
+#### 1. CI, documentation, and operational verification
+
+**Files**: `.github/workflows/ci.yml`, `package.json`, `README.md`,
+`context/deployment/deployment-plan.md`, and `docs/reference/contract-surfaces.md`.
+
+**Contract**: Include every new Node test in `pnpm test:ai-workout` and add it as a distinct CI step before Astro
+sync/lint/build. Preserve all database, concurrency, generated-type, crypto, manual, planned, and history gates.
+Document independent confirmation-secret provisioning/rotation, history-aware Worker smoke steps, reduced
+confirmation/no-call behavior, preference behavior, 90-day cleanup verification, safe diagnostics, migration rollout,
+and additive rollback. Do not deploy, push linked migrations, or modify real secrets during implementation.
+
+### Success Criteria:
+
+#### Automated Verification:
+
+- CI executes `pnpm test:ai-workout` as a distinct step.
+- Clean database, schema lint, pgTAP, generated-type drift, concurrency, crypto, manual, planned-workout, history, Astro
+  sync, repository lint, and production Worker build gates pass.
+
+#### Manual Verification:
+
+- A human verifies five-plus, 3–4, and fewer-than-three candidate outcomes; persistence and owner-scoped lifecycle
+  telemetry; retention; cold-start regression; and responsive accessible behavior.
+- A human performs the disposable-key Worker-runtime smoke test and retention-job inspection using sanitized
+  diagnostics. This release gate cannot be self-attested by implementation code.
+
+**Implementation Note**: Human Worker smoke and retention-job confirmation are required before the change is complete.
 
 ---
 
@@ -881,27 +865,44 @@ job inspection before the change is considered implemented.
 - [x] 3.15 Confirmed 3–4 candidate generation calls the provider only after acceptance — 846418b, 601b9b7
 - [x] 3.16 Fewer than three candidates preserve manual planning — 846418b, 601b9b7
 
-### Phase 4: Preference UI, Lifecycle Telemetry, and Release Gates
+### Phase 4A: Save and Completion Lifecycle Data Contract
 
 #### Automated
 
-- [ ] 4.1 Final AI workout and feedback suite passes
-- [ ] 4.2 Existing focused application suites pass
-- [ ] 4.3 Clean database, schema lint, pgTAP, and generated-type gates pass
-- [ ] 4.4 Existing concurrency gates remain green
-- [ ] 4.5 CI executes the AI workout test suite
-- [ ] 4.6 Astro types synchronize successfully
-- [ ] 4.7 Repository lint passes
-- [ ] 4.8 Production Cloudflare Worker build succeeds
+- [ ] 4A.1 AI-save parser and service contract tests pass
+- [ ] 4A.2 Save linkage, retention, and completion database tests pass
+- [ ] 4A.3 Save signature, types, reset, schema lint, and generated-type drift gates pass
+- [ ] 4A.4 Existing lifecycle and concurrency gates remain green
 
 #### Manual
 
-- [ ] 4.9 Five-plus ready candidates never offer a reduced proposal
-- [ ] 4.10 Three-to-four candidate confirmation precedes provider use and preserves cancel state
-- [ ] 4.11 Fewer than three candidates keep the manual builder available
-- [ ] 4.12 Like and Don't suggest persist and affect only future proposals
-- [ ] 4.13 Full proposal lifecycle telemetry remains owner-scoped, typed, and display-accurate
-- [ ] 4.14 Scheduled expiry preserves durable preferences, workouts, lineage, and later completion
-- [ ] 4.15 Cold-start and existing workout lifecycle behavior remain unchanged
-- [ ] 4.16 Mobile, desktop, keyboard, screen-reader, focus, and overflow behavior is correct
-- [ ] 4.17 Disposable-key Worker-runtime history-aware smoke test is confirmed by a human
+- [ ] 4A.5 Saving a history-aware draft records server-derived lifecycle evidence
+- [ ] 4A.6 Completion after raw proposal expiry preserves workout and durable preferences
+
+### Phase 4B: Preference Feedback and Interaction UI
+
+#### Automated
+
+- [ ] 4B.1 Preference request, client, route, and component tests pass
+- [ ] 4B.2 Exposure, removal, and swap interaction-event tests pass
+- [ ] 4B.3 Existing AI, manual, planned-workout, and history suites remain green
+- [ ] 4B.4 Astro sync and repository lint pass
+
+#### Manual
+
+- [ ] 4B.5 Like and Don't suggest persist, remain mutually exclusive, and affect future proposals only
+- [ ] 4B.6 Interaction telemetry is owner-scoped, typed, and non-blocking
+- [ ] 4B.7 Mobile, desktop, keyboard, screen-reader, focus, and overflow behavior is correct
+
+### Phase 4C: Release Gates and Operational Verification
+
+#### Automated
+
+- [ ] 4C.1 CI executes the AI workout test suite as a distinct gate
+- [ ] 4C.2 Clean database, generated-type, concurrency, and focused application gates pass
+- [ ] 4C.3 Astro sync, repository lint, and production Cloudflare Worker build pass
+
+#### Manual
+
+- [ ] 4C.4 Human verifies candidate-count, retention, cold-start, and lifecycle regression scenarios
+- [ ] 4C.5 Disposable-key Worker-runtime history-aware smoke test and retention-job inspection are confirmed by a human
