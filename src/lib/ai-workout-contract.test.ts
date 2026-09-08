@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseAiWorkoutProposal, parseAiWorkoutProposalJson, type AiWorkoutProposal } from "./ai-workout-contract.ts";
+import {
+  buildAiWorkoutResponseSchema,
+  parseAiWorkoutProposal,
+  parseAiWorkoutProposalJson,
+  parseHistoryAwareAiWorkoutProposal,
+  type AiWorkoutProposal,
+} from "./ai-workout-contract.ts";
 import type { CatalogueExercise } from "./manual-workout-builder.ts";
 
 const IDS = Array.from({ length: 8 }, (_, index) => `00000000-0000-0000-0000-${String(index + 1).padStart(12, "0")}`);
@@ -90,4 +96,29 @@ void test("rejects proposals that omit a required full-body coverage category", 
   assert.equal(parseAiWorkoutProposal(proposal([IDS[0], IDS[1], IDS[2], IDS[4], IDS[5]]), catalogue).ok, false);
   assert.equal(parseAiWorkoutProposal(proposal([IDS[0], IDS[2], IDS[3], IDS[4], IDS[5]]), catalogue).ok, false);
   assert.equal(parseAiWorkoutProposal(proposal([IDS[0], IDS[1], IDS[3], IDS[5], IDS[6]]), catalogue).ok, false);
+});
+
+void test("builds a provider schema constrained to the vetted IDs and requested size", () => {
+  const schema = buildAiWorkoutResponseSchema(IDS.slice(0, 4), { min: 3, max: 4 });
+
+  assert.equal(schema.properties.exercises.minItems, 3);
+  assert.equal(schema.properties.exercises.maxItems, 4);
+  assert.deepEqual(schema.properties.exercises.items.properties.exerciseId.enum, IDS.slice(0, 4));
+});
+
+void test("history-aware validation rejects extra provider fields", () => {
+  const input = {
+    exercises: proposal(IDS.slice(0, 4)).exercises.map((item, index) =>
+      index === 0 ? { ...item, explanation: "extra" } : item,
+    ),
+  };
+
+  assert.deepEqual(
+    parseHistoryAwareAiWorkoutProposal(input, {
+      shortlist: catalogue.slice(0, 4),
+      feasibleCoverage: ["lower_body", "core", "upper_body_push", "upper_body_pull"],
+      requestedExerciseCount: { min: 3, max: 4 },
+    }),
+    { ok: false, code: "invalid_proposal" },
+  );
 });

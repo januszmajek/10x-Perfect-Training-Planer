@@ -13,33 +13,44 @@ export interface AiWorkoutProposal {
   exercises: ManualWorkoutDraftItem[];
 }
 
+export interface HistoryAwareValidationContext {
+  shortlist: readonly CatalogueExercise[];
+  feasibleCoverage: readonly ("lower_body" | "core" | "upper_body_push" | "upper_body_pull")[];
+  requestedExerciseCount: { min: 3 | 5; max: 4 | 7 };
+}
+
 export type AiWorkoutProposalFailure = "malformed_json" | "invalid_proposal";
 export type AiWorkoutProposalResult =
   | { ok: true; data: AiWorkoutProposal }
   | { ok: false; code: AiWorkoutProposalFailure };
 
-export const AI_WORKOUT_RESPONSE_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  required: ["exercises"],
-  properties: {
-    exercises: {
-      type: "array",
-      minItems: MIN_AI_WORKOUT_EXERCISES,
-      maxItems: MAX_AI_WORKOUT_EXERCISES,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["exerciseId", "sets", "reps"],
-        properties: {
-          exerciseId: { type: "string", format: "uuid" },
-          sets: { type: "integer", minimum: 1, maximum: MAX_SETS },
-          reps: { type: "integer", minimum: 1, maximum: MAX_REPS },
+export function buildAiWorkoutResponseSchema(
+  exerciseIds: readonly string[],
+  requestedExerciseCount: { min: number; max: number },
+) {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: ["exercises"],
+    properties: {
+      exercises: {
+        type: "array",
+        minItems: requestedExerciseCount.min,
+        maxItems: requestedExerciseCount.max,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["exerciseId", "sets", "reps"],
+          properties: {
+            exerciseId: { type: "string", enum: [...exerciseIds] },
+            sets: { type: "integer", minimum: 1, maximum: MAX_SETS },
+            reps: { type: "integer", minimum: 1, maximum: MAX_REPS },
+          },
         },
       },
     },
-  },
-} as const;
+  } as const;
+}
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -104,6 +115,50 @@ export function parseAiWorkoutProposalJson(
 ): AiWorkoutProposalResult {
   try {
     return parseAiWorkoutProposal(JSON.parse(content), catalogue);
+  } catch {
+    return { ok: false, code: "malformed_json" };
+  }
+}
+
+export function parseHistoryAwareAiWorkoutProposal(
+  input: unknown,
+  context: HistoryAwareValidationContext,
+): AiWorkoutProposalResult {
+  if (!isPlainRecord(input) || !hasExactKeys(input, ["exercises"]) || !Array.isArray(input.exercises)) {
+    return { ok: false, code: "invalid_proposal" };
+  }
+  const exercises: ManualWorkoutDraftItem[] = [];
+  for (const item of input.exercises) {
+    if (!isPlainRecord(item) || !hasExactKeys(item, ["exerciseId", "sets", "reps"])) {
+      return { ok: false, code: "invalid_proposal" };
+    }
+    exercises.push({ exerciseId: item.exerciseId as string, sets: item.sets as number, reps: item.reps as number });
+  }
+  if (
+    exercises.length < context.requestedExerciseCount.min ||
+    exercises.length > context.requestedExerciseCount.max ||
+    !validateDraftItems(exercises, new Set(context.shortlist.map(({ id }) => id)))
+  )
+    return { ok: false, code: "invalid_proposal" };
+  const selected = exercises.map((item) => context.shortlist.find(({ id }) => id === item.exerciseId));
+  if (selected.some((exercise) => !exercise)) return { ok: false, code: "invalid_proposal" };
+  for (const coverage of context.feasibleCoverage) {
+    const present = selected.some((exercise) => {
+      if (!exercise) return false;
+      if (coverage === "lower_body" || coverage === "core") return hasPrimaryCategory(exercise, coverage);
+      return hasUpperBodyMovement(exercise, coverage === "upper_body_push" ? "push" : "pull");
+    });
+    if (!present) return { ok: false, code: "invalid_proposal" };
+  }
+  return { ok: true, data: { exercises } };
+}
+
+export function parseHistoryAwareAiWorkoutProposalJson(
+  content: string,
+  context: HistoryAwareValidationContext,
+): AiWorkoutProposalResult {
+  try {
+    return parseHistoryAwareAiWorkoutProposal(JSON.parse(content), context);
   } catch {
     return { ok: false, code: "malformed_json" };
   }

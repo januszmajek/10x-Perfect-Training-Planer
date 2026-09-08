@@ -237,14 +237,14 @@ export function recommendHistoryAwareWorkout({
       candidate.reasons.includes("never_completed") &&
       candidate.similarityScore >= HISTORY_AWARE_RECOMMENDER_CONFIG.similarityConfidenceThreshold,
   );
-  const rankingPool = candidates.filter(
+  const preferredPool = candidates.filter(
     (candidate) =>
       !candidate.reasons.includes("never_completed") || eligibleUnseen.some((item) => item.id === candidate.id),
   );
-  const ranked = ordered(rankingPool, (candidate) => candidate.rankScore, seed);
+  const ranked = ordered(candidates, (candidate) => candidate.rankScore, seed);
   const selected: Candidate[] = [];
   const feasibleCoverage = (["lower_body", "core", "upper_body_push", "upper_body_pull"] as const).filter((coverage) =>
-    rankingPool.some((candidate) => candidate.coverage.includes(coverage)),
+    candidates.some((candidate) => candidate.coverage.includes(coverage)),
   );
   for (const coverage of feasibleCoverage) {
     if (selected.length >= maximum) break;
@@ -262,14 +262,24 @@ export function recommendHistoryAwareWorkout({
     0,
     Math.max(0, explorationCap - selectedUnseen),
   );
-  const shortlist = selectWithMmr(
-    ranked.filter(
-      (candidate) =>
-        !candidate.reasons.includes("never_completed") || exploration.some((item) => item.id === candidate.id),
-    ),
+  const preferredCandidates = ranked.filter(
+    (candidate) =>
+      preferredPool.some((item) => item.id === candidate.id) &&
+      (!candidate.reasons.includes("never_completed") || exploration.some((item) => item.id === candidate.id)),
+  );
+  const preferredTarget = Math.min(
     maximum,
+    Math.max(
+      decision.kind === "normal" ? HISTORY_AWARE_RECOMMENDER_CONFIG.normalProposalMinimumSize : maximum,
+      new Set([...selected, ...preferredCandidates].map(({ id }) => id)).size,
+    ),
+  );
+  const preferredShortlist = selectWithMmr(preferredCandidates, preferredTarget, seed, selected);
+  const shortlist = selectWithMmr(
+    ranked.filter((candidate) => !preferredShortlist.some((item) => item.id === candidate.id)),
+    preferredTarget,
     seed,
-    selected,
+    preferredShortlist,
   );
 
   return {

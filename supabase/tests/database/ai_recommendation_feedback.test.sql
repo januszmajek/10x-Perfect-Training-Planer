@@ -14,6 +14,22 @@ select col_is_pk('public', 'ai_exercise_preferences', array['user_id', 'exercise
 select ok((select relrowsecurity from pg_class where oid = 'public.ai_workout_proposals'::regclass), 'proposal RLS is enabled');
 select ok(not has_table_privilege('authenticated', 'public.ai_workout_proposals', 'select, insert, update, delete'), 'telemetry tables have no direct authenticated access');
 select ok(exists (select 1 from cron.job where jobname = 'purge-expired-ai-recommendation-data'), 'one stable retention job is installed');
+select is(
+  (
+    select count(*)
+    from pg_proc
+    where pronamespace = 'public'::regnamespace
+      and proname = 'record_ai_workout_proposal'
+  ),
+  1::bigint,
+  'proposal recording exposes one unambiguous PostgREST function'
+);
+select has_function(
+  'public',
+  'record_ai_workout_proposal',
+  array['uuid[]', 'uuid'],
+  'proposal recording exposes the phase-3 re-roll signature'
+);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-000000000901', 'feedback-owner@example.test'),
@@ -33,7 +49,7 @@ select set_config('test.proposal_id', (select proposal_id::text from public.reco
   (select id from public.exercises where slug = 'barbell-bench-press'),
   (select id from public.exercises where slug = 'back-squat'),
   (select id from public.exercises where slug = 'plank')
-])), true);
+], null)), true);
 select lives_ok($$select public.append_ai_workout_proposal_event(current_setting('test.proposal_id')::uuid, 'exposure')$$, 'an owner can record exposure');
 select throws_ok(
   $$select public.append_ai_workout_proposal_event(current_setting('test.proposal_id')::uuid, 'removal')$$,

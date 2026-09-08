@@ -4,6 +4,7 @@ import { applyAiGenerationResponse, getAiPlannerRecoveryAction } from "@/lib/ai-
 import {
   AI_WORKOUT_GENERATION_VERSION,
   parseAiWorkoutGenerationResponse,
+  type AiWorkoutGenerationCommand,
   type AiWorkoutGenerationResponse,
 } from "@/lib/ai-workout-client";
 import type { AiGenerationErrorCode } from "@/lib/ai-workouts";
@@ -21,7 +22,6 @@ interface Props {
   catalogue: CatalogueExercise[];
   initialCurrentPlan: CurrentPlannedWorkout | null;
   credentialConfigured: boolean;
-  initialEligibility: "eligible" | "history_aware_not_available";
 }
 
 type DraftOrigin = "manual" | "ai";
@@ -33,6 +33,9 @@ const GENERATION_MESSAGES: Record<AiGenerationErrorCode | "invalid_output", stri
   origin_rejected: "The generation request was rejected by the security check. Reload the page before trying again.",
   persistence_failed: "Workout planning is temporarily unavailable. Your draft is unchanged.",
   confirmation_required: "A planned workout needs confirmation before it can be replaced.",
+  stale_confirmation: "That reduced-workout confirmation is no longer valid. Generate again to refresh it.",
+  insufficient_recovered_candidates:
+    "Fewer than three exercises are eligible after recovery and personalization filters. Keep planning manually.",
   stale_plan: "Your planned workout changed elsewhere. Refresh it before saving this draft.",
   history_aware_not_available:
     "Personalized AI planning is next. This balanced starter is available only before your first completed workout.",
@@ -60,24 +63,19 @@ function responseFailure(response: AiWorkoutGenerationResponse | null): AiWorkou
   return response ?? { ok: false, code: "invalid_output", requestId: null };
 }
 
-export default function WorkoutBuilder({
-  catalogue,
-  initialCurrentPlan,
-  credentialConfigured,
-  initialEligibility,
-}: Props) {
+export default function WorkoutBuilder({ catalogue, initialCurrentPlan, credentialConfigured }: Props) {
   const [draft, setDraft] = useState<ManualWorkoutDraftItem[]>([]);
   const [draftOrigin, setDraftOrigin] = useState<DraftOrigin>("manual");
   const [currentPlan, setCurrentPlan] = useState(initialCurrentPlan);
   const [pending, setPending] = useState<PendingOperation>(null);
-  const [generationError, setGenerationError] = useState<AiGenerationErrorCode | "invalid_output" | null>(
-    initialEligibility === "history_aware_not_available" ? "history_aware_not_available" : null,
-  );
+  const [generationError, setGenerationError] = useState<AiGenerationErrorCode | "invalid_output" | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
   const [replacementPlan, setReplacementPlan] = useState<CurrentPlannedWorkout | null>(null);
   const [replacementDialogOpen, setReplacementDialogOpen] = useState(false);
+  const [reducedConfirmation, setReducedConfirmation] = useState<{ count: 3 | 4; token: string } | null>(null);
   const replacementDialogRef = useRef<HTMLDialogElement>(null);
+  const reducedConfirmationDialogRef = useRef<HTMLDialogElement>(null);
   const knownExerciseIds = useMemo(() => new Set(catalogue.map(({ id }) => id)), [catalogue]);
   const draftValid = validateDraftItems(draft, knownExerciseIds);
   const operationsPending = pending !== null;
@@ -89,8 +87,15 @@ export default function WorkoutBuilder({
     if (!replacementDialogOpen && dialog.open) dialog.close();
   }, [replacementDialogOpen]);
 
-  async function generateWorkout() {
-    if (operationsPending || initialEligibility !== "eligible" || !credentialConfigured) return;
+  useEffect(() => {
+    const dialog = reducedConfirmationDialogRef.current;
+    if (!dialog) return;
+    if (reducedConfirmation && !dialog.open) dialog.showModal();
+    if (!reducedConfirmation && dialog.open) dialog.close();
+  }, [reducedConfirmation]);
+
+  async function generateWorkout(command: AiWorkoutGenerationCommand = { version: AI_WORKOUT_GENERATION_VERSION }) {
+    if (operationsPending || !credentialConfigured) return;
     setPending("generate");
     setGenerationError(null);
     setSaveError(null);
@@ -100,7 +105,7 @@ export default function WorkoutBuilder({
         method: "POST",
         credentials: "same-origin",
         headers: { Accept: "application/json", "Content-Type": "application/json" },
-        body: JSON.stringify({ version: AI_WORKOUT_GENERATION_VERSION }),
+        body: JSON.stringify(command),
       });
       let parsed: AiWorkoutGenerationResponse | null = null;
       try {
@@ -109,12 +114,17 @@ export default function WorkoutBuilder({
         parsed = null;
       }
       const transition = applyAiGenerationResponse(draft, parsed);
+      if (!parsed?.ok && parsed?.code === "confirmation_required" && parsed.confirmationToken) {
+        setReducedConfirmation({ count: parsed.availableExerciseCount ?? 3, token: parsed.confirmationToken });
+        return;
+      }
       if (transition.code) {
         setGenerationError(transition.code);
         setRequestId(transition.requestId);
       } else if (transition.draft) {
         setDraft(transition.draft);
         setDraftOrigin("ai");
+        setReducedConfirmation(null);
         setRequestId(null);
       }
     } catch {
@@ -228,14 +238,14 @@ export default function WorkoutBuilder({
           </div>
           <button
             type="button"
-            disabled={operationsPending || !credentialConfigured || initialEligibility !== "eligible"}
+            disabled={operationsPending || !credentialConfigured}
             onClick={() => void generateWorkout()}
             className="min-h-11 shrink-0 rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
           >
             {pending === "generate" ? "Generating…" : "Generate workout"}
           </button>
         </div>
-        {!credentialConfigured && initialEligibility === "eligible" && (
+        {!credentialConfigured && (
           <p className="mt-4 text-sm text-amber-100">
             Add an OpenRouter key in{" "}
             <a className="underline underline-offset-2" href="/account">
@@ -244,13 +254,7 @@ export default function WorkoutBuilder({
             to enable generation.
           </p>
         )}
-        {initialEligibility === "history_aware_not_available" && (
-          <p className="mt-4 text-sm text-blue-100/70">
-            Personalized AI planning is next. This starter generator is available only before your first completed
-            workout.
-          </p>
-        )}
-        {generationError && initialEligibility === "eligible" && (
+        {generationError && (
           <div
             role="alert"
             className="mt-4 rounded-xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-50"
@@ -265,6 +269,52 @@ export default function WorkoutBuilder({
           </div>
         )}
       </section>
+
+      <dialog
+        ref={reducedConfirmationDialogRef}
+        aria-labelledby="reduced-confirmation-title"
+        className="m-auto w-[calc(100%-2rem)] max-w-[30rem] rounded-2xl border border-white/15 bg-slate-950 p-0 text-white shadow-2xl backdrop:bg-black/70"
+        onCancel={(event) => {
+          event.preventDefault();
+          if (!operationsPending) setReducedConfirmation(null);
+        }}
+      >
+        <div className="space-y-4 p-6">
+          <h2 id="reduced-confirmation-title" className="text-lg font-semibold">
+            Generate a smaller workout?
+          </h2>
+          <p className="text-sm leading-6 text-blue-100/75">
+            Only {reducedConfirmation?.count ?? 0} recovery-compatible exercises are available right now. You can keep
+            planning manually, or generate a workout with exactly that many exercises.
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              disabled={operationsPending}
+              onClick={() => {
+                setReducedConfirmation(null);
+              }}
+              className="min-h-11 rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold disabled:opacity-45"
+            >
+              Keep planning manually
+            </button>
+            <button
+              type="button"
+              disabled={operationsPending || !reducedConfirmation}
+              onClick={() => {
+                if (!reducedConfirmation) return;
+                void generateWorkout({
+                  version: AI_WORKOUT_GENERATION_VERSION,
+                  confirmationToken: reducedConfirmation.token,
+                });
+              }}
+              className="min-h-11 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold disabled:opacity-45"
+            >
+              {pending === "generate" ? "Generating…" : "Generate smaller workout"}
+            </button>
+          </div>
+        </div>
+      </dialog>
 
       <WorkoutDraftEditor
         catalogue={catalogue}

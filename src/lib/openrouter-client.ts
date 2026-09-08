@@ -1,4 +1,4 @@
-import { AI_WORKOUT_RESPONSE_SCHEMA } from "./ai-workout-contract.ts";
+import { buildAiWorkoutResponseSchema } from "./ai-workout-contract.ts";
 import type { AiWorkoutPrompt } from "./ai-workout-prompt.ts";
 
 export const OPENROUTER_CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -20,6 +20,8 @@ export interface OpenRouterRequest {
   apiKey: string;
   model: string;
   prompt: AiWorkoutPrompt;
+  allowedExerciseIds: readonly string[];
+  requestedExerciseCount: { min: number; max: number };
 }
 
 export type OpenRouterFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -60,6 +62,7 @@ export async function requestOpenRouterWorkout(
   fetchImpl: OpenRouterFetch = fetch,
 ): Promise<OpenRouterResult> {
   try {
+    const responseSchema = buildAiWorkoutResponseSchema(request.allowedExerciseIds, request.requestedExerciseCount);
     const response = await fetchImpl(OPENROUTER_CHAT_COMPLETIONS_URL, {
       method: "POST",
       headers: { Authorization: `Bearer ${request.apiKey}`, "Content-Type": "application/json" },
@@ -72,7 +75,7 @@ export async function requestOpenRouterWorkout(
         ],
         response_format: {
           type: "json_schema",
-          json_schema: { name: "ai_workout_proposal", strict: true, schema: AI_WORKOUT_RESPONSE_SCHEMA },
+          json_schema: { name: "ai_workout_proposal", strict: true, schema: responseSchema },
         },
         provider: { require_parameters: true },
       }),

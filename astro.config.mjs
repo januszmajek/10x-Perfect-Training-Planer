@@ -12,6 +12,25 @@ export default defineConfig({
   integrations: [react(), sitemap()],
   vite: {
     plugins: [tailwindcss()],
+    resolve: {
+      dedupe: ["react", "react-dom"],
+    },
+    optimizeDeps: {
+      include: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
+    },
+    ssr: {
+      optimizeDeps: {
+        include: [
+          "@supabase/ssr",
+          "astro/env/runtime",
+          "react",
+          "react-dom",
+          "react-dom/server",
+          "react/jsx-runtime",
+          "react/jsx-dev-runtime",
+        ],
+      },
+    },
   },
   adapter: cloudflare(),
   env: {
@@ -20,6 +39,7 @@ export default defineConfig({
       SUPABASE_KEY: envField.string({ context: "server", access: "secret", optional: true }),
       AI_KEY_ENCRYPTION_KEY_V1: envField.string({ context: "server", access: "secret", optional: true }),
       OPENROUTER_MODEL: envField.string({ context: "server", access: "secret", optional: true }),
+      AI_CONFIRMATION_SIGNING_SECRET: envField.string({ context: "server", access: "secret", optional: true }),
     },
   },
 });

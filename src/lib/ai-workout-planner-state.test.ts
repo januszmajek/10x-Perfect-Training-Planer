@@ -17,6 +17,7 @@ void test("keeps the current proposal and its edits after a failed generation", 
     draft: existingDraft,
     code: "timeout",
     requestId: "request-1",
+    activeProposal: null,
   });
 });
 
@@ -30,7 +31,7 @@ void test("replaces a proposal only after a validated generation response", () =
         requestId: "request-2",
       },
     }),
-    { draft: replacementDraft, code: null, requestId: "request-2" },
+    { draft: replacementDraft, code: null, requestId: "request-2", activeProposal: null },
   );
 });
 

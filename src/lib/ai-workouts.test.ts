@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   generateColdStartAiWorkout,
+  generateHistoryAwareAiWorkout,
   saveAiPlannedWorkout,
   type AiWorkoutGenerationDependencies,
 } from "./ai-workouts.ts";
+import { aiGenerationFailureResponse } from "./ai-workout-api.ts";
 import type { CatalogueExercise } from "./manual-workout-builder.ts";
 
 const USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -87,7 +89,55 @@ void test("stops before credential or provider use for completed-history account
 
 void test("returns only a validated proposal after cold-start prerequisites succeed", async () => {
   const result = await generateColdStartAiWorkout({} as never, USER_ID, " provider/model ", dependencies());
-  assert.deepEqual(result, { ok: true, data: { proposal } });
+  assert.deepEqual(result, {
+    ok: true,
+    data: { proposal, metadata: { kind: "cold_start", exerciseCount: proposal.exercises.length } },
+  });
+});
+
+void test("routes initial history-aware proposal recording through the two-argument RPC overload", async () => {
+  const calls: unknown[] = [];
+  const client = {
+    rpc: (name: string, args: unknown) => {
+      calls.push([name, args]);
+      return Promise.resolve({ data: [{ proposal_id: IDS[0], lineage_id: IDS[1] }], error: null });
+    },
+  };
+  const recommendation = {
+    decision: { kind: "normal", requestedExerciseCount: { min: 5, max: 7 } },
+    readyCandidates: catalogue,
+    shortlist: catalogue,
+    feasibleCoverage: ["lower_body", "core", "upper_body_push", "upper_body_pull"],
+  } as never;
+  const result = await generateHistoryAwareAiWorkout(
+    client as never,
+    USER_ID,
+    "provider/model",
+    { version: 1 },
+    dependencies({
+      loadHistoryAwareAiProfile: () =>
+        Promise.resolve({
+          ok: true,
+          data: {
+            completions: [
+              {
+                exerciseId: IDS[0],
+                completedCount: 1,
+                lastCompletedAt: "2025-01-01T00:00:00.000Z",
+                inLastCompletedWorkout: false,
+              },
+            ],
+            preferences: new Map(),
+          },
+        }),
+      recommendHistoryAwareWorkout: () => recommendation,
+      buildHistoryAwareWorkoutPrompt: () => ({ ok: true, data: { system: "system", user: "shortlist" } }),
+      parseHistoryAwareAiWorkoutProposalJson: () => ({ ok: true, data: proposal }),
+    }),
+  );
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(calls, [["record_ai_workout_proposal", { p_exercise_ids: IDS, p_rerolled_from_proposal_id: null }]]);
 });
 
 void test("short-circuits missing model, credential, and catalogue prerequisites before provider use", async () => {
@@ -240,4 +290,29 @@ void test("rejects an edited draft with unknown catalogue membership before the 
   assert.equal(result.ok, false);
   assert.equal(result.code, "validation_failed");
   assert.deepEqual(calls, []);
+});
+
+void test("logs expected availability decisions as information instead of application errors", (context) => {
+  const info = context.mock.method(globalThis.console, "info", () => undefined);
+  const errors = context.mock.method(globalThis.console, "error", () => undefined);
+
+  try {
+    const response = aiGenerationFailureResponse(
+      "request-id",
+      "generate_ai_workout",
+      {
+        ok: false,
+        code: "insufficient_recovered_candidates",
+        internal: { layer: "service", technicalCode: "INSUFFICIENT_READY_CANDIDATES" },
+      },
+      10,
+    );
+    assert.equal(response.status, 409);
+  } finally {
+    context.mock.restoreAll();
+  }
+
+  assert.equal(info.mock.callCount(), 1);
+  assert.equal(errors.mock.callCount(), 0);
+  assert.match(String(info.mock.calls[0].arguments[0]), /"code":"insufficient_recovered_candidates"/);
 });

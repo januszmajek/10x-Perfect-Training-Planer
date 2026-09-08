@@ -815,47 +815,47 @@ job inspection before the change is considered implemented.
 
 #### Automated
 
-- [x] 2.1 Pure recommender tests pass
-- [x] 2.2 Recovery and explicit exclusions always win over ranking signals
-- [x] 2.3 Exact recovery-boundary and latest-deadline tests pass
-- [x] 2.4 Like and familiarity precedence tests pass
-- [x] 2.5 Sparse and established history policies apply correctly
-- [x] 2.6 Adaptive exploration and confidence-gating tests pass
-- [x] 2.7 Feasible coverage and MMR diversity tests pass
-- [x] 2.8 Deterministic seed and tie behavior tests pass
-- [x] 2.9 Candidate-count boundary tests pass
-- [x] 2.10 Existing manual recovery tests remain green
-- [x] 2.11 Repository lint and production build pass
+- [x] 2.1 Pure recommender tests pass — bd2b21a
+- [x] 2.2 Recovery and explicit exclusions always win over ranking signals — bd2b21a
+- [x] 2.3 Exact recovery-boundary and latest-deadline tests pass — bd2b21a
+- [x] 2.4 Like and familiarity precedence tests pass — bd2b21a
+- [x] 2.5 Sparse and established history policies apply correctly — bd2b21a
+- [x] 2.6 Adaptive exploration and confidence-gating tests pass — bd2b21a
+- [x] 2.7 Feasible coverage and MMR diversity tests pass — bd2b21a
+- [x] 2.8 Deterministic seed and tie behavior tests pass — bd2b21a
+- [x] 2.9 Candidate-count boundary tests pass — bd2b21a
+- [x] 2.10 Existing manual recovery tests remain green — bd2b21a
+- [x] 2.11 Repository lint and production build pass — bd2b21a
 
 #### Manual
 
-- [x] 2.12 Recommendation reasons remain evidence-safe and explainable
-- [x] 2.13 Liked-recovering and familiar-excluded exercises stay ineligible
-- [x] 2.14 Reduced mode is unreachable with five ready candidates
+- [x] 2.12 Recommendation reasons remain evidence-safe and explainable — bd2b21a
+- [x] 2.13 Liked-recovering and familiar-excluded exercises stay ineligible — bd2b21a
+- [x] 2.14 Reduced mode is unreachable with five ready candidates — bd2b21a
 
 ### Phase 3: Mode-aware Generation and Reduced-workout Handshake
 
 #### Automated
 
-- [ ] 3.1 Mode-aware command, confirmation, prompt, validator, service, client, and state tests pass
-- [ ] 3.2 Cold-start 5–7 full-body regressions remain green
-- [ ] 3.3 History-aware normal requests use only history-aware contracts
-- [ ] 3.4 Pre-provider confirmation and insufficient-candidate short-circuits pass
-- [ ] 3.5 Confirmation acceptance and cancellation behavior tests pass
-- [ ] 3.6 Confirmation token signature, ownership, expiry, and freshness tests pass
-- [ ] 3.7 Five-plus recomputation invalidates reduced mode
-- [ ] 3.8 History-aware prompt privacy and byte-budget tests pass
-- [ ] 3.9 History-aware provider-output validation tests pass
-- [ ] 3.10 Active proposal identity, preference hydration, and re-roll linkage tests pass
-- [ ] 3.11 Existing application suites remain green
-- [ ] 3.12 Repository lint and production build pass
+- [x] 3.1 Mode-aware command, confirmation, prompt, validator, service, client, and state tests pass
+- [x] 3.2 Cold-start 5–7 full-body regressions remain green
+- [x] 3.3 History-aware normal requests use only history-aware contracts
+- [x] 3.4 Pre-provider confirmation and insufficient-candidate short-circuits pass
+- [x] 3.5 Confirmation acceptance and cancellation behavior tests pass
+- [x] 3.6 Confirmation token signature, ownership, expiry, and freshness tests pass
+- [x] 3.7 Five-plus recomputation invalidates reduced mode
+- [x] 3.8 History-aware prompt privacy and byte-budget tests pass
+- [x] 3.9 History-aware provider-output validation tests pass
+- [x] 3.10 Active proposal identity, preference hydration, and re-roll linkage tests pass
+- [x] 3.11 Existing application suites remain green
+- [x] 3.12 Repository lint and production build pass
 
 #### Manual
 
-- [ ] 3.13 API responses and logs exclude private generation data
-- [ ] 3.14 Five-plus candidates never expose or accept reduced mode
-- [ ] 3.15 Confirmed 3–4 candidate generation calls the provider only after acceptance
-- [ ] 3.16 Fewer than three candidates preserve manual planning
+- [x] 3.13 API responses and logs exclude private generation data
+- [x] 3.14 Five-plus candidates never expose or accept reduced mode
+- [x] 3.15 Confirmed 3–4 candidate generation calls the provider only after acceptance
+- [x] 3.16 Fewer than three candidates preserve manual planning
 
 ### Phase 4: Preference UI, Lifecycle Telemetry, and Release Gates
 

@@ -10,19 +10,38 @@ import type { AiGenerationErrorCode } from "./ai-workouts.ts";
 
 export const AI_WORKOUT_GENERATION_VERSION = 1 as const;
 
-export interface AiWorkoutGenerationCommand {
-  version: typeof AI_WORKOUT_GENERATION_VERSION;
-}
+export type AiWorkoutGenerationCommand =
+  | { version: typeof AI_WORKOUT_GENERATION_VERSION }
+  | { version: typeof AI_WORKOUT_GENERATION_VERSION; priorProposalId: string }
+  | { version: typeof AI_WORKOUT_GENERATION_VERSION; confirmationToken: string }
+  | { version: typeof AI_WORKOUT_GENERATION_VERSION; confirmationToken: string; priorProposalId: string };
+
+export type AiWorkoutGenerationMetadata =
+  | { kind: "cold_start"; exerciseCount: number }
+  | {
+      kind: "history_aware";
+      proposalId: string;
+      exerciseCount: number;
+      reduced: boolean;
+      originalExerciseIds: string[];
+      preferences: Record<string, "liked" | "neutral">;
+    };
 
 export interface AiWorkoutGenerationSuccess {
   proposal: { exercises: ManualWorkoutDraftItem[] };
-  metadata: { kind: "cold_start"; exerciseCount: number };
+  metadata: AiWorkoutGenerationMetadata;
   requestId: string;
 }
 
 export type AiWorkoutGenerationResponse =
   | { ok: true; data: AiWorkoutGenerationSuccess }
-  | { ok: false; code: AiGenerationErrorCode; requestId: string | null };
+  | {
+      ok: false;
+      code: AiGenerationErrorCode;
+      requestId: string | null;
+      availableExerciseCount?: 3 | 4;
+      confirmationToken?: string;
+    };
 
 const AI_GENERATION_ERROR_CODES = new Set<AiGenerationErrorCode>([
   "validation_failed",
@@ -30,8 +49,8 @@ const AI_GENERATION_ERROR_CODES = new Set<AiGenerationErrorCode>([
   "origin_rejected",
   "persistence_failed",
   "confirmation_required",
-  "stale_plan",
-  "history_aware_not_available",
+  "stale_confirmation",
+  "insufficient_recovered_candidates",
   "key_not_configured",
   "key_encryption_unavailable",
   "key_rejected",
@@ -52,13 +71,25 @@ function hasExactKeys(value: Record<string, unknown>, expected: readonly string[
 }
 
 function isProposal(value: unknown): value is { exercises: ManualWorkoutDraftItem[] } {
-  if (!isPlainRecord(value) || !hasExactKeys(value, ["exercises"]) || !Array.isArray(value.exercises)) return false;
-  if (value.exercises.length < 5 || value.exercises.length > 7) return false;
-
+  if (
+    !isPlainRecord(value) ||
+    !hasExactKeys(value, ["exercises"]) ||
+    !Array.isArray(value.exercises) ||
+    value.exercises.length < 3 ||
+    value.exercises.length > 7
+  ) {
+    return false;
+  }
   const ids = new Set<string>();
   return value.exercises.every((item) => {
-    if (!isPlainRecord(item) || !hasExactKeys(item, ["exerciseId", "sets", "reps"])) return false;
-    if (!isCanonicalUuid(item.exerciseId) || ids.has(item.exerciseId)) return false;
+    if (
+      !isPlainRecord(item) ||
+      !hasExactKeys(item, ["exerciseId", "sets", "reps"]) ||
+      !isCanonicalUuid(item.exerciseId)
+    ) {
+      return false;
+    }
+    if (ids.has(item.exerciseId)) return false;
     ids.add(item.exerciseId);
     return (
       Number.isSafeInteger(item.sets) &&
@@ -72,9 +103,26 @@ function isProposal(value: unknown): value is { exercises: ManualWorkoutDraftIte
 }
 
 export function parseAiWorkoutGenerationCommand(input: unknown): AiWorkoutGenerationCommand | null {
-  return isPlainRecord(input) && hasExactKeys(input, ["version"]) && input.version === AI_WORKOUT_GENERATION_VERSION
-    ? { version: AI_WORKOUT_GENERATION_VERSION }
-    : null;
+  if (!isPlainRecord(input) || input.version !== AI_WORKOUT_GENERATION_VERSION) return null;
+  if (hasExactKeys(input, ["version"])) return { version: AI_WORKOUT_GENERATION_VERSION };
+  if (hasExactKeys(input, ["version", "priorProposalId"]) && isCanonicalUuid(input.priorProposalId)) {
+    return { version: AI_WORKOUT_GENERATION_VERSION, priorProposalId: input.priorProposalId };
+  }
+  if (hasExactKeys(input, ["version", "confirmationToken"]) && typeof input.confirmationToken === "string") {
+    return { version: AI_WORKOUT_GENERATION_VERSION, confirmationToken: input.confirmationToken };
+  }
+  if (
+    hasExactKeys(input, ["version", "confirmationToken", "priorProposalId"]) &&
+    typeof input.confirmationToken === "string" &&
+    isCanonicalUuid(input.priorProposalId)
+  ) {
+    return {
+      version: AI_WORKOUT_GENERATION_VERSION,
+      confirmationToken: input.confirmationToken,
+      priorProposalId: input.priorProposalId,
+    };
+  }
+  return null;
 }
 
 export function parseAiWorkoutGenerationResponse(input: unknown): AiWorkoutGenerationResponse | null {
@@ -88,24 +136,80 @@ export function parseAiWorkoutGenerationResponse(input: unknown): AiWorkoutGener
         }
       : null;
   }
-
+  if (hasExactKeys(input, ["availableExerciseCount", "code", "confirmationToken", "requestId"])) {
+    return input.code === "confirmation_required" &&
+      (input.availableExerciseCount === 3 || input.availableExerciseCount === 4) &&
+      typeof input.confirmationToken === "string" &&
+      typeof input.requestId === "string"
+      ? {
+          ok: false,
+          code: "confirmation_required",
+          requestId: input.requestId,
+          availableExerciseCount: input.availableExerciseCount,
+          confirmationToken: input.confirmationToken,
+        }
+      : null;
+  }
   if (
     !hasExactKeys(input, ["metadata", "proposal", "requestId"]) ||
     !isProposal(input.proposal) ||
-    !isPlainRecord(input.metadata) ||
-    !hasExactKeys(input.metadata, ["exerciseCount", "kind"]) ||
-    input.metadata.kind !== "cold_start" ||
-    input.metadata.exerciseCount !== input.proposal.exercises.length ||
-    typeof input.requestId !== "string"
-  ) {
+    typeof input.requestId !== "string" ||
+    !isPlainRecord(input.metadata)
+  )
     return null;
+  if (
+    hasExactKeys(input.metadata, ["exerciseCount", "kind"]) &&
+    input.metadata.kind === "cold_start" &&
+    input.metadata.exerciseCount === input.proposal.exercises.length &&
+    input.proposal.exercises.length >= 5
+  ) {
+    return {
+      ok: true,
+      data: {
+        proposal: input.proposal,
+        metadata: { kind: "cold_start", exerciseCount: input.metadata.exerciseCount },
+        requestId: input.requestId,
+      },
+    };
   }
-
+  if (
+    !hasExactKeys(input.metadata, [
+      "exerciseCount",
+      "kind",
+      "originalExerciseIds",
+      "preferences",
+      "proposalId",
+      "reduced",
+    ]) ||
+    input.metadata.kind !== "history_aware" ||
+    !isCanonicalUuid(input.metadata.proposalId) ||
+    typeof input.metadata.reduced !== "boolean" ||
+    input.metadata.exerciseCount !== input.proposal.exercises.length ||
+    !Array.isArray(input.metadata.originalExerciseIds) ||
+    !input.metadata.originalExerciseIds.every(isCanonicalUuid) ||
+    !isPlainRecord(input.metadata.preferences)
+  )
+    return null;
+  const count = input.proposal.exercises.length;
+  if ((input.metadata.reduced && (count < 3 || count > 4)) || (!input.metadata.reduced && count < 5)) return null;
+  const preferences: Record<string, "liked" | "neutral"> = {};
+  for (const id of input.metadata.originalExerciseIds) {
+    const preference = input.metadata.preferences[id];
+    if (preference !== "liked" && preference !== "neutral") return null;
+    preferences[id] = preference;
+  }
   return {
     ok: true,
     data: {
       proposal: input.proposal,
-      metadata: { kind: "cold_start", exerciseCount: input.metadata.exerciseCount },
+      metadata: {
+        kind: "history_aware",
+        proposalId: input.metadata.proposalId,
+        exerciseCount: count,
+        reduced: input.metadata.reduced,
+        originalExerciseIds: [...input.metadata.originalExerciseIds],
+        preferences,
+      },
       requestId: input.requestId,
     },
   };

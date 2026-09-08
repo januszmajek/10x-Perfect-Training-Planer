@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { AI_WORKOUT_RESPONSE_SCHEMA } from "./ai-workout-contract.ts";
+import { buildAiWorkoutResponseSchema } from "./ai-workout-contract.ts";
 import { buildColdStartWorkoutPrompt } from "./ai-workout-prompt.ts";
 import {
   MAX_OPENROUTER_RESPONSE_BYTES,
@@ -23,7 +23,16 @@ const catalogue: CatalogueExercise[] = [
 function request(fetchImpl: OpenRouterFetch) {
   const prompt = buildColdStartWorkoutPrompt(catalogue);
   assert.equal(prompt.ok, true);
-  return requestOpenRouterWorkout({ apiKey: "test-key", model: "test/model", prompt: prompt.data }, fetchImpl);
+  return requestOpenRouterWorkout(
+    {
+      apiKey: "test-key",
+      model: "test/model",
+      prompt: prompt.data,
+      allowedExerciseIds: catalogue.map(({ id }) => id),
+      requestedExerciseCount: { min: 3, max: 4 },
+    },
+    fetchImpl,
+  );
 }
 
 function completion(content = '{"exercises":[]}'): Response {
@@ -63,7 +72,10 @@ void test("posts fixed-model non-streaming strict JSON-schema requests and retur
     json_schema: {
       name: "ai_workout_proposal",
       strict: true,
-      schema: AI_WORKOUT_RESPONSE_SCHEMA,
+      schema: buildAiWorkoutResponseSchema(
+        catalogue.map(({ id }) => id),
+        { min: 3, max: 4 },
+      ),
     },
   });
 });

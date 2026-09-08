@@ -205,6 +205,7 @@ export type Database = {
           expires_at: string;
           id: string;
           lineage_id: string;
+          rerolled_from_proposal_id: string | null;
           user_id: string;
         };
         Insert: {
@@ -212,6 +213,7 @@ export type Database = {
           expires_at?: string;
           id?: string;
           lineage_id?: string;
+          rerolled_from_proposal_id?: string | null;
           user_id: string;
         };
         Update: {
@@ -219,6 +221,7 @@ export type Database = {
           expires_at?: string;
           id?: string;
           lineage_id?: string;
+          rerolled_from_proposal_id?: string | null;
           user_id?: string;
         };
         Relationships: [];
@@ -424,7 +427,7 @@ export type Database = {
         }[];
       };
       record_ai_workout_proposal: {
-        Args: { p_exercise_ids: string[] };
+        Args: { p_exercise_ids: string[]; p_rerolled_from_proposal_id?: string | null };
         Returns: {
           lineage_id: string;
           proposal_id: string;

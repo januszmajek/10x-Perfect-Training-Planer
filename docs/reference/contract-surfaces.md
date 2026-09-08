@@ -19,6 +19,12 @@ of truth; generated TypeScript types expose that schema to application code.
 12. `supabase/migrations/20260907110000_create_exercise_completion_profile.sql`
 13. `supabase/migrations/20260907120000_create_ai_recommendation_feedback.sql`
 14. `supabase/migrations/20260907130000_schedule_ai_proposal_retention.sql`
+15. `supabase/migrations/20260907140000_secure_ai_recommendation_rpc_access.sql`
+16. `supabase/migrations/20260907150000_grant_private_rpc_schema_usage.sql`
+17. `supabase/migrations/20260907160000_fix_ai_proposal_recording.sql`
+18. `supabase/migrations/20260907170000_link_ai_proposal_rerolls.sql`
+19. `supabase/migrations/20260907180000_secure_legacy_ai_proposal_recording.sql`
+20. `supabase/migrations/20260908100000_remove_overloaded_ai_proposal_rpc.sql`
 
 Production catalogue data belongs in the second migration. `supabase/seed.sql` is only for non-sensitive local
 fixtures and must not contain data required by production.
@@ -35,22 +41,22 @@ fixtures and must not contain data required by production.
 | `workout_origin`            | `ai`, `manual`                                                                           |
 | `ai_provider`               | `openrouter`                                                                             |
 | `ai_exercise_preference`    | `liked`, `dont_suggest`                                                                  |
-| `ai_proposal_event_type`    | `exposure`, `reroll`, `removal`, `swap`, `retention`, `save`, `completion`             |
+| `ai_proposal_event_type`    | `exposure`, `reroll`, `removal`, `swap`, `retention`, `save`, `completion`               |
 
 ## Tables and key columns
 
-| Table                    | Primary key                                | Load-bearing columns and relationships                                                              |
-| ------------------------ | ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| `muscle_groups`          | `code`                                     | `name`, `category`, `recovery_hours`                                                                |
-| `exercises`              | `id`                                       | unique `slug`, unique `name`, `equipment`, nullable curated `movement_pattern`                      |
-| `exercise_muscle_groups` | `exercise_id`, `muscle_group_code`, `role` | restrictive references to `exercises.id` and `muscle_groups.code`                                   |
-| `workouts`               | `id`                                       | `user_id` → `auth.users.id`, `status`, immutable `origin`, `revision`, `created_at`, `completed_at` |
-| `workout_exercises`      | `id`                                       | `workout_id`, `exercise_id`, `position`, `sets`, `reps`                                             |
-| `ai_provider_keys`       | `user_id`                                  | `provider`, `ciphertext`, `iv`, `key_hint`, `encryption_key_version`, timestamps                    |
-| `ai_exercise_preferences` | `user_id`, `exercise_id`                  | owner-only recommendation signal; `liked` and `dont_suggest` are mutually exclusive                 |
-| `ai_workout_proposals`    | `id`                                       | private owner proposal, opaque `lineage_id`, database-derived 90-day expiry                           |
-| `ai_workout_proposal_events` | `id`                                    | private typed owner events; proposal payloads and events expire independently of workouts             |
-| `ai_reduced_generation_confirmations` | `nonce_digest`                   | owner-bound short-lived single-use authorization record, not telemetry                                 |
+| Table                                 | Primary key                                | Load-bearing columns and relationships                                                              |
+| ------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `muscle_groups`                       | `code`                                     | `name`, `category`, `recovery_hours`                                                                |
+| `exercises`                           | `id`                                       | unique `slug`, unique `name`, `equipment`, nullable curated `movement_pattern`                      |
+| `exercise_muscle_groups`              | `exercise_id`, `muscle_group_code`, `role` | restrictive references to `exercises.id` and `muscle_groups.code`                                   |
+| `workouts`                            | `id`                                       | `user_id` → `auth.users.id`, `status`, immutable `origin`, `revision`, `created_at`, `completed_at` |
+| `workout_exercises`                   | `id`                                       | `workout_id`, `exercise_id`, `position`, `sets`, `reps`                                             |
+| `ai_provider_keys`                    | `user_id`                                  | `provider`, `ciphertext`, `iv`, `key_hint`, `encryption_key_version`, timestamps                    |
+| `ai_exercise_preferences`             | `user_id`, `exercise_id`                   | owner-only recommendation signal; `liked` and `dont_suggest` are mutually exclusive                 |
+| `ai_workout_proposals`                | `id`                                       | private owner proposal, opaque `lineage_id`, database-derived 90-day expiry                         |
+| `ai_workout_proposal_events`          | `id`                                       | private typed owner events; proposal payloads and events expire independently of workouts           |
+| `ai_reduced_generation_confirmations` | `nonce_digest`                             | owner-bound short-lived single-use authorization record, not telemetry                              |
 
 ## Muscle taxonomy
 

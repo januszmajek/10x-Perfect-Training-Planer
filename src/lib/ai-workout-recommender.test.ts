@@ -79,17 +79,18 @@ void test("likes boost only eligible familiar candidates and completion remains 
   assert.deepEqual(result.readyCandidates.find((candidate) => candidate.id === id(1))?.reasons, ["familiar"]);
 });
 
-void test("uses adaptive, similarity-gated exploration without forcing unseen candidates", () => {
+void test("keeps below-threshold unseen exercises out when enough preferred candidates remain", () => {
   const dissimilar = [
     exercise(1, "upper_body", "push"),
     exercise(2, "lower_body"),
     exercise(3, "core"),
     exercise(4, "lower_body"),
     exercise(5, "core"),
+    exercise(6, "lower_body"),
   ];
   const result = recommendHistoryAwareWorkout({
     catalogue: dissimilar,
-    completions: [completion(id(1))],
+    completions: dissimilar.slice(0, 5).map(({ id: exerciseId }) => completion(exerciseId)),
     preferences: new Map(),
     now: NOW,
   });
@@ -123,7 +124,7 @@ void test("returns mutually exclusive candidate-count outcomes", () => {
   assert.equal(
     recommendHistoryAwareWorkout({
       catalogue: catalogue.slice(0, 5),
-      completions: [],
+      completions: catalogue.slice(0, 5).map(({ id: exerciseId }) => completion(exerciseId)),
       preferences: new Map(),
       now: NOW,
     }).decision.kind,
@@ -132,7 +133,7 @@ void test("returns mutually exclusive candidate-count outcomes", () => {
   assert.equal(
     recommendHistoryAwareWorkout({
       catalogue: catalogue.slice(0, 4),
-      completions: [],
+      completions: catalogue.slice(0, 4).map(({ id: exerciseId }) => completion(exerciseId)),
       preferences: new Map(),
       now: NOW,
     }).decision.kind,
@@ -141,10 +142,40 @@ void test("returns mutually exclusive candidate-count outcomes", () => {
   assert.equal(
     recommendHistoryAwareWorkout({
       catalogue: catalogue.slice(0, 2),
-      completions: [],
+      completions: catalogue.slice(0, 2).map(({ id: exerciseId }) => completion(exerciseId)),
       preferences: new Map(),
       now: NOW,
     }).decision.kind,
     "insufficient_recovered_candidates",
   );
+});
+
+void test("uses hard eligibility for the decision and backfills a viable shortlist", () => {
+  const result = recommendHistoryAwareWorkout({
+    catalogue,
+    completions: [completion(id(1)), completion(id(2))],
+    preferences: new Map(),
+    now: NOW,
+  });
+
+  assert.equal(result.readyCandidates.length, 6);
+  assert.equal(result.shortlist.length, 5);
+  assert.equal(
+    result.shortlist.every(({ recovery }) => recovery.state === "ready"),
+    true,
+  );
+  assert.deepEqual(result.decision, { kind: "normal", requestedExerciseCount: { min: 5, max: 7 } });
+});
+
+void test("offers the exact reduced count when only three hard-eligible exercises remain", () => {
+  const result = recommendHistoryAwareWorkout({
+    catalogue,
+    completions: [completion(id(1), 1), completion(id(2), 1), completion(id(3), 1)],
+    preferences: new Map(),
+    now: NOW,
+  });
+
+  assert.equal(result.readyCandidates.length, 3);
+  assert.equal(result.shortlist.length, 3);
+  assert.deepEqual(result.decision, { kind: "reduced_confirmation_required", availableExerciseCount: 3 });
 });

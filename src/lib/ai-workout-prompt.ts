@@ -1,4 +1,5 @@
 import type { CatalogueExercise } from "./manual-workout-builder.ts";
+import type { HistoryAwareRecommendation } from "./ai-workout-recommender.ts";
 
 export const MAX_AI_CATALOGUE_CONTEXT_BYTES = 64 * 1024;
 
@@ -41,4 +42,34 @@ export function buildColdStartWorkoutPrompt(catalogue: readonly CatalogueExercis
   }
 
   return { ok: true, data: { system: SYSTEM_PROMPT, user: `Canonical catalogue: ${catalogueContext}` } };
+}
+
+export function buildHistoryAwareWorkoutPrompt(
+  recommendation: Pick<HistoryAwareRecommendation, "shortlist" | "feasibleCoverage">,
+  requestedExerciseCount: { min: 3 | 5; max: 4 | 7 },
+): AiWorkoutPromptResult {
+  const shortlist = [...recommendation.shortlist]
+    .sort((left, right) => left.id.localeCompare(right.id))
+    .map(({ id, name, equipment, movementPattern, muscles, reasons }) => ({
+      id,
+      name,
+      equipment,
+      movementPattern,
+      muscles: muscles.map(({ code, category, role }) => ({ code, category, role })),
+      reasons,
+    }));
+  const context = JSON.stringify({
+    shortlist,
+    feasibleCoverage: recommendation.feasibleCoverage,
+    requestedExerciseCount,
+  });
+  if (new TextEncoder().encode(context).byteLength > MAX_AI_CATALOGUE_CONTEXT_BYTES)
+    return { ok: false, code: "catalogue_context_too_large" };
+  return {
+    ok: true,
+    data: {
+      system: `Create a recovery-compatible workout using only the supplied shortlist. Return ${requestedExerciseCount.min} to ${requestedExerciseCount.max} unique exercises, include every feasible coverage target, use integer sets 1-99 and reps 1-999, and return only the JSON response schema.`,
+      user: `Vetted shortlist and derived recommendation reasons: ${context}`,
+    },
+  };
 }
