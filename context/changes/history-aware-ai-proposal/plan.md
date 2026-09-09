@@ -918,11 +918,11 @@ and additive rollback. Do not deploy, push linked migrations, or modify real sec
 
 #### Automated
 
-- [x] 4C.1 CI executes the AI workout test suite as a distinct gate
-- [x] 4C.2 Clean database, generated-type, concurrency, and focused application gates pass
-- [x] 4C.3 Astro sync, repository lint, and production Cloudflare Worker build pass
+- [x] 4C.1 CI executes the AI workout test suite as a distinct gate — 929d113
+- [x] 4C.2 Clean database, generated-type, concurrency, and focused application gates pass — 929d113
+- [x] 4C.3 Astro sync, repository lint, and production Cloudflare Worker build pass — 929d113
 
 #### Manual
 
-- [x] 4C.4 Human verifies candidate-count, retention, cold-start, and lifecycle regression scenarios
-- [x] 4C.5 Disposable-key Worker-runtime history-aware smoke test and retention-job inspection are confirmed by a human
+- [x] 4C.4 Human verifies candidate-count, retention, cold-start, and lifecycle regression scenarios — 929d113
+- [x] 4C.5 Disposable-key Worker-runtime history-aware smoke test and retention-job inspection are confirmed by a human — 929d113
