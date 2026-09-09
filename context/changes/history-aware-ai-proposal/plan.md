@@ -924,5 +924,5 @@ and additive rollback. Do not deploy, push linked migrations, or modify real sec
 
 #### Manual
 
-- [ ] 4C.4 Human verifies candidate-count, retention, cold-start, and lifecycle regression scenarios
-- [ ] 4C.5 Disposable-key Worker-runtime history-aware smoke test and retention-job inspection are confirmed by a human
+- [x] 4C.4 Human verifies candidate-count, retention, cold-start, and lifecycle regression scenarios
+- [x] 4C.5 Disposable-key Worker-runtime history-aware smoke test and retention-job inspection are confirmed by a human
