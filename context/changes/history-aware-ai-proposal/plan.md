@@ -613,11 +613,13 @@ delivered by Phase 3 and are explicitly out of scope here.
 `src/lib/ai-workout-feedback-client.ts`, `src/lib/ai-workout-feedback-client.test.ts`,
 `src/pages/api/workouts/ai/preferences.ts`, and pure Node parser/client tests.
 
-**Contract**: Show optional Like and **Don't suggest** controls only for IDs in the active proposal's original exercise
-set, never for later manual additions. Hydrate pressed state from the history-aware response and update it only after a
-successful authenticated, same-origin, strictly versioned preference mutation. One preference replaces the other;
-clearing returns to neutral. A successful change affects only future generations and never silently reorders or removes
-the current draft.
+**Contract**: Show optional Like and **Don't suggest** controls for every canonical exercise in the catalogue,
+including exercises added manually or selected as replacements; never render them for unknown IDs outside the
+catalogue. Hydrate pressed state from the authenticated preference profile and update it only after a successful,
+same-origin, strictly versioned preference mutation. One preference replaces the other; clearing returns to neutral.
+A successful change affects only future generations and never silently reorders or removes the current draft. The
+active proposal's original exercise IDs remain reserved for proposal edit telemetry, not for gating preference
+controls.
 
 #### 2. Display and edit telemetry
 
@@ -901,26 +903,26 @@ and additive rollback. Do not deploy, push linked migrations, or modify real sec
 
 #### Automated
 
-- [x] 4B.1 Pure preference request, parser, and client tests pass
-- [x] 4B.2 Exposure deduplication and discriminated removal/swap mutation tests pass
-- [x] 4B.3 Existing AI, manual, planned-workout, and history suites remain green
-- [x] 4B.4 Astro sync and repository lint pass
+- [x] 4B.1 Pure preference request, parser, and client tests pass — b7cc8c5
+- [x] 4B.2 Exposure deduplication and discriminated removal/swap mutation tests pass — b7cc8c5
+- [x] 4B.3 Existing AI, manual, planned-workout, and history suites remain green — b7cc8c5
+- [x] 4B.4 Astro sync and repository lint pass — b7cc8c5
 
 #### Manual
 
-- [x] 4B.5 Like and Don't suggest persist, remain mutually exclusive, and affect future proposals only
-- [x] 4B.6 Interaction telemetry is owner-scoped, typed, and non-blocking
-- [x] 4B.7 Mobile, desktop, keyboard, screen-reader, focus, and overflow behavior is correct
+- [x] 4B.5 Like and Don't suggest persist, remain mutually exclusive, and affect future proposals only — b7cc8c5
+- [x] 4B.6 Interaction telemetry is owner-scoped, typed, and non-blocking — b7cc8c5
+- [x] 4B.7 Mobile, desktop, keyboard, screen-reader, focus, and overflow behavior is correct — b7cc8c5
 
 ### Phase 4C: Release Gates and Operational Verification
 
 #### Automated
 
-- [ ] 4C.1 CI executes the AI workout test suite as a distinct gate
-- [ ] 4C.2 Clean database, generated-type, concurrency, and focused application gates pass
-- [ ] 4C.3 Astro sync, repository lint, and production Cloudflare Worker build pass
+- [x] 4C.1 CI executes the AI workout test suite as a distinct gate
+- [x] 4C.2 Clean database, generated-type, concurrency, and focused application gates pass
+- [x] 4C.3 Astro sync, repository lint, and production Cloudflare Worker build pass
 
 #### Manual
 
-- [ ] 4C.4 Human verifies candidate-count, retention, cold-start, and lifecycle regression scenarios
-- [ ] 4C.5 Disposable-key Worker-runtime history-aware smoke test and retention-job inspection are confirmed by a human
+- [x] 4C.4 Human verifies candidate-count, retention, cold-start, and lifecycle regression scenarios
+- [x] 4C.5 Disposable-key Worker-runtime history-aware smoke test and retention-job inspection are confirmed by a human

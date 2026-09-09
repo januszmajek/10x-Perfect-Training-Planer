@@ -179,6 +179,10 @@ p_expected_workout_id uuid, p_expected_revision integer)` is the distinct, non-o
   completion time, and its independent expiry. It has no proposal foreign key, so raw proposal expiry cannot prevent
   later completion evidence. Its composite workout/owner reference prevents cross-owner rows, and authenticated users
   have no direct table access.
+- History-aware reduced generation requires the Worker-only `AI_CONFIRMATION_SIGNING_SECRET`. It signs the short-lived
+  owner, candidate-fingerprint, count, expiry, and nonce capability; the database stores only a nonce digest and may
+  not authorize a request without a valid Worker signature. Rotate this secret independently from
+  `AI_KEY_ENCRYPTION_KEY_V1`; rotation invalidates only outstanding reduced confirmations.
 
 ## Planned workout edit and delete RPCs
 

@@ -97,6 +97,7 @@ Pre-deploy checks completed on 2026-06-08:
 ```powershell
 pnpm exec wrangler secret put AI_KEY_ENCRYPTION_KEY_V1
 pnpm exec wrangler secret put OPENROUTER_MODEL
+pnpm exec wrangler secret put AI_CONFIRMATION_SIGNING_SECRET
 ```
 
 `AI_KEY_ENCRYPTION_KEY_V1` is the versioned Worker root secret that encrypts and decrypts user-owned credentials.
@@ -104,6 +105,11 @@ pnpm exec wrangler secret put OPENROUTER_MODEL
 value is a user OpenRouter API key. Each user enters their own BYOK credential at `/account`; it is encrypted in
 Supabase and must never be copied to a Worker secret, `.env.production`, `.dev.vars`, command-line argument, log, or
 deployment output.
+
+`AI_CONFIRMATION_SIGNING_SECRET` is independent high-entropy signing material for the short-lived owner-bound reduced
+generation confirmation. Enter it only through Wrangler's hidden prompt. Do not reuse the credential-encryption root
+or a provider key. Rotation invalidates outstanding confirmations, which users can replace by starting generation
+again; a database nonce alone cannot authorize a reduced request.
 
 ## 5. Supabase Auth Redirects
 
@@ -136,7 +142,7 @@ Smoke result on 2026-06-08:
 - `GET /dashboard`: `302 Found`, `Location: /auth/signin`
 - Missing Supabase fallback: not present on the deployed homepage
 
-  6.7. `[ ]` Perform the S-07 AI workout smoke test with a disposable user and key only after 4.4 is complete:
+  6.7. `[ ]` Perform the S-08 AI workout smoke test with disposable users and keys only after 4.4 is complete:
 
 - use a new account with no completed workouts, configure the disposable key at `/account`, and generate from the
   AI workout proposal card at `/workouts/new`;
@@ -144,8 +150,13 @@ Smoke result on 2026-06-08:
   AI-origin workout;
 - confirm an invalid key and an unavailable provider lead to sanitized configuration or retry actions, without
   clearing an existing proposal;
-- confirm an account with completed history receives the S-08 handoff and does not trigger a cold-start proposal;
-- inspect only sanitized `pnpm exec wrangler tail` output, then remove the disposable key.
+- for completed-history fixtures, verify five-plus only generates a normal proposal; three or four makes no provider
+  call until explicit confirmation; and fewer than three leaves manual planning available without a provider call;
+- verify Like and **Don't suggest** persist, are mutually exclusive, and affect only a later proposal; save and
+  complete a history-aware proposal and confirm its opaque owner-scoped lifecycle evidence;
+- inspect the `purge-expired-ai-recommendation-data` job and its recent sanitized status, confirming cleanup preserves
+  workouts and durable preferences;
+- inspect only sanitized `pnpm exec wrangler tail` output, then remove every disposable key.
 
 ## 7. Rollback And Troubleshooting
 

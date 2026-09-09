@@ -99,6 +99,7 @@ SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_KEY=<local publishable or anon key>
 AI_KEY_ENCRYPTION_KEY_V1=<unpadded-base64url-encoding-of-32-random-bytes>
 OPENROUTER_MODEL=<fixed-openrouter-model-with-strict-structured-output-support>
+AI_CONFIRMATION_SIGNING_SECRET=<independent-random-secret>
 ```
 
 Never use a `service_role` or `sb_secret_...` key in the application. Both local environment files are ignored by
@@ -120,6 +121,13 @@ explicit operational procedure.
 OpenRouter model that supports strict structured JSON output; users cannot provide or override it from the browser.
 The model setting is not an OpenRouter API key. Each user supplies their own disposable or personal OpenRouter key in
 the Account page, where it is encrypted before storage.
+
+`AI_CONFIRMATION_SIGNING_SECRET` is a separate Worker-only HMAC secret used to sign the short-lived, owner-bound
+confirmation required for a reduced three- or four-exercise history-aware proposal. It must be unrelated to
+`AI_KEY_ENCRYPTION_KEY_V1`, OpenRouter keys, and Supabase credentials. Generate and store a high-entropy value without
+printing it, for example with the same ignored-file pattern used for the encryption root. Rotating this secret
+invalidates outstanding reduced-generation confirmations; users can safely start generation again, and a stored nonce
+cannot authorize a request without a valid signature.
 
 4. Verify the database contract:
 
@@ -228,22 +236,31 @@ After explicit approval for hosted setup, configure the credential-encryption se
 ```bash
 pnpm exec wrangler secret put AI_KEY_ENCRYPTION_KEY_V1
 pnpm exec wrangler secret put OPENROUTER_MODEL
+pnpm exec wrangler secret put AI_CONFIRMATION_SIGNING_SECRET
 ```
 
-Paste the 32-byte unpadded-base64url value only into Wrangler's hidden prompt. Do not pass it as a command-line
-argument or store it in `wrangler.jsonc`. Set `OPENROUTER_MODEL` to the fixed OpenRouter model identifier through its
-own hidden prompt; it must never be accepted from a browser request. This Worker encryption root secret is distinct
-from user-owned OpenRouter credentials: do not place any user API key in a Worker secret, `.dev.vars`, or
-`.env.production`.
+Paste each secret only into Wrangler's hidden prompt. Do not pass secret values as command-line arguments or store
+them in `wrangler.jsonc`. Set `OPENROUTER_MODEL` to the fixed OpenRouter model identifier through its own hidden
+prompt; it must never be accepted from a browser request. `AI_CONFIRMATION_SIGNING_SECRET` must be independently
+generated and rotated as a separate secret; rotation invalidates only outstanding short-lived reduced confirmations.
+The Worker encryption root is distinct from user-owned OpenRouter credentials: do not place any user API key in a
+Worker secret, `.dev.vars`, or `.env.production`.
 
 ### AI workout smoke check
 
-After deploying the Worker, use a new disposable account with no completed workouts and a disposable OpenRouter key.
-Add that key through `/account`, then open `/workouts/new` to generate a proposal, edit it, and save it.
-Confirm generation completes without an application-imposed deadline and the saved AI-origin workout remains editable
-and completable.
-Repeat with an invalid key and with an account that has completed history; the expected outcomes are an Account/retry
-recovery action and the S-08 handoff respectively. Remove the disposable key when finished.
+After deploying the Worker, use disposable accounts and keys only. First use an account with no completed workouts:
+add its key through `/account`, generate a five-to-seven-exercise proposal at `/workouts/new`, edit it, save it, and
+complete it. Confirm this cold-start path remains available and has no history-aware preference controls.
+
+Then prepare separate history-aware fixtures for at least five ready candidates, exactly three or four ready
+candidates, and fewer than three. Verify five-plus produces only the normal proposal; three or four displays the exact
+count and makes no provider call until confirmation; and fewer than three leaves manual planning available without a
+provider call. Like one eligible exercise and mark another **Don't suggest**; after a later generation, confirm the
+states persist, remain mutually exclusive, and affect only the later proposal. Save and complete a history-aware
+proposal, then confirm its owner-scoped lifecycle evidence without exposing proposal contents.
+
+Inspect the retention job with the safe SQL queries above, including a recent successful run. When testing expired
+fixtures, confirm cleanup preserves durable preferences and workout history. Remove every disposable key when finished.
 
 Use only sanitized operational diagnostics while testing:
 
@@ -251,15 +268,16 @@ Use only sanitized operational diagnostics while testing:
 pnpm exec wrangler tail
 ```
 
-Logs and browser payloads must never contain an OpenRouter credential, prompt, raw provider response, generated
-prescription, or user identifier.
+Logs and browser payloads must never contain an OpenRouter credential, confirmation token, prompt, raw provider
+response, generated prescription, proposal/event content, or user identifier.
 
 ## CI
 
-GitHub Actions starts an isolated local Supabase stack and runs reset, database lint, pgTAP tests, a two-session
-workout lifecycle concurrency test, generated-type drift detection, Astro sync, repository lint, and the Cloudflare
-Worker build as separate gates on every push and PR to `master`. Configure `SUPABASE_URL` and `SUPABASE_KEY` as
-repository secrets for the build step; use only a publishable or anon key.
+GitHub Actions starts an isolated local Supabase stack and runs reset, database lint, pgTAP tests, lifecycle and
+mutation concurrency tests, generated-type drift detection, AI provider cryptography, the dedicated
+`pnpm test:ai-workout` contract suite, Astro sync, repository lint, and the Cloudflare Worker build as separate gates
+on every push and PR to `master`. Configure `SUPABASE_URL` and `SUPABASE_KEY` as repository secrets for the build
+step; use only a publishable or anon key. CI never calls a real OpenRouter provider or uses production credentials.
 
 ## License
 
