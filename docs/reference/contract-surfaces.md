@@ -25,6 +25,7 @@ of truth; generated TypeScript types expose that schema to application code.
 18. `supabase/migrations/20260907170000_link_ai_proposal_rerolls.sql`
 19. `supabase/migrations/20260907180000_secure_legacy_ai_proposal_recording.sql`
 20. `supabase/migrations/20260908100000_remove_overloaded_ai_proposal_rpc.sql`
+21. `supabase/migrations/20260908110000_link_history_aware_ai_workout_lifecycle.sql`
 
 Production catalogue data belongs in the second migration. `supabase/seed.sql` is only for non-sensitive local
 fixtures and must not contain data required by production.
@@ -56,6 +57,7 @@ fixtures and must not contain data required by production.
 | `ai_exercise_preferences`             | `user_id`, `exercise_id`                   | owner-only recommendation signal; `liked` and `dont_suggest` are mutually exclusive                 |
 | `ai_workout_proposals`                | `id`                                       | private owner proposal, opaque `lineage_id`, database-derived 90-day expiry                         |
 | `ai_workout_proposal_events`          | `id`                                       | private typed owner events; proposal payloads and events expire independently of workouts           |
+| `ai_workout_completion_events`        | `workout_id`                               | private owner/lineage completion evidence with an independent 90-day expiry                         |
 | `ai_reduced_generation_confirmations` | `nonce_digest`                             | owner-bound short-lived single-use authorization record, not telemetry                              |
 
 ## Muscle taxonomy
@@ -134,6 +136,18 @@ p_expected_revision integer)` has the same validation, authentication, advisory-
   edited prescription exactly matches a generated proposal.
 - Stable errors are `AW001` (`confirmation_required`), `AW002` (`stale_plan`), `AW003`
   (`validation_failed`), and `AW004` (`unauthenticated`). It never changes the manual save function or its `MW` map.
+- `public.save_history_aware_ai_planned_workout(p_exercises jsonb, p_replace_existing boolean, p_proposal_id uuid,
+p_expected_workout_id uuid, p_expected_revision integer)` is the distinct, non-overloaded history-aware save RPC.
+  It remains `SECURITY INVOKER` and delegates the original validation, advisory lock, and compare-and-swap operation
+  to `save_ai_planned_workout` before a narrow private helper validates the live owner proposal. In the same
+  transaction, that helper copies only the opaque lineage UUID, derives retained exercises from the saved canonical
+  prescription, and records retention/save evidence. Any linkage failure rolls back the complete save.
+- Proposal save-event `workout_id` values are validated against the owner when inserted but remain historical typed
+  telemetry rather than a live workout foreign key. Replacing or deleting a planned workout therefore cannot null a
+  required save-event field or block the workout transaction; the raw event still expires through the 90-day job.
+- Authenticated callers cannot update `workouts.ai_proposal_lineage_id` directly. The private helper is
+  owner-derived, uses an empty search path, and is the only application save path granted the required column/event
+  privileges. The original four-argument RPC remains callable for cold-start and rollback compatibility.
 
 ## S-07 cold-start generation seam
 
@@ -155,11 +169,16 @@ p_expected_revision integer)` has the same validation, authentication, advisory-
   direct authenticated access. Narrow authenticated RPCs derive ownership from `auth.uid()`; raw events are private
   telemetry and are not used for online learning or training.
 - Proposal/event expiry is database-derived and capped at 90 days. The daily `purge-expired-ai-recommendation-data`
-  pg_cron job deletes expired events before proposals and removes expired or consumed confirmation records. It never
-  touches preferences, workouts, or the nullable opaque `workouts.ai_proposal_lineage_id` marker.
+  pg_cron job deletes expired completion events, proposal events, and proposals in dependency-safe order and removes
+  expired or consumed confirmation records. It never touches preferences, workouts, or the nullable opaque
+  `workouts.ai_proposal_lineage_id` marker.
 - A proposal lineage marker is not a foreign key and does not attest that every final saved exercise was AI-selected.
   Account deletion cascades private recommendation data; catalogue and workout relationships remain restrictive or
   independent as specified by their own contracts.
+- `ai_workout_completion_events` is keyed by workout and stores only owner, opaque lineage, the database-owned
+  completion time, and its independent expiry. It has no proposal foreign key, so raw proposal expiry cannot prevent
+  later completion evidence. Its composite workout/owner reference prevents cross-owner rows, and authenticated users
+  have no direct table access.
 
 ## Planned workout edit and delete RPCs
 
@@ -190,6 +209,10 @@ p_expected_revision integer)` has the same validation, authentication, advisory-
   transaction. It preserves the revision and complete prescription, produces terminal immutable history, and frees
   the caller's planned-workout slot. Existing authenticated owner lifecycle-column updates remain a lower-level RLS
   capability; the RPC does not make that direct access exclusive.
+- When the matched workout carries an owner-scoped opaque proposal-lineage marker, completion also inserts one
+  idempotent `ai_workout_completion_events` row in the same transaction. The record survives prior raw proposal expiry
+  and expires independently within 90 days. Manual, cold-start, and unlinked legacy AI workouts complete without
+  proposal completion telemetry.
 
 ## AI provider credential invariants
 

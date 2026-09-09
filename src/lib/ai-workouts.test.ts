@@ -427,12 +427,13 @@ void test("maps missing, unavailable, rejected, provider, and invalid-output cas
   }
 });
 
-function saveRequest(replaceExisting = false) {
+function saveRequest(replaceExisting = false, proposalId: string | null = null) {
   return {
     version: 1 as const,
     replaceExisting,
     expectedWorkoutId: replaceExisting ? IDS[0] : null,
     expectedRevision: replaceExisting ? 1 : null,
+    proposalId,
     exercises: proposal.exercises,
   };
 }
@@ -469,6 +470,33 @@ void test("saves validated drafts only through the AI-origin RPC", async () => {
       },
     ],
   ]);
+});
+
+void test("selects the distinct history-aware save RPC only when a proposal is supplied", async () => {
+  const { client, calls } = saveClient({ data: IDS[4], error: null });
+  const result = await saveAiPlannedWorkout(client as never, USER_ID, saveRequest(true, IDS[3]));
+  assert.deepEqual(result, { ok: true, data: { workoutId: IDS[4] } });
+  assert.deepEqual(calls, [
+    [
+      "save_history_aware_ai_planned_workout",
+      {
+        p_exercises: proposal.exercises.map(({ exerciseId, sets, reps }) => ({ exercise_id: exerciseId, sets, reps })),
+        p_proposal_id: IDS[3],
+        p_replace_existing: true,
+        p_expected_workout_id: IDS[0],
+        p_expected_revision: 1,
+      },
+    ],
+  ]);
+});
+
+void test("maps history-aware linkage failures without retrying through the legacy RPC", async () => {
+  const { client, calls } = saveClient({ data: null, error: { code: "AW005" } });
+  const result = await saveAiPlannedWorkout(client as never, USER_ID, saveRequest(false, IDS[3]));
+  assert.equal(result.ok, false);
+  assert.equal(result.code, "persistence_failed");
+  assert.equal((calls[0] as [string, unknown])[0], "save_history_aware_ai_planned_workout");
+  assert.equal(calls.length, 1);
 });
 
 void test("maps AI save confirmation, stale, validation, authentication, and persistence outcomes", async () => {

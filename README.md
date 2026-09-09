@@ -142,7 +142,8 @@ schema.
 ### AI recommendation retention job
 
 The migration-managed `purge-expired-ai-recommendation-data` job runs daily and removes only expired proposal/event
-telemetry plus expired or consumed reduced-generation confirmations. Verify its installation and recent status with:
+telemetry, independent post-save completion telemetry, plus expired or consumed reduced-generation confirmations.
+Verify its installation and recent status with:
 
 ```sql
 select schedule, jobname, command from cron.job where jobname = 'purge-expired-ai-recommendation-data';
@@ -153,7 +154,13 @@ order by start_time desc limit 10;
 
 For a deliberate rollback/replacement, use a reviewed forward migration containing
 `select cron.unschedule('purge-expired-ai-recommendation-data');`; do not disable retention merely because application
-code is rolled back. The job does not remove durable explicit preferences or workout history.
+code is rolled back. The job does not remove durable explicit preferences or workout history. Saved history-aware
+workouts retain only an opaque proposal-lineage UUID, so deleting the raw proposal cannot prevent a later completion
+event from being recorded with its own 90-day expiry.
+
+History-aware save and completion support is additive. An application rollback may continue calling the legacy
+`save_ai_planned_workout` RPC; do not drop the distinct history-aware RPC, opaque workout lineage column, completion
+telemetry table, or cleanup behavior until a reviewed forward migration proves no active client depends on them.
 
 6. Start the application or stop the database stack when finished:
 

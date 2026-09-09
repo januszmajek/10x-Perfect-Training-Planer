@@ -31,27 +31,50 @@ select ok(
     and not has_function_privilege('anon', 'public.complete_planned_workout(uuid, integer)', 'EXECUTE'),
   'only authenticated users can execute planned workout completion'
 );
+select has_table('public', 'ai_workout_completion_events', 'expiry-surviving completion telemetry exists');
+select col_is_pk(
+  'public',
+  'ai_workout_completion_events',
+  array['workout_id'],
+  'completion telemetry is idempotently keyed by workout'
+);
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.ai_workout_completion_events'::regclass)
+    and not has_table_privilege('authenticated', 'public.ai_workout_completion_events', 'select, insert, update, delete'),
+  'completion telemetry is private and has no direct authenticated access'
+);
 
 insert into auth.users (id, email)
 values
   ('00000000-0000-0000-0000-000000000061', 'completion-owner@example.test'),
   ('00000000-0000-0000-0000-000000000062', 'completion-other@example.test');
 
-insert into public.workouts (id, user_id, status, origin, created_at)
+insert into public.ai_workout_proposals (id, lineage_id, user_id, created_at, expires_at)
+values (
+  '70000000-0000-0000-0000-000000000071',
+  '71000000-0000-0000-0000-000000000071',
+  '00000000-0000-0000-0000-000000000061',
+  transaction_timestamp() - interval '91 days',
+  transaction_timestamp() - interval '1 day'
+);
+
+insert into public.workouts (id, user_id, status, origin, created_at, ai_proposal_lineage_id)
 values
   (
     '61000000-0000-0000-0000-000000000061',
     '00000000-0000-0000-0000-000000000061',
     'planned',
     'ai',
-    '2026-09-01 10:00:00+00'
+    '2026-09-01 10:00:00+00',
+    '71000000-0000-0000-0000-000000000071'
   ),
   (
     '62000000-0000-0000-0000-000000000062',
     '00000000-0000-0000-0000-000000000062',
     'planned',
     'manual',
-    '2026-09-01 11:00:00+00'
+    '2026-09-01 11:00:00+00',
+    null
   );
 
 insert into public.workout_exercises (workout_id, exercise_id, position, sets, reps)
@@ -66,6 +89,13 @@ insert into public.workout_exercises (workout_id, exercise_id, position, sets, r
 select '62000000-0000-0000-0000-000000000062', id, 0, 5, 5
 from public.exercises
 where slug = 'conventional-deadlift';
+
+select lives_ok($$select private.purge_expired_ai_recommendation_data()$$, 'raw proposal expiry runs before completion');
+select is(
+  (select count(*) from public.ai_workout_proposals where id = '70000000-0000-0000-0000-000000000071'),
+  0::bigint,
+  'the raw proposal can expire while opaque workout lineage remains'
+);
 
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000061', true);
 select set_config('request.jwt.claim.role', 'authenticated', true);
@@ -126,6 +156,23 @@ select ok(
   (select status = 'completed' and completed_at is not null and completed_at >= created_at from public.workouts where id = '61000000-0000-0000-0000-000000000061'),
   'completion writes a database-owned lifecycle timestamp'
 );
+select is(
+  (select count(*) from public.ai_workout_completion_events where workout_id = '61000000-0000-0000-0000-000000000061'),
+  1::bigint,
+  'a linked AI workout records one independent completion event after raw proposal expiry'
+);
+select ok(
+  (
+    select event.user_id = '00000000-0000-0000-0000-000000000061'
+      and event.proposal_lineage_id = '71000000-0000-0000-0000-000000000071'
+      and event.completed_at = workout.completed_at
+      and event.expires_at <= event.completed_at + interval '90 days'
+    from public.ai_workout_completion_events event
+    join public.workouts workout on workout.id = event.workout_id
+    where event.workout_id = '61000000-0000-0000-0000-000000000061'
+  ),
+  'completion telemetry preserves owner, opaque lineage, completion time, and bounded expiry'
+);
 
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000061', true);
 set local role authenticated;
@@ -135,6 +182,13 @@ select throws_ok(
   'stale_plan',
   'repeated completion is stale and leaves immutable history unchanged'
 );
+reset role;
+select is(
+  (select count(*) from public.ai_workout_completion_events where workout_id = '61000000-0000-0000-0000-000000000061'),
+  1::bigint,
+  'repeated completion cannot duplicate completion telemetry'
+);
+set local role authenticated;
 select lives_ok(
   $$insert into public.workouts (user_id, status, origin) values ('00000000-0000-0000-0000-000000000061', 'planned', 'manual')$$,
   'completion frees the owner planned-workout slot'
@@ -162,7 +216,14 @@ select is(
   2::bigint,
   'manual- and AI-origin completion both preserve durable history'
 );
+reset role;
+select is(
+  (select count(*) from public.ai_workout_completion_events where user_id = '00000000-0000-0000-0000-000000000061'),
+  1::bigint,
+  'manual and unlinked workouts complete without synthetic proposal telemetry'
+);
 
+set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000062', true);
 select throws_ok(
   $$select public.complete_planned_workout('61000000-0000-0000-0000-000000000061', 1)$$,

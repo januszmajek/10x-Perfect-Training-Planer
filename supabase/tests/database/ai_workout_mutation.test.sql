@@ -33,6 +33,40 @@ select ok(
     and not has_function_privilege('anon', 'public.save_ai_planned_workout(jsonb, boolean, uuid, integer)', 'EXECUTE'),
   'only authenticated users can execute the AI workout RPC'
 );
+select has_function(
+  'public',
+  'save_history_aware_ai_planned_workout',
+  array['jsonb', 'boolean', 'uuid', 'uuid', 'integer'],
+  'history-aware AI save has a distinct non-overloaded signature'
+);
+select function_returns(
+  'public',
+  'save_history_aware_ai_planned_workout',
+  array['jsonb', 'boolean', 'uuid', 'uuid', 'integer'],
+  'uuid',
+  'history-aware AI save returns the saved workout UUID'
+);
+select ok(
+  not (select prosecdef from pg_proc where oid = 'public.save_history_aware_ai_planned_workout(jsonb, boolean, uuid, uuid, integer)'::regprocedure)
+    and (select proconfig @> array['search_path=""'] from pg_proc where oid = 'public.save_history_aware_ai_planned_workout(jsonb, boolean, uuid, uuid, integer)'::regprocedure),
+  'history-aware AI save is invoker-safe with an empty search path'
+);
+select ok(
+  (select prosecdef from pg_proc where oid = 'private.link_history_aware_ai_save_for_current_user(uuid, uuid)'::regprocedure)
+    and (select proconfig @> array['search_path=""'] from pg_proc where oid = 'private.link_history_aware_ai_save_for_current_user(uuid, uuid)'::regprocedure),
+  'the narrow lineage helper is a hardened security definer'
+);
+select is(
+  (select count(*) from pg_proc where pronamespace = 'public'::regnamespace and proname in ('save_ai_planned_workout', 'save_history_aware_ai_planned_workout')),
+  2::bigint,
+  'legacy and history-aware AI saves expose exactly one signature each'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.save_history_aware_ai_planned_workout(jsonb, boolean, uuid, uuid, integer)', 'EXECUTE')
+    and not has_function_privilege('anon', 'public.save_history_aware_ai_planned_workout(jsonb, boolean, uuid, uuid, integer)', 'EXECUTE')
+    and not has_column_privilege('authenticated', 'public.workouts', 'ai_proposal_lineage_id', 'UPDATE'),
+  'authenticated callers use the narrow RPC without direct lineage-column writes'
+);
 
 insert into auth.users (id, email)
 values
@@ -83,6 +117,40 @@ select is(
   '[{"position": 0, "reps": 10, "sets": 3}, {"position": 1, "reps": 8, "sets": 4}]'::jsonb,
   'the RPC derives positions from array order'
 );
+select set_config('test.history_proposal_id', (select proposal_id::text from public.record_ai_workout_proposal(array[
+  (select id from public.exercises where slug = 'barbell-bench-press'),
+  (select id from public.exercises where slug = 'back-squat'),
+  (select id from public.exercises where slug = 'plank')
+], null)), true);
+select lives_ok(
+  $$select public.save_history_aware_ai_planned_workout(
+    jsonb_build_array(
+      jsonb_build_object('exercise_id', (select id from public.exercises where slug = 'barbell-bench-press'), 'sets', 3, 'reps', 10),
+      jsonb_build_object('exercise_id', (select id from public.exercises where slug = 'front-squat'), 'sets', 4, 'reps', 8)
+    ), true,
+    current_setting('test.history_proposal_id')::uuid,
+    (select id from public.workouts where user_id = '00000000-0000-0000-0000-000000000071' and status = 'planned'),
+    (select revision from public.workouts where user_id = '00000000-0000-0000-0000-000000000071' and status = 'planned')
+  )$$,
+  'history-aware save atomically replaces and links the current plan'
+);
+reset role;
+select is(
+  (select workout.ai_proposal_lineage_id from public.workouts workout where workout.user_id = '00000000-0000-0000-0000-000000000071' and workout.status = 'planned'),
+  (select proposal.lineage_id from public.ai_workout_proposals proposal where proposal.id = current_setting('test.history_proposal_id')::uuid),
+  'history-aware save copies only the opaque proposal lineage marker'
+);
+select is(
+  (select count(*) from public.ai_workout_proposal_events where proposal_id = current_setting('test.history_proposal_id')::uuid and event_type = 'retention'),
+  1::bigint,
+  'history-aware save derives retained proposal exercises from the submitted draft'
+);
+select is(
+  (select count(*) from public.ai_workout_proposal_events where proposal_id = current_setting('test.history_proposal_id')::uuid and event_type = 'save' and workout_id = (select id from public.workouts where user_id = '00000000-0000-0000-0000-000000000071' and status = 'planned')),
+  1::bigint,
+  'history-aware save records one owner-derived save event'
+);
+set local role authenticated;
 select throws_ok(
   $$select public.save_ai_planned_workout(jsonb_build_array(jsonb_build_object('exercise_id', (select id from public.exercises where slug = 'front-squat'), 'sets', 3, 'reps', 10)), false, null, null)$$,
   'AW001'::character(5), 'confirmation_required', 'unconfirmed replacement preserves the existing plan'
@@ -110,6 +178,38 @@ select set_config(
     select id from public.workouts where user_id = '00000000-0000-0000-0000-000000000071' and status = 'planned'
   )),
   true
+);
+with inserted as (
+  insert into public.ai_workout_proposals (user_id)
+  values ('00000000-0000-0000-0000-000000000072')
+  returning id
+)
+select set_config('test.other_owner_proposal_id', (select id::text from inserted), true);
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000071', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+set local role authenticated;
+select throws_ok(
+  $$select public.save_history_aware_ai_planned_workout(
+    jsonb_build_array(jsonb_build_object('exercise_id', (select id from public.exercises where slug = 'front-squat'), 'sets', 3, 'reps', 10)),
+    true,
+    current_setting('test.other_owner_proposal_id')::uuid,
+    (select id from public.workouts where user_id = '00000000-0000-0000-0000-000000000071' and status = 'planned'),
+    (select revision from public.workouts where user_id = '00000000-0000-0000-0000-000000000071' and status = 'planned')
+  )$$,
+  'AW005'::character(5), 'proposal_not_available', 'cross-owner proposal linkage rolls back the save transaction'
+);
+reset role;
+select is(
+  (select to_jsonb(workout) from public.workouts workout where workout.user_id = '00000000-0000-0000-0000-000000000071' and workout.status = 'planned'),
+  current_setting('test.ai_workout_parent_before_failure')::jsonb,
+  'linkage failure preserves the original planned-workout parent'
+);
+select is(
+  (select jsonb_agg(to_jsonb(workout_exercise) order by workout_exercise.position) from public.workout_exercises workout_exercise where workout_exercise.workout_id = (
+    select id from public.workouts where user_id = '00000000-0000-0000-0000-000000000071' and status = 'planned'
+  )),
+  current_setting('test.ai_workout_children_before_failure')::jsonb,
+  'linkage failure preserves the original prescriptions'
 );
 create function public.fail_ai_workout_test_child_insert()
 returns trigger

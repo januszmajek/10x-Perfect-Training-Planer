@@ -11,6 +11,7 @@ import {
   type AiWorkoutGenerationMetadata,
 } from "@/lib/ai-workout-client";
 import type { AiGenerationErrorCode } from "@/lib/ai-workouts";
+import { AI_WORKOUT_SAVE_REQUEST_VERSION } from "@/lib/ai-workout-save-request";
 import {
   MANUAL_WORKOUT_REQUEST_VERSION,
   validateDraftItems,
@@ -172,17 +173,26 @@ export default function WorkoutBuilder({ catalogue, initialCurrentPlan, credenti
     setRequestId(null);
     const path = draftOrigin === "ai" ? "/api/workouts/ai/save" : "/api/workouts/manual";
     try {
+      const manualRequest = {
+        version: MANUAL_WORKOUT_REQUEST_VERSION,
+        replaceExisting,
+        expectedWorkoutId: replaceExisting ? (expectedPlan?.id ?? null) : null,
+        expectedRevision: replaceExisting ? (expectedPlan?.revision ?? null) : null,
+        exercises: draft,
+      };
+      const request =
+        draftOrigin === "ai"
+          ? {
+              ...manualRequest,
+              version: AI_WORKOUT_SAVE_REQUEST_VERSION,
+              proposalId: activeProposal?.proposalId ?? null,
+            }
+          : manualRequest;
       const response = await fetch(path, {
         method: "POST",
         credentials: "same-origin",
         headers: { Accept: "application/json", "Content-Type": "application/json" },
-        body: JSON.stringify({
-          version: MANUAL_WORKOUT_REQUEST_VERSION,
-          replaceExisting,
-          expectedWorkoutId: replaceExisting ? (expectedPlan?.id ?? null) : null,
-          expectedRevision: replaceExisting ? (expectedPlan?.revision ?? null) : null,
-          exercises: draft,
-        }),
+        body: JSON.stringify(request),
       });
       if (response.ok && response.redirected) {
         window.location.assign(response.url);

@@ -190,6 +190,7 @@ void test("accepts the exact version-1 request schema and 20-item boundary", () 
 
 void test("rejects unknown keys, invalid replacement state, UUIDs, duplicates, and too many items", () => {
   assert.equal(parseManualWorkoutRequest({ ...request(), extra: true }).valid, false);
+  assert.equal(parseManualWorkoutRequest({ ...request(), proposalId: null }).valid, false);
   assert.equal(
     parseManualWorkoutRequest({ ...request(), exercises: [{ ...createDraftItem(IDS[0]), extra: true }] }).valid,
     false,

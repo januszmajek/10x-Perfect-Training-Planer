@@ -887,15 +887,15 @@ and additive rollback. Do not deploy, push linked migrations, or modify real sec
 
 #### Automated
 
-- [ ] 4A.1 AI-save parser and legacy/history-aware RPC selection tests pass
-- [ ] 4A.2 Save linkage, retention, completion, grants, and database contract tests pass
-- [ ] 4A.3 RPC signatures, types, reset, schema lint, and generated-type drift gates pass
-- [ ] 4A.4 Existing lifecycle and concurrency gates remain green
+- [x] 4A.1 AI-save parser and legacy/history-aware RPC selection tests pass
+- [x] 4A.2 Save linkage, retention, completion, grants, and database contract tests pass
+- [x] 4A.3 RPC signatures, types, reset, schema lint, and generated-type drift gates pass
+- [x] 4A.4 Existing lifecycle and concurrency gates remain green
 
 #### Manual
 
-- [ ] 4A.5 Saving a history-aware draft records server-derived lifecycle evidence
-- [ ] 4A.6 Completion after raw proposal expiry preserves workout and durable preferences
+- [x] 4A.5 Saving a history-aware draft records server-derived lifecycle evidence
+- [x] 4A.6 Completion after raw proposal expiry preserves workout and durable preferences
 
 ### Phase 4B: Preference Feedback and Interaction UI
 

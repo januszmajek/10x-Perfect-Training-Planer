@@ -9,11 +9,17 @@ select enum_has_labels('public', 'ai_exercise_preference', array['liked', 'dont_
 select has_table('public', 'ai_exercise_preferences', 'private preferences exist');
 select has_table('public', 'ai_workout_proposals', 'private proposals exist');
 select has_table('public', 'ai_workout_proposal_events', 'typed proposal events exist');
+select has_table('public', 'ai_workout_completion_events', 'independent completion events exist');
 select has_table('public', 'ai_reduced_generation_confirmations', 'reduced confirmation records exist');
 select col_is_pk('public', 'ai_exercise_preferences', array['user_id', 'exercise_id'], 'one preference exists per owner and exercise');
 select ok((select relrowsecurity from pg_class where oid = 'public.ai_workout_proposals'::regclass), 'proposal RLS is enabled');
 select ok(not has_table_privilege('authenticated', 'public.ai_workout_proposals', 'select, insert, update, delete'), 'telemetry tables have no direct authenticated access');
 select ok(exists (select 1 from cron.job where jobname = 'purge-expired-ai-recommendation-data'), 'one stable retention job is installed');
+select matches(
+  pg_get_functiondef('private.purge_expired_ai_recommendation_data()'::regprocedure),
+  'delete from public\.ai_workout_completion_events',
+  'the stable retention job function includes independent completion telemetry'
+);
 select is(
   (
     select count(*)
@@ -63,9 +69,29 @@ reset role;
 update public.ai_workout_proposals set expires_at = now() - interval '1 second' where id = current_setting('test.proposal_id')::uuid;
 insert into public.ai_exercise_preferences (user_id, exercise_id, preference)
 values ('00000000-0000-0000-0000-000000000901', (select id from public.exercises where slug = 'back-squat'), 'liked');
+insert into public.workouts (id, user_id, status, origin, created_at, completed_at, ai_proposal_lineage_id)
+values (
+  '90000000-0000-0000-0000-000000000901',
+  '00000000-0000-0000-0000-000000000901',
+  'completed',
+  'ai',
+  transaction_timestamp() - interval '100 days',
+  transaction_timestamp() - interval '91 days',
+  '91000000-0000-0000-0000-000000000901'
+);
+insert into public.ai_workout_completion_events (workout_id, user_id, proposal_lineage_id, completed_at, expires_at)
+values (
+  '90000000-0000-0000-0000-000000000901',
+  '00000000-0000-0000-0000-000000000901',
+  '91000000-0000-0000-0000-000000000901',
+  transaction_timestamp() - interval '91 days',
+  transaction_timestamp() - interval '1 day'
+);
 select lives_ok($$select private.purge_expired_ai_recommendation_data()$$, 'retention cleanup runs');
 select is((select count(*) from public.ai_workout_proposals where id = current_setting('test.proposal_id')::uuid), 0::bigint, 'expired proposals are deleted');
+select is((select count(*) from public.ai_workout_completion_events where workout_id = '90000000-0000-0000-0000-000000000901'), 0::bigint, 'expired completion telemetry is deleted');
 select is((select count(*) from public.ai_exercise_preferences where user_id = '00000000-0000-0000-0000-000000000901'), 1::bigint, 'retention preserves durable preferences');
+select is((select count(*) from public.workouts where id = '90000000-0000-0000-0000-000000000901'), 1::bigint, 'retention preserves workout history');
 
 select * from finish();
 rollback;

@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
+import { parseAiWorkoutSaveRequest } from "@/lib/ai-workout-save-request";
 import { saveAiPlannedWorkout } from "@/lib/ai-workouts";
-import { parseManualWorkoutRequest } from "@/lib/manual-workout-builder";
 import { failureResponse, parseJsonBody, requireAuthenticatedLocals, requireSameOrigin } from "@/lib/workout-api";
 
 export const POST: APIRoute = async (context) => {
@@ -18,7 +18,7 @@ export const POST: APIRoute = async (context) => {
     return failureResponse(requestId, operation, "unauthenticated", "request", "AUTH_LOCALS_MISSING");
   }
 
-  const validation = parseManualWorkoutRequest(parsedBody.value);
+  const validation = parseAiWorkoutSaveRequest(parsedBody.value);
   if (!validation.valid) {
     return failureResponse(requestId, operation, "validation_failed", "validation", "INVALID_SCHEMA");
   }

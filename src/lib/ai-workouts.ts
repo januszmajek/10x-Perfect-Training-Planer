@@ -6,7 +6,7 @@ import {
 } from "./ai-workout-contract.ts";
 import { buildColdStartWorkoutPrompt, buildHistoryAwareWorkoutPrompt } from "./ai-workout-prompt.ts";
 import { requestOpenRouterWorkout } from "./openrouter-client.ts";
-import { validateDraftItems, type ManualWorkoutRequest } from "./manual-workout-builder.ts";
+import { validateDraftItems } from "./manual-workout-builder.ts";
 import {
   loadColdStartEligibility,
   loadWorkoutCatalogue,
@@ -25,6 +25,7 @@ import {
   verifyReducedGenerationConfirmation,
 } from "./ai-workout-confirmation.ts";
 import type { AiWorkoutGenerationCommand, AiWorkoutGenerationMetadata } from "./ai-workout-client.ts";
+import type { AiWorkoutSaveRequest } from "./ai-workout-save-request.ts";
 
 type WorkoutClient = SupabaseClient<Database>;
 
@@ -83,7 +84,7 @@ export interface AiWorkoutGenerationDependencies {
 export async function saveAiPlannedWorkout(
   client: WorkoutClient,
   userId: string | null,
-  request: ManualWorkoutRequest,
+  request: AiWorkoutSaveRequest,
 ): Promise<AiGenerationResult<{ workoutId: string }>> {
   if (!userId) return failure("unauthenticated", "service", "AUTH_MISSING");
 
@@ -111,22 +112,33 @@ export async function saveAiPlannedWorkout(
     sets,
     reps,
   }));
-  let rpcArgs: Database["public"]["Functions"]["save_ai_planned_workout"]["Args"];
   if (request.replaceExisting) {
     if (request.expectedWorkoutId === null || request.expectedRevision === null) {
       return failure("validation_failed", "service", "EXPECTED_PLAN_MISSING");
     }
-    rpcArgs = {
-      p_exercises: exercises,
-      p_replace_existing: true,
-      p_expected_workout_id: request.expectedWorkoutId,
-      p_expected_revision: request.expectedRevision,
-    };
-  } else {
-    rpcArgs = { p_exercises: exercises, p_replace_existing: false };
   }
+  const replacementArgs = request.replaceExisting
+    ? {
+        p_replace_existing: true,
+        p_expected_workout_id: request.expectedWorkoutId,
+        p_expected_revision: request.expectedRevision,
+      }
+    : { p_replace_existing: false };
+  let data: string | null;
+  let error: { code: string } | null;
 
-  const { data, error } = await client.rpc("save_ai_planned_workout", rpcArgs);
+  if (request.proposalId === null) {
+    ({ data, error } = await client.rpc("save_ai_planned_workout", {
+      p_exercises: exercises,
+      ...replacementArgs,
+    }));
+  } else {
+    ({ data, error } = await client.rpc("save_history_aware_ai_planned_workout", {
+      p_exercises: exercises,
+      p_proposal_id: request.proposalId,
+      ...replacementArgs,
+    }));
+  }
   if (error) {
     const codes: Partial<Record<string, AiGenerationErrorCode>> = {
       AW001: "confirmation_required",

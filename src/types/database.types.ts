@@ -101,6 +101,38 @@ export type Database = {
         };
         Relationships: [];
       };
+      ai_workout_completion_events: {
+        Row: {
+          completed_at: string;
+          expires_at: string;
+          proposal_lineage_id: string;
+          user_id: string;
+          workout_id: string;
+        };
+        Insert: {
+          completed_at: string;
+          expires_at?: string;
+          proposal_lineage_id: string;
+          user_id: string;
+          workout_id: string;
+        };
+        Update: {
+          completed_at?: string;
+          expires_at?: string;
+          proposal_lineage_id?: string;
+          user_id?: string;
+          workout_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_workout_completion_events_workout_owner_fkey";
+            columns: ["workout_id", "user_id"];
+            isOneToOne: false;
+            referencedRelation: "workouts";
+            referencedColumns: ["id", "user_id"];
+          },
+        ];
+      };
       ai_workout_proposal_events: {
         Row: {
           created_at: string;
@@ -155,13 +187,6 @@ export type Database = {
             columns: ["replacement_exercise_id"];
             isOneToOne: false;
             referencedRelation: "exercises";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "ai_workout_proposal_events_workout_id_fkey";
-            columns: ["workout_id"];
-            isOneToOne: false;
-            referencedRelation: "workouts";
             referencedColumns: ["id"];
           },
         ];
@@ -224,7 +249,15 @@ export type Database = {
           rerolled_from_proposal_id?: string | null;
           user_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "ai_workout_proposals_rerolled_from_proposal_id_fkey";
+            columns: ["rerolled_from_proposal_id"];
+            isOneToOne: false;
+            referencedRelation: "ai_workout_proposals";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       exercise_muscle_groups: {
         Row: {
@@ -427,7 +460,7 @@ export type Database = {
         }[];
       };
       record_ai_workout_proposal: {
-        Args: { p_exercise_ids: string[]; p_rerolled_from_proposal_id?: string | null };
+        Args: { p_exercise_ids: string[]; p_rerolled_from_proposal_id: string };
         Returns: {
           lineage_id: string;
           proposal_id: string;
@@ -446,6 +479,16 @@ export type Database = {
           p_exercises: Json;
           p_expected_revision?: number;
           p_expected_workout_id?: string;
+          p_replace_existing: boolean;
+        };
+        Returns: string;
+      };
+      save_history_aware_ai_planned_workout: {
+        Args: {
+          p_exercises: Json;
+          p_expected_revision?: number;
+          p_expected_workout_id?: string;
+          p_proposal_id: string;
           p_replace_existing: boolean;
         };
         Returns: string;
