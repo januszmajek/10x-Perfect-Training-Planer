@@ -460,7 +460,7 @@ export type Database = {
         }[];
       };
       record_ai_workout_proposal: {
-        Args: { p_exercise_ids: string[]; p_rerolled_from_proposal_id: string };
+        Args: { p_exercise_ids: string[]; p_rerolled_from_proposal_id?: string };
         Returns: {
           lineage_id: string;
           proposal_id: string;

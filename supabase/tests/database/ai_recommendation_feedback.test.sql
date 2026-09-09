@@ -56,7 +56,32 @@ select set_config('test.proposal_id', (select proposal_id::text from public.reco
   (select id from public.exercises where slug = 'back-squat'),
   (select id from public.exercises where slug = 'plank')
 ], null)), true);
+select set_config('test.reroll_proposal_id', (select proposal_id::text from public.record_ai_workout_proposal(array[
+  (select id from public.exercises where slug = 'barbell-bench-press'),
+  (select id from public.exercises where slug = 'front-squat'),
+  (select id from public.exercises where slug = 'plank')
+], current_setting('test.proposal_id')::uuid)), true);
+reset role;
+select is(
+  (select lineage_id from public.ai_workout_proposals where id = current_setting('test.reroll_proposal_id')::uuid),
+  (select lineage_id from public.ai_workout_proposals where id = current_setting('test.proposal_id')::uuid),
+  'a re-roll shares the original proposal lineage'
+);
+select is(
+  (select count(*) from public.ai_workout_proposal_events where proposal_id = current_setting('test.proposal_id')::uuid and event_type = 'reroll'),
+  1::bigint,
+  'a re-roll records one event on the replaced proposal'
+);
+set local role authenticated;
 select lives_ok($$select public.append_ai_workout_proposal_event(current_setting('test.proposal_id')::uuid, 'exposure')$$, 'an owner can record exposure');
+select lives_ok($$select public.append_ai_workout_proposal_event(current_setting('test.proposal_id')::uuid, 'exposure')$$, 'a duplicate exposure acknowledgement succeeds');
+reset role;
+select is(
+  (select count(*) from public.ai_workout_proposal_events where proposal_id = current_setting('test.proposal_id')::uuid and event_type = 'exposure'),
+  1::bigint,
+  'duplicate exposure delivery creates exactly one event'
+);
+set local role authenticated;
 select throws_ok(
   $$select public.append_ai_workout_proposal_event(current_setting('test.proposal_id')::uuid, 'removal')$$,
   'AR003'::character(5), 'validation_failed', 'event checks reject invalid typed event shapes'

@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { applyAiGenerationResponse, getAiPlannerRecoveryAction } from "./ai-workout-planner-state.ts";
+import {
+  applyAiGenerationResponse,
+  getAiPlannerRecoveryAction,
+  getAiWorkoutDraftInteraction,
+} from "./ai-workout-planner-state.ts";
 
 const existingDraft = [
   { exerciseId: "00000000-0000-0000-0000-000000000001", sets: 4, reps: 6 },
@@ -74,4 +78,23 @@ void test("maps typed failures to safe recovery actions", () => {
   assert.equal(getAiPlannerRecoveryAction("key_encryption_unavailable"), "none");
   assert.equal(getAiPlannerRecoveryAction("rate_limited"), "retry");
   assert.equal(getAiPlannerRecoveryAction("history_aware_not_available"), "manual");
+});
+
+void test("emits removal and swap telemetry only for an original proposal exercise", () => {
+  const originalExerciseId = "00000000-0000-0000-0000-000000000001";
+  const manualExerciseId = "00000000-0000-0000-0000-000000000099";
+  const originalIds = new Set([originalExerciseId]);
+  assert.deepEqual(getAiWorkoutDraftInteraction(originalIds, { type: "remove", exerciseId: originalExerciseId }), {
+    type: "remove",
+    exerciseId: originalExerciseId,
+  });
+  assert.deepEqual(
+    getAiWorkoutDraftInteraction(originalIds, {
+      type: "swap",
+      exerciseId: originalExerciseId,
+      replacementExerciseId: manualExerciseId,
+    }),
+    { type: "swap", exerciseId: originalExerciseId, replacementExerciseId: manualExerciseId },
+  );
+  assert.equal(getAiWorkoutDraftInteraction(originalIds, { type: "remove", exerciseId: manualExerciseId }), null);
 });

@@ -12,6 +12,17 @@ export interface AiGenerationStateTransition {
   activeProposal: Extract<AiWorkoutGenerationMetadata, { kind: "history_aware" }> | null;
 }
 
+export type AiWorkoutDraftInteraction =
+  | { type: "remove"; exerciseId: string }
+  | { type: "swap"; exerciseId: string; replacementExerciseId: string };
+
+export function getAiWorkoutDraftInteraction(
+  originalProposalExerciseIds: ReadonlySet<string>,
+  interaction: AiWorkoutDraftInteraction,
+): AiWorkoutDraftInteraction | null {
+  return originalProposalExerciseIds.has(interaction.exerciseId) ? interaction : null;
+}
+
 export function applyAiGenerationResponse(
   currentDraft: ManualWorkoutDraftItem[] | null,
   response: AiWorkoutGenerationResponse | null,

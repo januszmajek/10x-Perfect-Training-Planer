@@ -2,6 +2,7 @@
 import WorkoutBuilder from "@/components/workouts/WorkoutBuilder.tsx";
 import AuthenticatedLayout from "@/layouts/AuthenticatedLayout.astro";
 import { getMaskedAiProviderKey } from "@/lib/ai-provider-keys";
+import { loadAiExercisePreferences } from "@/lib/history-aware-ai-profile";
 import { loadWorkoutBuilderData } from "@/lib/manual-workouts";
 
 const { user, supabase } = Astro.locals;
@@ -10,9 +11,10 @@ if (!user || !supabase) {
   return Astro.redirect("/auth/signin");
 }
 
-const [builderResult, credentialResult] = await Promise.all([
+const [builderResult, credentialResult, preferencesResult] = await Promise.all([
   loadWorkoutBuilderData(supabase, user.id),
   getMaskedAiProviderKey(supabase, user.id),
+  loadAiExercisePreferences(supabase, user.id),
 ]);
 ---
 
@@ -32,6 +34,7 @@ const [builderResult, credentialResult] = await Promise.all([
         catalogue={builderResult.data.catalogue}
         initialCurrentPlan={builderResult.data.currentPlan}
         credentialConfigured={credentialResult.ok && credentialResult.data !== null}
+        initialPreferences={preferencesResult.ok ? Object.fromEntries(preferencesResult.data) : {}}
         client:load
       />
     ) : (

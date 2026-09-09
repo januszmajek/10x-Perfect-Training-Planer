@@ -1,4 +1,5 @@
-import { Check, Plus } from "lucide-react";
+import { Ban, Check, Heart, Plus } from "lucide-react";
+import type { AiWorkoutPreferenceState } from "@/lib/ai-workout-feedback-client";
 import type { CatalogueExercise } from "@/lib/manual-workout-builder";
 import type { RecoveryAwareCatalogueExercise } from "@/lib/recovery-aware-catalogue";
 
@@ -8,7 +9,10 @@ interface Props {
   pending: boolean;
   disabled: boolean;
   actionLabel: "Add" | "Added" | "Replace" | "Current";
+  preference: AiWorkoutPreferenceState;
+  preferencePending: boolean;
   onSelect: () => void;
+  onPreferenceChange: (preference: Exclude<AiWorkoutPreferenceState, "neutral">) => void;
 }
 
 function formatLabel(value: string): string {
@@ -34,7 +38,10 @@ export default function WorkoutCatalogueExerciseCard({
   pending,
   disabled,
   actionLabel,
+  preference,
+  preferencePending,
   onSelect,
+  onPreferenceChange,
 }: Props) {
   const recoveringMuscles = new Map(recovery?.recoveringMuscles.map((muscle) => [muscle.code, muscle]));
   const isRecovering = recovery?.state === "recovering";
@@ -71,19 +78,50 @@ export default function WorkoutCatalogueExerciseCard({
             </ul>
           )}
         </div>
-        <button
-          type="button"
-          disabled={pending || disabled}
-          onClick={onSelect}
-          className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-lg border border-purple-300/30 px-3 py-2 text-sm font-semibold text-purple-100 disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
-        >
-          {actionLabel === "Current" ? (
-            <Check aria-hidden="true" className="size-4" />
-          ) : (
-            <Plus aria-hidden="true" className="size-4" />
-          )}
-          {actionLabel}
-        </button>
+        <div className="flex shrink-0 gap-1.5">
+          <button
+            type="button"
+            disabled={pending || disabled}
+            onClick={onSelect}
+            aria-label={`${actionLabel} ${exercise.name}`}
+            title={`${actionLabel} ${exercise.name}`}
+            className="inline-flex size-9 items-center justify-center rounded-md border border-purple-300/30 text-purple-100 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {actionLabel === "Current" ? (
+              <Check aria-hidden="true" className="size-4" />
+            ) : (
+              <Plus aria-hidden="true" className="size-4" />
+            )}
+          </button>
+          <div className="flex gap-1.5" role="group" aria-label={`Recommendation preference for ${exercise.name}`}>
+            <button
+              type="button"
+              aria-label={`Like ${exercise.name}`}
+              aria-pressed={preference === "liked"}
+              title="Like for future AI proposals"
+              disabled={pending || preferencePending}
+              onClick={() => {
+                onPreferenceChange("liked");
+              }}
+              className={`inline-flex size-9 items-center justify-center rounded-md border text-emerald-100 disabled:opacity-45 ${preference === "liked" ? "border-emerald-200 bg-emerald-400/20 ring-1 ring-emerald-200/60" : "border-emerald-300/25"}`}
+            >
+              <Heart aria-hidden="true" className="size-4" fill={preference === "liked" ? "currentColor" : "none"} />
+            </button>
+            <button
+              type="button"
+              aria-label={`Don't recommend ${exercise.name}`}
+              aria-pressed={preference === "dont_suggest"}
+              title="Don't recommend in future AI proposals"
+              disabled={pending || preferencePending}
+              onClick={() => {
+                onPreferenceChange("dont_suggest");
+              }}
+              className={`inline-flex size-9 items-center justify-center rounded-md border text-amber-100 disabled:opacity-45 ${preference === "dont_suggest" ? "border-amber-200 bg-amber-400/20 ring-1 ring-amber-200/60" : "border-amber-300/25"}`}
+            >
+              <Ban aria-hidden="true" className="size-4" strokeWidth={preference === "dont_suggest" ? 3 : 2} />
+            </button>
+          </div>
+        </div>
       </div>
     </li>
   );

@@ -28,6 +28,10 @@ import type { AiWorkoutGenerationCommand, AiWorkoutGenerationMetadata } from "./
 import type { AiWorkoutSaveRequest } from "./ai-workout-save-request.ts";
 
 type WorkoutClient = SupabaseClient<Database>;
+type SaveAiPlannedWorkoutReplacementArgs = Pick<
+  Database["public"]["Functions"]["save_ai_planned_workout"]["Args"],
+  "p_expected_revision" | "p_expected_workout_id" | "p_replace_existing"
+>;
 
 export type AiGenerationErrorCode =
   | "validation_failed"
@@ -112,18 +116,20 @@ export async function saveAiPlannedWorkout(
     sets,
     reps,
   }));
+  let replacementArgs: SaveAiPlannedWorkoutReplacementArgs;
   if (request.replaceExisting) {
-    if (request.expectedWorkoutId === null || request.expectedRevision === null) {
+    const { expectedWorkoutId, expectedRevision } = request;
+    if (expectedWorkoutId === null || expectedRevision === null) {
       return failure("validation_failed", "service", "EXPECTED_PLAN_MISSING");
     }
+    replacementArgs = {
+      p_replace_existing: true,
+      p_expected_workout_id: expectedWorkoutId,
+      p_expected_revision: expectedRevision,
+    };
+  } else {
+    replacementArgs = { p_replace_existing: false };
   }
-  const replacementArgs = request.replaceExisting
-    ? {
-        p_replace_existing: true,
-        p_expected_workout_id: request.expectedWorkoutId,
-        p_expected_revision: request.expectedRevision,
-      }
-    : { p_replace_existing: false };
   let data: string | null;
   let error: { code: string } | null;
 
@@ -346,10 +352,14 @@ export async function generateHistoryAwareAiWorkout(
     requestedExerciseCount: requested,
   });
   if (!proposal.ok) return failure("invalid_output", "service", `PROPOSAL_${proposal.code.toUpperCase()}`);
-  const { data, error } = await client.rpc("record_ai_workout_proposal", {
-    p_exercise_ids: proposal.data.exercises.map(({ exerciseId }) => exerciseId),
-    p_rerolled_from_proposal_id: "priorProposalId" in command ? command.priorProposalId : null,
-  });
+  const proposalExerciseIds = proposal.data.exercises.map(({ exerciseId }) => exerciseId);
+  const { data, error } =
+    "priorProposalId" in command
+      ? await client.rpc("record_ai_workout_proposal", {
+          p_exercise_ids: proposalExerciseIds,
+          p_rerolled_from_proposal_id: command.priorProposalId,
+        })
+      : await client.rpc("record_ai_workout_proposal", { p_exercise_ids: proposalExerciseIds });
   if (error || !data[0]) return failure("persistence_failed", "database", error ? error.code : "EMPTY_PROPOSAL_RECORD");
   const preferences = Object.fromEntries(
     proposal.data.exercises.map(

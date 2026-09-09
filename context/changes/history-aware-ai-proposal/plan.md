@@ -887,30 +887,30 @@ and additive rollback. Do not deploy, push linked migrations, or modify real sec
 
 #### Automated
 
-- [x] 4A.1 AI-save parser and legacy/history-aware RPC selection tests pass
-- [x] 4A.2 Save linkage, retention, completion, grants, and database contract tests pass
-- [x] 4A.3 RPC signatures, types, reset, schema lint, and generated-type drift gates pass
-- [x] 4A.4 Existing lifecycle and concurrency gates remain green
+- [x] 4A.1 AI-save parser and legacy/history-aware RPC selection tests pass — eefd721
+- [x] 4A.2 Save linkage, retention, completion, grants, and database contract tests pass — eefd721
+- [x] 4A.3 RPC signatures, types, reset, schema lint, and generated-type drift gates pass — eefd721
+- [x] 4A.4 Existing lifecycle and concurrency gates remain green — eefd721
 
 #### Manual
 
-- [x] 4A.5 Saving a history-aware draft records server-derived lifecycle evidence
-- [x] 4A.6 Completion after raw proposal expiry preserves workout and durable preferences
+- [x] 4A.5 Saving a history-aware draft records server-derived lifecycle evidence — eefd721
+- [x] 4A.6 Completion after raw proposal expiry preserves workout and durable preferences — eefd721
 
 ### Phase 4B: Preference Feedback and Interaction UI
 
 #### Automated
 
-- [ ] 4B.1 Pure preference request, parser, and client tests pass
-- [ ] 4B.2 Exposure deduplication and discriminated removal/swap mutation tests pass
-- [ ] 4B.3 Existing AI, manual, planned-workout, and history suites remain green
-- [ ] 4B.4 Astro sync and repository lint pass
+- [x] 4B.1 Pure preference request, parser, and client tests pass
+- [x] 4B.2 Exposure deduplication and discriminated removal/swap mutation tests pass
+- [x] 4B.3 Existing AI, manual, planned-workout, and history suites remain green
+- [x] 4B.4 Astro sync and repository lint pass
 
 #### Manual
 
-- [ ] 4B.5 Like and Don't suggest persist, remain mutually exclusive, and affect future proposals only
-- [ ] 4B.6 Interaction telemetry is owner-scoped, typed, and non-blocking
-- [ ] 4B.7 Mobile, desktop, keyboard, screen-reader, focus, and overflow behavior is correct
+- [x] 4B.5 Like and Don't suggest persist, remain mutually exclusive, and affect future proposals only
+- [x] 4B.6 Interaction telemetry is owner-scoped, typed, and non-blocking
+- [x] 4B.7 Mobile, desktop, keyboard, screen-reader, focus, and overflow behavior is correct
 
 ### Phase 4C: Release Gates and Operational Verification
 

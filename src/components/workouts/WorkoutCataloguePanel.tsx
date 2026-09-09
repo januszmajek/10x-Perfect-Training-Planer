@@ -1,6 +1,7 @@
 import { useMemo, useState, type RefObject } from "react";
 import { Dumbbell, SlidersHorizontal } from "lucide-react";
 import WorkoutCatalogueExerciseCard from "@/components/workouts/WorkoutCatalogueExerciseCard";
+import type { AiWorkoutPreferenceState } from "@/lib/ai-workout-feedback-client";
 import {
   MAX_WORKOUT_EXERCISES,
   type CatalogueExercise,
@@ -21,9 +22,12 @@ interface Props {
   draft: ManualWorkoutDraftItem[];
   replacingIndex: number | null;
   pending: boolean;
+  proposalPreferences?: Readonly<Record<string, AiWorkoutPreferenceState>> | null;
+  preferencePendingExerciseId?: string | null;
   filterTriggerRef: RefObject<HTMLButtonElement | null>;
   onOpenFilters: () => void;
   onSelectExercise: (exerciseId: string) => void;
+  onPreferenceChange?: (exerciseId: string, preference: Exclude<AiWorkoutPreferenceState, "neutral">) => void;
 }
 
 const BUTTON_LABELS: Record<RecoveryOrder, string> = {
@@ -42,9 +46,12 @@ export default function WorkoutCataloguePanel({
   draft,
   replacingIndex,
   pending,
+  proposalPreferences = null,
+  preferencePendingExerciseId = null,
   filterTriggerRef,
   onOpenFilters,
   onSelectExercise,
+  onPreferenceChange,
 }: Props) {
   const [order, setOrder] = useState<RecoveryOrder>("not-sorted");
   const selectedIds = useMemo(() => new Set(draft.map(({ exerciseId }) => exerciseId)), [draft]);
@@ -103,6 +110,7 @@ export default function WorkoutCataloguePanel({
                 const selectedElsewhere = selected && draft[replacingIndex ?? -1]?.exerciseId !== exercise.id;
                 const current = replacing && draft[replacingIndex]?.exerciseId === exercise.id;
                 const actionLabel = replacing ? (current ? "Current" : "Replace") : selected ? "Added" : "Add";
+                const preference = proposalPreferences?.[exercise.id] ?? "neutral";
                 return (
                   <WorkoutCatalogueExerciseCard
                     key={exercise.id}
@@ -113,8 +121,13 @@ export default function WorkoutCataloguePanel({
                       replacing ? selectedElsewhere || current : selected || draft.length >= MAX_WORKOUT_EXERCISES
                     }
                     actionLabel={actionLabel}
+                    preference={preference}
+                    preferencePending={preferencePendingExerciseId === exercise.id}
                     onSelect={() => {
                       onSelectExercise(exercise.id);
+                    }}
+                    onPreferenceChange={(nextPreference) => {
+                      onPreferenceChange?.(exercise.id, nextPreference);
                     }}
                   />
                 );

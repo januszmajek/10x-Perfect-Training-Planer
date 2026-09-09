@@ -24,7 +24,7 @@ export type AiWorkoutGenerationMetadata =
       exerciseCount: number;
       reduced: boolean;
       originalExerciseIds: string[];
-      preferences: Record<string, "liked" | "neutral">;
+      preferences: Record<string, "liked" | "neutral" | "dont_suggest">;
     };
 
 export interface AiWorkoutGenerationSuccess {

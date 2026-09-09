@@ -1,8 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PlanReplacementDialog from "@/components/workouts/PlanReplacementDialog";
 import ReducedWorkoutConfirmationDialog from "@/components/workouts/ReducedWorkoutConfirmationDialog";
 import WorkoutDraftEditor from "@/components/workouts/WorkoutDraftEditor";
 import { applyAiGenerationResponse, getAiPlannerRecoveryAction } from "@/lib/ai-workout-planner-state";
+import {
+  AI_WORKOUT_FEEDBACK_VERSION,
+  acknowledgeAiWorkoutFeedbackEvent,
+  saveAiWorkoutPreference,
+  type AiExercisePreference,
+  type AiWorkoutPreferenceState,
+} from "@/lib/ai-workout-feedback-client";
 import {
   AI_WORKOUT_GENERATION_VERSION,
   parseAiWorkoutGenerationResponse,
@@ -26,6 +33,7 @@ interface Props {
   catalogue: CatalogueExercise[];
   initialCurrentPlan: CurrentPlannedWorkout | null;
   credentialConfigured: boolean;
+  initialPreferences: Record<string, Exclude<AiExercisePreference, null>>;
 }
 
 type DraftOrigin = "manual" | "ai";
@@ -68,7 +76,12 @@ function responseFailure(response: AiWorkoutGenerationResponse | null): AiWorkou
   return response ?? { ok: false, code: "invalid_output", requestId: null };
 }
 
-export default function WorkoutBuilder({ catalogue, initialCurrentPlan, credentialConfigured }: Props) {
+export default function WorkoutBuilder({
+  catalogue,
+  initialCurrentPlan,
+  credentialConfigured,
+  initialPreferences,
+}: Props) {
   const [draft, setDraft] = useState<ManualWorkoutDraftItem[]>([]);
   const [draftOrigin, setDraftOrigin] = useState<DraftOrigin>("manual");
   const [currentPlan, setCurrentPlan] = useState(initialCurrentPlan);
@@ -80,9 +93,23 @@ export default function WorkoutBuilder({ catalogue, initialCurrentPlan, credenti
   const [replacementDialogOpen, setReplacementDialogOpen] = useState(false);
   const [reducedConfirmation, setReducedConfirmation] = useState<{ count: 3 | 4; token: string } | null>(null);
   const [activeProposal, setActiveProposal] = useState<ActiveProposal | null>(null);
+  const [cataloguePreferences, setCataloguePreferences] =
+    useState<Record<string, AiWorkoutPreferenceState>>(initialPreferences);
+  const [preferencePendingExerciseId, setPreferencePendingExerciseId] = useState<string | null>(null);
+  const [preferenceError, setPreferenceError] = useState<string | null>(null);
   const knownExerciseIds = useMemo(() => new Set(catalogue.map(({ id }) => id)), [catalogue]);
   const draftValid = validateDraftItems(draft, knownExerciseIds);
   const operationsPending = pending !== null;
+  const activeProposalId = activeProposal?.proposalId ?? null;
+
+  useEffect(() => {
+    if (!activeProposalId) return;
+    void acknowledgeAiWorkoutFeedbackEvent({
+      version: AI_WORKOUT_FEEDBACK_VERSION,
+      proposalId: activeProposalId,
+      type: "exposure",
+    });
+  }, [activeProposalId]);
 
   function generationCommand(): AiWorkoutGenerationCommand {
     return activeProposal
@@ -121,6 +148,7 @@ export default function WorkoutBuilder({ catalogue, initialCurrentPlan, credenti
         setDraft(transition.draft);
         setDraftOrigin("ai");
         setActiveProposal(transition.activeProposal);
+        setPreferenceError(null);
         setReducedConfirmation(null);
         setRequestId(null);
       }
@@ -296,10 +324,51 @@ export default function WorkoutBuilder({ catalogue, initialCurrentPlan, credenti
         pending={operationsPending}
         saveLabel={pending === "save" ? "Saving…" : "Save workout"}
         error={saveError}
+        originalProposalExerciseIds={activeProposal?.originalExerciseIds}
+        proposalPreferences={cataloguePreferences}
+        preferencePendingExerciseId={preferencePendingExerciseId}
+        preferenceError={preferenceError}
         onChange={(nextDraft) => {
           setDraft(nextDraft);
           setSaveError(null);
           setRequestId(null);
+        }}
+        onInteraction={(interaction) => {
+          if (!activeProposal) return;
+          void acknowledgeAiWorkoutFeedbackEvent({
+            version: AI_WORKOUT_FEEDBACK_VERSION,
+            proposalId: activeProposal.proposalId,
+            ...interaction,
+          });
+        }}
+        onPreferenceChange={(exerciseId, selectedPreference) => {
+          if (preferencePendingExerciseId) return;
+          const currentPreference = cataloguePreferences[exerciseId] ?? "neutral";
+          const preference: AiExercisePreference = currentPreference === selectedPreference ? null : selectedPreference;
+          setPreferencePendingExerciseId(exerciseId);
+          setPreferenceError(null);
+          void saveAiWorkoutPreference({ version: AI_WORKOUT_FEEDBACK_VERSION, exerciseId, preference }).then(
+            (savedPreference) => {
+              setPreferencePendingExerciseId(null);
+              if (savedPreference === undefined) {
+                setPreferenceError("Your preference could not be saved. This draft is unchanged; try again.");
+                return;
+              }
+              setCataloguePreferences((preferences) => {
+                if (savedPreference === null) {
+                  return Object.fromEntries(Object.entries(preferences).filter(([id]) => id !== exerciseId));
+                }
+                return { ...preferences, [exerciseId]: savedPreference };
+              });
+              setActiveProposal((proposal) => {
+                if (!proposal?.originalExerciseIds.includes(exerciseId)) return proposal;
+                return {
+                  ...proposal,
+                  preferences: { ...proposal.preferences, [exerciseId]: savedPreference ?? "neutral" },
+                };
+              });
+            },
+          );
         }}
         onSave={startSave}
         onCancel={() => {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import WorkoutCatalogueFilters from "@/components/workouts/WorkoutCatalogueFilters";
 import WorkoutCataloguePanel from "@/components/workouts/WorkoutCataloguePanel";
 import WorkoutDraftPanel from "@/components/workouts/WorkoutDraftPanel";
+import { getAiWorkoutDraftInteraction, type AiWorkoutDraftInteraction } from "@/lib/ai-workout-planner-state";
 import {
   addDraftItem,
   filterCatalogue,
@@ -13,6 +14,7 @@ import {
   type EquipmentType,
   type ManualWorkoutDraftItem,
 } from "@/lib/manual-workout-builder";
+import type { AiWorkoutPreferenceState } from "@/lib/ai-workout-feedback-client";
 
 interface Props<T extends CatalogueExercise> {
   catalogue: T[];
@@ -20,7 +22,13 @@ interface Props<T extends CatalogueExercise> {
   pending: boolean;
   saveLabel: string;
   error?: string | null;
+  originalProposalExerciseIds?: readonly string[];
+  proposalPreferences?: Readonly<Record<string, AiWorkoutPreferenceState>> | null;
+  preferencePendingExerciseId?: string | null;
+  preferenceError?: string | null;
   onChange: (draft: ManualWorkoutDraftItem[]) => void;
+  onInteraction?: (interaction: AiWorkoutDraftInteraction) => void;
+  onPreferenceChange?: (exerciseId: string, preference: Exclude<AiWorkoutPreferenceState, "neutral">) => void;
   onSave: () => void;
   onCancel: () => void;
 }
@@ -31,7 +39,13 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
   pending,
   saveLabel,
   error,
+  originalProposalExerciseIds = [],
+  proposalPreferences = null,
+  preferencePendingExerciseId = null,
+  preferenceError = null,
   onChange,
+  onInteraction,
+  onPreferenceChange,
   onSave,
   onCancel,
 }: Props<T>) {
@@ -77,6 +91,10 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
   const filtersActive = search.trim() !== "" || selectedMuscles.length > 0 || selectedEquipment.length > 0;
   const replacingExercise = replacingIndex === null ? null : draft[replacingIndex];
   const replacingExerciseName = replacingExercise ? exercisesById.get(replacingExercise.exerciseId)?.name : null;
+  const originalProposalExerciseIdSet = useMemo(
+    () => new Set(originalProposalExerciseIds),
+    [originalProposalExerciseIds],
+  );
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -96,6 +114,15 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
 
   function selectExercise(exerciseId: string) {
     if (replacingIndex !== null) {
+      const replacedExerciseId = draft[replacingIndex]?.exerciseId;
+      if (replacedExerciseId) {
+        const interaction = getAiWorkoutDraftInteraction(originalProposalExerciseIdSet, {
+          type: "swap",
+          exerciseId: replacedExerciseId,
+          replacementExerciseId: exerciseId,
+        });
+        if (interaction) onInteraction?.(interaction);
+      }
       onChange(replaceDraftItem(draft, replacingIndex, exerciseId));
       setReplacingIndex(null);
       return;
@@ -104,6 +131,8 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
   }
 
   function removeItem(index: number, exerciseId: string) {
+    const interaction = getAiWorkoutDraftInteraction(originalProposalExerciseIdSet, { type: "remove", exerciseId });
+    if (interaction) onInteraction?.(interaction);
     onChange(removeDraftItem(draft, exerciseId));
     if (replacingIndex === index) setReplacingIndex(null);
     else if (replacingIndex !== null && replacingIndex > index) setReplacingIndex(replacingIndex - 1);
@@ -114,6 +143,11 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
       {error && (
         <div role="alert" className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
           {error}
+        </div>
+      )}
+      {preferenceError && (
+        <div role="alert" className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+          {preferenceError}
         </div>
       )}
       <div className="grid gap-6 xl:grid-cols-[17rem_minmax(0,1fr)_minmax(20rem,0.85fr)] xl:items-start">
@@ -152,11 +186,14 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
           draft={draft}
           replacingIndex={replacingIndex}
           pending={pending}
+          proposalPreferences={proposalPreferences}
+          preferencePendingExerciseId={preferencePendingExerciseId}
           filterTriggerRef={filterTriggerRef}
           onOpenFilters={() => {
             setFiltersOpen(true);
           }}
           onSelectExercise={selectExercise}
+          onPreferenceChange={onPreferenceChange}
         />
         <WorkoutDraftPanel
           draft={draft}

@@ -16,7 +16,7 @@
     "test:manual-workout": "node --experimental-strip-types --test src/lib/manual-workout-builder.test.ts src/lib/recovery-aware-catalogue.test.ts src/lib/manual-workouts.test.ts",
     "test:planned-workout": "node --experimental-strip-types --test src/lib/planned-workout-mutation.test.ts src/lib/planned-workout-client.test.ts src/lib/planned-workout-completion.test.ts",
     "test:history": "node --experimental-strip-types --test src/lib/workout-history-client.test.ts src/lib/workout-history.test.ts",
-    "test:ai-workout": "node --experimental-strip-types --test src/lib/ai-workout-contract.test.ts src/lib/ai-workout-prompt.test.ts src/lib/openrouter-client.test.ts src/lib/ai-workouts.test.ts src/lib/ai-workout-client.test.ts src/lib/ai-workout-planner-state.test.ts src/lib/ai-workout-confirmation.test.ts src/lib/ai-provider-key-request.test.ts src/lib/planned-workout-conflict.test.ts src/lib/history-aware-ai-profile.test.ts src/lib/ai-workout-recommender.test.ts",
+    "test:ai-workout": "node --experimental-strip-types --test src/lib/ai-workout-contract.test.ts src/lib/ai-workout-prompt.test.ts src/lib/openrouter-client.test.ts src/lib/ai-workouts.test.ts src/lib/ai-workout-client.test.ts src/lib/ai-workout-feedback-client.test.ts src/lib/ai-workout-planner-state.test.ts src/lib/ai-workout-confirmation.test.ts src/lib/ai-provider-key-request.test.ts src/lib/planned-workout-conflict.test.ts src/lib/history-aware-ai-profile.test.ts src/lib/ai-workout-recommender.test.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write ."

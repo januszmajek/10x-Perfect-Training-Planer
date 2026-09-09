@@ -33,7 +33,7 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000801
 select set_config('request.jwt.claim.role', 'authenticated', true);
 set local role authenticated;
 select is(
-  (select jsonb_agg(jsonb_build_object('count', completed_count, 'last', last_completed_at, 'latest', in_last_completed_workout) order by exercise_id)
+  (select jsonb_agg(jsonb_build_object('count', completed_count, 'last', last_completed_at, 'latest', in_last_completed_workout) order by completed_count desc, exercise_id)
    from public.get_exercise_completion_profile()),
   jsonb_build_array(
     jsonb_build_object('count', 2, 'last', '2026-01-02T10:00:00+00'::timestamptz, 'latest', true),

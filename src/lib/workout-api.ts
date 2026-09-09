@@ -11,7 +11,9 @@ export type WorkoutApiOperation =
   | "save_manual_workout"
   | "update_planned_workout"
   | "delete_planned_workout"
-  | "complete_planned_workout";
+  | "complete_planned_workout"
+  | "set_ai_workout_preference"
+  | "record_ai_workout_feedback";
 type RequestFailureLayer = "request" | "validation" | WorkoutFailureLayer;
 
 function statusFor(code: WorkoutErrorCode): number {

@@ -166,7 +166,7 @@ void test("records history-aware proposal lineage for initial generation and re-
   );
   assert.equal(reroll.ok, true);
   assert.deepEqual(calls, [
-    ["record_ai_workout_proposal", { p_exercise_ids: IDS, p_rerolled_from_proposal_id: null }],
+    ["record_ai_workout_proposal", { p_exercise_ids: IDS }],
     ["record_ai_workout_proposal", { p_exercise_ids: IDS, p_rerolled_from_proposal_id: IDS[1] }],
   ]);
 });
