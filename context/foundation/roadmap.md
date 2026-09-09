@@ -3,7 +3,7 @@ project: Perfect Training Planner
 version: 4
 status: draft
 created: 2026-06-13
-updated: 2026-09-07
+updated: 2026-09-09
 prd_version: 2
 main_goal: speed
 top_blocker: time
@@ -43,7 +43,7 @@ AI speed-and-variety promise, while the manual-first sequence deliberately place
 | S-05 | history-list-and-filters       | view completed workout history with date and muscle-group filters                           | S-04          | FR-012                                                                                     | done     |
 | S-06 | recovery-aware-manual-builder  | build and save a manual workout while recovery-aware filtering guides catalogue choices     | S-04          | US-03, FR-003, FR-006, FR-007, FR-008                                                      | done     |
 | S-07 | cold-start-ai-planned-workout  | generate, edit, and save a cold-start AI workout from the shared workout builder            | S-03, S-06    | US-02, FR-004, FR-005, FR-008, FR-016, AI responsiveness                                   | done     |
-| S-08 | history-aware-ai-proposal      | generate, preference-tune, edit, and save a history-aware AI workout within recovery limits | S-07          | US-01, FR-004, FR-005, FR-008, FR-017, FR-018, Privacy, AI responsiveness, Data durability | proposed |
+| S-08 | history-aware-ai-proposal      | generate, preference-tune, edit, and save a history-aware AI workout within recovery limits | S-07          | US-01, FR-004, FR-005, FR-008, FR-017, FR-018, Privacy, AI responsiveness, Data durability | done     |
 
 ## Baseline
 
@@ -194,7 +194,7 @@ sequencing frame). Foundations below assume these capabilities are present and d
 - **Risk:** This final MVP planning capability now also introduces durable explicit preferences and time-bounded
   proposal telemetry. The reduced-size exception must remain server-authoritative and unreachable whenever at least
   five ready exercises exist, while the existing cold-start and editable-save contracts remain unchanged.
-- **Status:** proposed
+- **Status:** done
 
 ## Backlog Handoff
 
@@ -238,6 +238,8 @@ sequencing frame). Foundations below assume these capabilities are present and d
 - **FR-014 do again from history** — Why parked: nice-to-have that may compete with the AI proposer success metric.
 
 ## Done
+
+- **S-08: User with completed history can generate, preference-tune, edit, and save an AI workout that excludes recovering-primary exercises, balances familiar and similarity-qualified unseen exercises, and offers a reduced 3–4 exercise proposal only after confirmation when five ready exercises are unavailable.** — Archived 2026-09-09 → `context/archive/2026-09-06-history-aware-ai-proposal/`. Lesson: —.
 
 - **S-07: User with no completed history can generate and edit an AI starter workout from the shared workout builder before saving it as planned.** — Archived 2026-09-05 → `context/archive/2026-09-05-cold-start-ai-planned-workout/`. Lesson: —.
 
