@@ -34,7 +34,7 @@ const [builderResult, credentialResult, preferencesResult] = await Promise.all([
         catalogue={builderResult.data.catalogue}
         initialCurrentPlan={builderResult.data.currentPlan}
         credentialConfigured={credentialResult.ok && credentialResult.data !== null}
-        initialPreferences={preferencesResult.ok ? Object.fromEntries(preferencesResult.data) : {}}
+        initialPreferences={preferencesResult.ok ? Object.fromEntries(preferencesResult.data) : null}
         client:load
       />
     ) : (

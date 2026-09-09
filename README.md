@@ -250,7 +250,8 @@ Worker secret, `.dev.vars`, or `.env.production`.
 
 After deploying the Worker, use disposable accounts and keys only. First use an account with no completed workouts:
 add its key through `/account`, generate a five-to-seven-exercise proposal at `/workouts/new`, edit it, save it, and
-complete it. Confirm this cold-start path remains available and has no history-aware preference controls.
+complete it. Confirm this cold-start path remains available. Preference controls may appear in the shared catalogue;
+they affect only subsequent history-aware proposals and never alter the current draft.
 
 Then prepare separate history-aware fixtures for at least five ready candidates, exactly three or four ready
 candidates, and fewer than three. Verify five-plus produces only the normal proposal; three or four displays the exact

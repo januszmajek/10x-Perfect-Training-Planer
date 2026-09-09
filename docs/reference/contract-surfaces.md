@@ -26,6 +26,8 @@ of truth; generated TypeScript types expose that schema to application code.
 19. `supabase/migrations/20260907180000_secure_legacy_ai_proposal_recording.sql`
 20. `supabase/migrations/20260908100000_remove_overloaded_ai_proposal_rpc.sql`
 21. `supabase/migrations/20260908110000_link_history_aware_ai_workout_lifecycle.sql`
+22. `supabase/migrations/20260909120000_deduplicate_ai_workout_exposure.sql`
+23. `supabase/migrations/20260909130000_allow_ai_workout_proposal_lineage_rerolls.sql`
 
 Production catalogue data belongs in the second migration. `supabase/seed.sql` is only for non-sensitive local
 fixtures and must not contain data required by production.
@@ -175,6 +177,10 @@ p_expected_workout_id uuid, p_expected_revision integer)` is the distinct, non-o
 - A proposal lineage marker is not a foreign key and does not attest that every final saved exercise was AI-selected.
   Account deletion cascades private recommendation data; catalogue and workout relationships remain restrictive or
   independent as specified by their own contracts.
+- A partial unique index permits at most one `exposure` event per raw proposal; the owner-derived event helper treats a
+  duplicate acknowledgement as a successful no-op.
+- Re-rolled raw proposals reuse the original opaque lineage UUID while retaining their own proposal IDs and a validated
+  `rerolled_from_proposal_id` reference. Lineage is indexed rather than unique per raw proposal.
 - `ai_workout_completion_events` is keyed by workout and stores only owner, opaque lineage, the database-owned
   completion time, and its independent expiry. It has no proposal foreign key, so raw proposal expiry cannot prevent
   later completion evidence. Its composite workout/owner reference prevents cross-owner rows, and authenticated users

@@ -1,4 +1,4 @@
-import type { AiGenerationErrorCode, AiGenerationFailure } from "./ai-workouts.ts";
+import type { AiGenerationErrorCode, AiGenerationFailure, GeneratedAiWorkout } from "./ai-workouts.ts";
 import type { WorkoutApiOperation } from "./workout-api.ts";
 
 export type AiGenerationFailureLayer = "request" | "validation" | "service" | "database";
@@ -75,10 +75,7 @@ export function aiGenerationFailureResponse(
   });
 }
 
-export function aiGenerationSuccessResponse(
-  requestId: string,
-  generated: { proposal: { exercises: unknown[] }; metadata: unknown },
-): Response {
+export function aiGenerationSuccessResponse(requestId: string, generated: GeneratedAiWorkout): Response {
   return new Response(
     JSON.stringify({
       proposal: generated.proposal,

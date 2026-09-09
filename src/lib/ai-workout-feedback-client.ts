@@ -4,6 +4,16 @@ export const AI_WORKOUT_FEEDBACK_VERSION = 1 as const;
 
 export type AiExercisePreference = "liked" | "dont_suggest" | null;
 export type AiWorkoutPreferenceState = Exclude<AiExercisePreference, null> | "neutral";
+export type AiWorkoutPreferenceChange = (
+  exerciseId: string,
+  preference: Exclude<AiWorkoutPreferenceState, "neutral">,
+) => void;
+
+export interface AiWorkoutFeedbackControls {
+  preferences: Readonly<Record<string, AiWorkoutPreferenceState>>;
+  pendingExerciseId: string | null;
+  onPreferenceChange: AiWorkoutPreferenceChange;
+}
 
 export interface AiWorkoutPreferenceRequest {
   version: typeof AI_WORKOUT_FEEDBACK_VERSION;

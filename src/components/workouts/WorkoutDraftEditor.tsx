@@ -14,7 +14,7 @@ import {
   type EquipmentType,
   type ManualWorkoutDraftItem,
 } from "@/lib/manual-workout-builder";
-import type { AiWorkoutPreferenceState } from "@/lib/ai-workout-feedback-client";
+import type { AiWorkoutFeedbackControls } from "@/lib/ai-workout-feedback-client";
 
 interface Props<T extends CatalogueExercise> {
   catalogue: T[];
@@ -23,12 +23,10 @@ interface Props<T extends CatalogueExercise> {
   saveLabel: string;
   error?: string | null;
   originalProposalExerciseIds?: readonly string[];
-  proposalPreferences?: Readonly<Record<string, AiWorkoutPreferenceState>> | null;
-  preferencePendingExerciseId?: string | null;
+  feedback?: AiWorkoutFeedbackControls;
   preferenceError?: string | null;
   onChange: (draft: ManualWorkoutDraftItem[]) => void;
   onInteraction?: (interaction: AiWorkoutDraftInteraction) => void;
-  onPreferenceChange?: (exerciseId: string, preference: Exclude<AiWorkoutPreferenceState, "neutral">) => void;
   onSave: () => void;
   onCancel: () => void;
 }
@@ -40,12 +38,10 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
   saveLabel,
   error,
   originalProposalExerciseIds = [],
-  proposalPreferences = null,
-  preferencePendingExerciseId = null,
+  feedback,
   preferenceError = null,
   onChange,
   onInteraction,
-  onPreferenceChange,
   onSave,
   onCancel,
 }: Props<T>) {
@@ -186,14 +182,12 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
           draft={draft}
           replacingIndex={replacingIndex}
           pending={pending}
-          proposalPreferences={proposalPreferences}
-          preferencePendingExerciseId={preferencePendingExerciseId}
+          feedback={feedback}
           filterTriggerRef={filterTriggerRef}
           onOpenFilters={() => {
             setFiltersOpen(true);
           }}
           onSelectExercise={selectExercise}
-          onPreferenceChange={onPreferenceChange}
         />
         <WorkoutDraftPanel
           draft={draft}

@@ -10,6 +10,8 @@ import type { AiGenerationErrorCode } from "./ai-workouts.ts";
 
 export const AI_WORKOUT_GENERATION_VERSION = 1 as const;
 
+export type AiWorkoutProposalPreference = "liked" | "neutral";
+
 export type AiWorkoutGenerationCommand =
   | { version: typeof AI_WORKOUT_GENERATION_VERSION }
   | { version: typeof AI_WORKOUT_GENERATION_VERSION; priorProposalId: string }
@@ -24,7 +26,7 @@ export type AiWorkoutGenerationMetadata =
       exerciseCount: number;
       reduced: boolean;
       originalExerciseIds: string[];
-      preferences: Record<string, "liked" | "neutral" | "dont_suggest">;
+      preferences: Record<string, AiWorkoutProposalPreference>;
     };
 
 export interface AiWorkoutGenerationSuccess {
@@ -214,7 +216,7 @@ export function parseAiWorkoutGenerationResponse(input: unknown): AiWorkoutGener
   ) {
     return null;
   }
-  const preferences: Record<string, "liked" | "neutral"> = {};
+  const preferences: Record<string, AiWorkoutProposalPreference> = {};
   for (const id of originalExerciseIds) {
     const preference = input.metadata.preferences[id];
     if (preference !== "liked" && preference !== "neutral") return null;

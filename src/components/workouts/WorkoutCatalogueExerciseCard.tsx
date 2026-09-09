@@ -9,10 +9,12 @@ interface Props {
   pending: boolean;
   disabled: boolean;
   actionLabel: "Add" | "Added" | "Replace" | "Current";
-  preference: AiWorkoutPreferenceState;
-  preferencePending: boolean;
+  feedback?: {
+    preference: AiWorkoutPreferenceState;
+    pending: boolean;
+    onPreferenceChange: (preference: Exclude<AiWorkoutPreferenceState, "neutral">) => void;
+  };
   onSelect: () => void;
-  onPreferenceChange: (preference: Exclude<AiWorkoutPreferenceState, "neutral">) => void;
 }
 
 function formatLabel(value: string): string {
@@ -38,10 +40,8 @@ export default function WorkoutCatalogueExerciseCard({
   pending,
   disabled,
   actionLabel,
-  preference,
-  preferencePending,
+  feedback,
   onSelect,
-  onPreferenceChange,
 }: Props) {
   const recoveringMuscles = new Map(recovery?.recoveringMuscles.map((muscle) => [muscle.code, muscle]));
   const isRecovering = recovery?.state === "recovering";
@@ -85,7 +85,7 @@ export default function WorkoutCatalogueExerciseCard({
             onClick={onSelect}
             aria-label={`${actionLabel} ${exercise.name}`}
             title={`${actionLabel} ${exercise.name}`}
-            className="inline-flex size-9 items-center justify-center rounded-md border border-purple-300/30 text-purple-100 disabled:cursor-not-allowed disabled:opacity-45"
+            className="inline-flex size-11 items-center justify-center rounded-md border border-purple-300/30 text-purple-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-100 disabled:cursor-not-allowed disabled:opacity-45"
           >
             {actionLabel === "Current" ? (
               <Check aria-hidden="true" className="size-4" />
@@ -93,34 +93,44 @@ export default function WorkoutCatalogueExerciseCard({
               <Plus aria-hidden="true" className="size-4" />
             )}
           </button>
-          <div className="flex gap-1.5" role="group" aria-label={`Recommendation preference for ${exercise.name}`}>
-            <button
-              type="button"
-              aria-label={`Like ${exercise.name}`}
-              aria-pressed={preference === "liked"}
-              title="Like for future AI proposals"
-              disabled={pending || preferencePending}
-              onClick={() => {
-                onPreferenceChange("liked");
-              }}
-              className={`inline-flex size-9 items-center justify-center rounded-md border text-emerald-100 disabled:opacity-45 ${preference === "liked" ? "border-emerald-200 bg-emerald-400/20 ring-1 ring-emerald-200/60" : "border-emerald-300/25"}`}
-            >
-              <Heart aria-hidden="true" className="size-4" fill={preference === "liked" ? "currentColor" : "none"} />
-            </button>
-            <button
-              type="button"
-              aria-label={`Don't recommend ${exercise.name}`}
-              aria-pressed={preference === "dont_suggest"}
-              title="Don't recommend in future AI proposals"
-              disabled={pending || preferencePending}
-              onClick={() => {
-                onPreferenceChange("dont_suggest");
-              }}
-              className={`inline-flex size-9 items-center justify-center rounded-md border text-amber-100 disabled:opacity-45 ${preference === "dont_suggest" ? "border-amber-200 bg-amber-400/20 ring-1 ring-amber-200/60" : "border-amber-300/25"}`}
-            >
-              <Ban aria-hidden="true" className="size-4" strokeWidth={preference === "dont_suggest" ? 3 : 2} />
-            </button>
-          </div>
+          {feedback && (
+            <div className="flex gap-1.5" role="group" aria-label={`Recommendation preference for ${exercise.name}`}>
+              <button
+                type="button"
+                aria-label={`Like ${exercise.name}`}
+                aria-pressed={feedback.preference === "liked"}
+                title="Like for future AI proposals"
+                disabled={pending || feedback.pending}
+                onClick={() => {
+                  feedback.onPreferenceChange("liked");
+                }}
+                className={`inline-flex size-11 items-center justify-center rounded-md border text-emerald-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-100 disabled:opacity-45 ${feedback.preference === "liked" ? "border-emerald-200 bg-emerald-400/20 ring-1 ring-emerald-200/60" : "border-emerald-300/25"}`}
+              >
+                <Heart
+                  aria-hidden="true"
+                  className="size-4"
+                  fill={feedback.preference === "liked" ? "currentColor" : "none"}
+                />
+              </button>
+              <button
+                type="button"
+                aria-label={`Don't recommend ${exercise.name}`}
+                aria-pressed={feedback.preference === "dont_suggest"}
+                title="Don't recommend in future AI proposals"
+                disabled={pending || feedback.pending}
+                onClick={() => {
+                  feedback.onPreferenceChange("dont_suggest");
+                }}
+                className={`inline-flex size-11 items-center justify-center rounded-md border text-amber-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-100 disabled:opacity-45 ${feedback.preference === "dont_suggest" ? "border-amber-200 bg-amber-400/20 ring-1 ring-amber-200/60" : "border-amber-300/25"}`}
+              >
+                <Ban
+                  aria-hidden="true"
+                  className="size-4"
+                  strokeWidth={feedback.preference === "dont_suggest" ? 3 : 2}
+                />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </li>
