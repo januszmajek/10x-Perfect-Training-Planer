@@ -1,7 +1,7 @@
 ---
 change_id: auth-back-navigation
 title: Auth-page Back navigation
-status: implementing
+status: implemented
 created: 2026-09-10
 updated: 2026-09-10
 archived_at: null

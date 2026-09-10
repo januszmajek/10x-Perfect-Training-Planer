@@ -154,11 +154,11 @@ No database or deployment migration is required. Roll back by removing the auth-
 
 #### Automated
 
-- [x] 2.1 Type-aware lint succeeds: `pnpm lint`
-- [x] 2.2 Production SSR build succeeds: `pnpm build`
+- [x] 2.1 Type-aware lint succeeds: `pnpm lint` — cddef43
+- [x] 2.2 Production SSR build succeeds: `pnpm build` — cddef43
 
 #### Manual
 
-- [x] 2.3 Sign-in, Dashboard, and browser Back never show a stale sign-in card
-- [x] 2.4 Signed-out Back/Forward restoration renders a credential-entry form
-- [x] 2.5 Sign-up Back restoration redirects an authenticated user to Dashboard
+- [x] 2.3 Sign-in, Dashboard, and browser Back never show a stale sign-in card — cddef43
+- [x] 2.4 Signed-out Back/Forward restoration renders a credential-entry form — cddef43
+- [x] 2.5 Sign-up Back restoration redirects an authenticated user to Dashboard — cddef43
