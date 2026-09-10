@@ -9,9 +9,11 @@ export function validateAiProviderKey(input: unknown): AiProviderKeyValidationRe
     return { valid: false, reason: "invalid_type" };
   }
 
-  if (input.length === 0 || input.length > AI_PROVIDER_KEY_MAX_LENGTH) {
+  const value = input.trim();
+
+  if (value.length === 0 || value.length > AI_PROVIDER_KEY_MAX_LENGTH) {
     return { valid: false, reason: "invalid_length" };
   }
 
-  return { valid: true, value: input };
+  return { valid: true, value };
 }
