@@ -2,6 +2,7 @@ import { defineMiddleware } from "astro:middleware";
 import { createClient } from "@/lib/supabase";
 
 const PROTECTED_ROUTES = ["/dashboard", "/history", "/account", "/api/account", "/workouts", "/api/workouts"];
+const AUTH_ENTRY_ROUTES = new Set(["/auth/signin", "/auth/signup"]);
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
@@ -28,6 +29,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (!context.locals.user && !isWorkoutApiPath(context.url.pathname)) {
       return context.redirect("/auth/signin");
     }
+  }
+
+  if (context.locals.user && AUTH_ENTRY_ROUTES.has(context.url.pathname)) {
+    return context.redirect("/dashboard");
   }
 
   return next();
