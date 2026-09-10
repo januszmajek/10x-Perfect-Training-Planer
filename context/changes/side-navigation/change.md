@@ -43,3 +43,12 @@ flash white. The root document now has the same dark fallback background as the 
 is disabled while retaining client-side swapping. The responsive display utilities changed the sidebar containers back
 to row flex direction at their visible breakpoints; their column direction is now explicit. The full wordmark is a
 single line and the compact `PTP` mark uses a smaller, tighter letter treatment. Section headings are white again.
+
+### 2026-09-10: Rail and shared-route alignment
+
+The compact navigation rail is now selected only by viewport breakpoint, not by the current route, and both rail
+variants explicitly lay out their controls in a vertical column. Compact-route hover labels were removed entirely;
+the links retain accessible names through `aria-label` without rendering adjacent text. Account no longer applies its
+own centered, narrower container, so it uses the same authenticated-page content origin and width as Dashboard,
+Workout, and History. The document reserves a stable scrollbar gutter, preventing the long Workout page from moving
+the centered main column horizontally relative to shorter routes.

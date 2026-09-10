@@ -9,13 +9,24 @@ interface NavigationItem {
 
 interface Props {
   currentPath: string;
-  workoutRoute: boolean;
 }
 
 const navigation: NavigationItem[] = [
-  { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
-  { href: "/workouts/new", label: "Workout", Icon: Dumbbell },
-  { href: "/history", label: "History", Icon: History },
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    Icon: LayoutDashboard,
+  },
+  {
+    href: "/workouts/new",
+    label: "Workout",
+    Icon: Dumbbell,
+  },
+  {
+    href: "/history",
+    label: "History",
+    Icon: History,
+  },
 ];
 
 function isActivePath(href: string, currentPath: string): boolean {
@@ -40,8 +51,8 @@ function accountLink(compact: boolean) {
       <span className="inline-flex size-8 items-center justify-center rounded-full bg-purple-500/25 text-purple-100">
         <UserRound aria-hidden="true" className="size-4" />
       </span>
+
       {!compact && <span>Account</span>}
-      {compact && <span className="sidebar-tooltip">Account</span>}
     </a>
   );
 }
@@ -49,6 +60,7 @@ function accountLink(compact: boolean) {
 function primaryLinks(currentPath: string, compact: boolean) {
   return navigation.map(({ href, label, Icon }) => {
     const active = isActivePath(href, currentPath);
+
     return (
       <a
         key={href}
@@ -66,51 +78,57 @@ function primaryLinks(currentPath: string, compact: boolean) {
         }
       >
         <Icon aria-hidden="true" className="size-5" />
+
         {!compact && <span>{label}</span>}
-        {compact && <span className="sidebar-tooltip">{label}</span>}
       </a>
     );
   });
 }
 
-export default function SidebarNavigation({ currentPath, workoutRoute }: Props) {
+export default function SidebarNavigation({ currentPath }: Props) {
   return (
     <>
+      {/* Expanded desktop sidebar */}
       <aside
-        className={`sticky top-0 hidden h-dvh w-64 shrink-0 self-start overflow-hidden border-r border-white/10 bg-slate-950/70 px-4 py-5 backdrop-blur-xl xl:flex ${
-          workoutRoute ? "xl:hidden" : ""
-        }`}
-        style={{ flexDirection: "column" }}
+        className="sticky top-0 hidden h-dvh w-64 shrink-0 self-start overflow-hidden border-r border-white/10 bg-slate-950/70 px-4 py-5 backdrop-blur-xl xl:flex"
+        style={{
+          flexDirection: "column",
+        }}
       >
         <a
           href="/dashboard"
-          className="block w-full rounded-sm px-2 text-center text-sm font-semibold tracking-tight whitespace-nowrap text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-purple-300"
+          className="block w-full rounded-sm pr-2 pl-3 text-left text-lg font-semibold tracking-tight whitespace-nowrap text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-purple-300"
         >
           Perfect Training Planner
         </a>
+
         <nav className="mt-8 flex flex-col gap-1" aria-label="Private workspace">
           {primaryLinks(currentPath, false)}
         </nav>
+
         <div className="mt-auto border-t border-white/10 pt-4">{accountLink(false)}</div>
       </aside>
 
+      {/* Compact tablet sidebar */}
       <aside
-        className={`sticky top-0 hidden h-dvh w-20 shrink-0 self-start overflow-hidden border-r border-white/10 bg-slate-950/70 px-3 py-5 backdrop-blur-xl sm:flex ${
-          workoutRoute ? "" : "xl:hidden"
-        }`}
-        style={{ flexDirection: "column" }}
+        className="sticky top-0 hidden h-dvh w-20 shrink-0 self-start overflow-hidden border-r border-white/10 bg-slate-950/70 px-3 py-5 backdrop-blur-xl sm:flex xl:hidden"
+        style={{
+          flexDirection: "column",
+        }}
       >
         <a
           href="/dashboard"
           aria-label="Perfect Training Planner"
-          className="inline-flex size-11 items-center justify-center rounded-xl bg-purple-500/20 text-xs font-extrabold tracking-tight text-purple-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
+          className="inline-flex size-11 items-center justify-center self-center rounded-xl bg-purple-500/20 text-xs font-extrabold tracking-tight text-purple-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
         >
           PTP
         </a>
+
         <nav className="mt-8 flex flex-col items-center gap-2" aria-label="Private workspace">
           {primaryLinks(currentPath, true)}
         </nav>
-        <div className="mt-auto border-t border-white/10 pt-4">{accountLink(true)}</div>
+
+        <div className="mt-auto flex justify-center border-t border-white/10 pt-4">{accountLink(true)}</div>
       </aside>
     </>
   );

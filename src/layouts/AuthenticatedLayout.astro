@@ -19,8 +19,6 @@ const navigation = [
   { href: "/workouts/new", label: "Workout" },
   { href: "/history", label: "History" },
 ];
-
-const isWorkoutRoute = Astro.url.pathname === "/workouts/new" || Astro.url.pathname === "/workouts/edit";
 ---
 
 <Layout title={title}>
@@ -39,7 +37,7 @@ const isWorkoutRoute = Astro.url.pathname === "/workouts/new" || Astro.url.pathn
       </div>
     </header>
 
-    <SidebarNavigation currentPath={Astro.url.pathname} workoutRoute={isWorkoutRoute} />
+    <SidebarNavigation currentPath={Astro.url.pathname} />
 
     <main class="mx-auto w-full max-w-5xl px-4 py-8 sm:py-12">
       <slot />
