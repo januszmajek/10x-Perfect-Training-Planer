@@ -283,20 +283,20 @@ The user reset is separately destructive. Local reset clears local Auth/applicat
 
 #### Automated
 
-- [x] 3.1 Replace private desktop header with full-sidebar and compact-rail variants
-- [x] 3.2 Add generic Account links, accessible icon labels/tooltips, and active-state semantics
-- [x] 3.3 Adapt the existing mobile drawer footer without changing its lifecycle behavior
-- [x] 3.4 Preserve descriptive page headings and protected-route behavior
-- [x] 3.5 Repository lint succeeds: `pnpm lint`
-- [x] 3.6 Production SSR build succeeds: `pnpm build`
+- [x] 3.1 Replace private desktop header with full-sidebar and compact-rail variants — 0ef316b
+- [x] 3.2 Add generic Account links, accessible icon labels/tooltips, and active-state semantics — 0ef316b
+- [x] 3.3 Adapt the existing mobile drawer footer without changing its lifecycle behavior — 0ef316b
+- [x] 3.4 Preserve descriptive page headings and protected-route behavior — 0ef316b
+- [x] 3.5 Repository lint succeeds: `pnpm lint` — 0ef316b
+- [x] 3.6 Production SSR build succeeds: `pnpm build` — 0ef316b
 
 ### Phase 4: Configuration and Handoff Cleanup
 
 #### Automated
 
-- [ ] 4.1 Remove remaining stale confirmation/key-fragment references and assertions
-- [ ] 4.2 Repository lint succeeds: `pnpm lint`
-- [ ] 4.3 Production SSR build succeeds: `pnpm build`
+- [x] 4.1 Remove remaining stale confirmation/key-fragment references and assertions
+- [x] 4.2 Repository lint succeeds: `pnpm lint`
+- [x] 4.3 Production SSR build succeeds: `pnpm build`
 
 #### Manual
 

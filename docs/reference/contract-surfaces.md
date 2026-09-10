@@ -15,7 +15,7 @@ of truth; generated TypeScript types expose that schema to application code.
 8. `supabase/migrations/20260902130000_complete_planned_workout.sql`
 9. `supabase/migrations/20260905110000_add_exercise_movement_pattern.sql`
 10. `supabase/migrations/20260905120000_create_ai_workout_mutation.sql`
-11. `supabase/migrations/20260905230000_add_ai_provider_key_prefix.sql`
+11. Historical credential-metadata migration (superseded by #24)
 12. `supabase/migrations/20260907110000_create_exercise_completion_profile.sql`
 13. `supabase/migrations/20260907120000_create_ai_recommendation_feedback.sql`
 14. `supabase/migrations/20260907130000_schedule_ai_proposal_retention.sql`
@@ -28,6 +28,7 @@ of truth; generated TypeScript types expose that schema to application code.
 21. `supabase/migrations/20260908110000_link_history_aware_ai_workout_lifecycle.sql`
 22. `supabase/migrations/20260909120000_deduplicate_ai_workout_exposure.sql`
 23. `supabase/migrations/20260909130000_allow_ai_workout_proposal_lineage_rerolls.sql`
+24. `supabase/migrations/20260910130000_remove_ai_provider_key_metadata.sql`
 
 Production catalogue data belongs in the second migration. `supabase/seed.sql` is only for non-sensitive local
 fixtures and must not contain data required by production.
@@ -55,7 +56,7 @@ fixtures and must not contain data required by production.
 | `exercise_muscle_groups`              | `exercise_id`, `muscle_group_code`, `role` | restrictive references to `exercises.id` and `muscle_groups.code`                                   |
 | `workouts`                            | `id`                                       | `user_id` → `auth.users.id`, `status`, immutable `origin`, `revision`, `created_at`, `completed_at` |
 | `workout_exercises`                   | `id`                                       | `workout_id`, `exercise_id`, `position`, `sets`, `reps`                                             |
-| `ai_provider_keys`                    | `user_id`                                  | `provider`, `ciphertext`, `iv`, `key_hint`, `encryption_key_version`, timestamps                    |
+| `ai_provider_keys`                    | `user_id`                                  | `provider`, `ciphertext`, `iv`, `encryption_key_version`, timestamps                                |
 | `ai_exercise_preferences`             | `user_id`, `exercise_id`                   | owner-only recommendation signal; `liked` and `dont_suggest` are mutually exclusive                 |
 | `ai_workout_proposals`                | `id`                                       | private owner proposal, opaque `lineage_id`, database-derived 90-day expiry                         |
 | `ai_workout_proposal_events`          | `id`                                       | private typed owner events; proposal payloads and events expire independently of workouts           |
@@ -230,14 +231,14 @@ p_expected_workout_id uuid, p_expected_revision integer)` is the distinct, non-o
   encrypted provider credential per user for the MVP.
 - `ai_provider.openrouter` is the only supported provider value. The database supplies it by default and
   authenticated clients cannot mutate it.
-- Supabase stores only authenticated-encryption ciphertext, its unpadded-base64url 12-byte IV, the non-secret final
-  four-character `key_hint`, and a positive `encryption_key_version`; plaintext provider keys are never persisted.
+- Supabase stores only authenticated-encryption ciphertext, its unpadded-base64url 12-byte IV, and a positive
+  `encryption_key_version`; no plaintext-derived key metadata is persisted.
 - `encryption_key_version` selects the matching versioned Worker root secret. Rotation is forward-only: retain old
   versions until all rows have been re-encrypted and verified.
 - Owner RLS applies independently to SELECT, INSERT, UPDATE, and DELETE. Authenticated upserts may update the
   same-value `user_id` conflict key, while RLS `WITH CHECK` prevents ownership reassignment.
 - Later provider calls obtain plaintext only through the server-side credential service; browser and direct page
-  rendering surfaces receive masked metadata only.
+  rendering surfaces receive only configuration state and update time.
 
 ## Generated and verified surfaces
 
