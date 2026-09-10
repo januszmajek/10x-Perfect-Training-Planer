@@ -283,14 +283,14 @@ ignored by the previous version.
 
 #### Automated
 
-- [x] 2.1 Type-aware lint succeeds: `pnpm lint`
-- [x] 2.2 Production SSR build succeeds: `pnpm build`
+- [x] 2.1 Type-aware lint succeeds: `pnpm lint` — 0ae9815
+- [x] 2.2 Production SSR build succeeds: `pnpm build` — 0ae9815
 
 #### Manual
 
-- [x] 2.3 New-workout catalogue criteria survive Back/Forward while volatile state resets
-- [x] 2.4 Edit-workout catalogue criteria survive Back/Forward while volatile state resets
-- [x] 2.5 Reset catalogue criteria remain reset without extra browser-history entries
+- [x] 2.3 New-workout catalogue criteria survive Back/Forward while volatile state resets — 0ae9815
+- [x] 2.4 Edit-workout catalogue criteria survive Back/Forward while volatile state resets — 0ae9815
+- [x] 2.5 Reset catalogue criteria remain reset without extra browser-history entries — 0ae9815
 
 ### Phase 3: Regression Verification and Handoff
 
@@ -301,6 +301,6 @@ ignored by the previous version.
 
 #### Manual
 
-- [ ] 3.3 Every current dialog stays closed after BFCache Back/Forward restoration
-- [ ] 3.4 Dashboard and history data refresh after Back/Forward navigation
-- [ ] 3.5 Sign-out Back navigation is private in a second major browser when available
+- [x] 3.3 Every current dialog stays closed after BFCache Back/Forward restoration
+- [x] 3.4 Dashboard and history data refresh after Back/Forward navigation
+- [x] 3.5 Sign-out Back navigation is private in a second major browser when available
