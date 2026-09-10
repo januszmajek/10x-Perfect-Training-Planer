@@ -12,6 +12,7 @@ if (!user || !supabase) {
 const credentialResult = await getMaskedAiProviderKey(supabase, user.id);
 const credential = credentialResult.ok ? credentialResult.data : null;
 const encryptionAvailable = isAiProviderKeyEncryptionAvailable();
+const accountEmail = user.email?.trim() || "Email unavailable";
 
 const statusMessages = {
   saved: { kind: "success", text: "Your OpenRouter key was saved." },
@@ -68,6 +69,11 @@ const statusMessage = status && status in statusMessages ? statusMessages[status
         </p>
       )
     }
+
+    <section class="mb-6 rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-7">
+      <h2 class="text-lg font-semibold text-white">Email address</h2>
+      <p class="mt-2 break-words text-sm leading-6 text-blue-100/65">{accountEmail}</p>
+    </section>
 
     <section
       class="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl shadow-black/10 backdrop-blur-xl sm:p-7"
