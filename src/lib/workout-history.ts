@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isCanonicalUuid } from "./manual-workout-builder.ts";
 import {
+  deduplicateHistoryMuscleOptions,
   encodeWorkoutHistoryCursor,
   isCompletedWorkoutHistoryEntry,
   WORKOUT_HISTORY_PAGE_SIZE,
@@ -120,10 +121,13 @@ export async function loadHistoryMuscleOptions(
       ? [{ code, name, role }]
       : [];
   });
-  if (options.length === 0) return historyFailure("INVALID_MUSCLE_OPTION");
+  const uniqueOptions = deduplicateHistoryMuscleOptions(options);
+  if (uniqueOptions.length === 0) return historyFailure("INVALID_MUSCLE_OPTION");
   return {
     ok: true,
-    data: options.sort((left, right) => left.name.localeCompare(right.name) || left.role.localeCompare(right.role)),
+    data: uniqueOptions.sort(
+      (left, right) => left.name.localeCompare(right.name) || left.role.localeCompare(right.role),
+    ),
   };
 }
 

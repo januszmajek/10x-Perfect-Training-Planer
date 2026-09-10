@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   WORKOUT_HISTORY_API_PATH,
   compareWorkoutHistoryPositions,
+  deduplicateHistoryMuscleOptions,
   decodeWorkoutHistoryCursor,
   emptyWorkoutHistoryFilters,
   encodeWorkoutHistoryCursor,
@@ -86,6 +87,23 @@ void test("canonicalizes repeated muscles and serializes page and API URLs witho
   assert.match(pageUrl, /muscle=chest&muscle=triceps$/u);
   assert.equal(toWorkoutHistoryPageUrl(emptyWorkoutHistoryFilters()), "/history");
   assert.equal(toWorkoutHistoryApiUrl(filters).replace(/^.*\?/u, "").includes("cursor="), false);
+});
+
+void test("deduplicates history muscle filters by code and role", () => {
+  assert.deepEqual(
+    deduplicateHistoryMuscleOptions([
+      { code: "chest", name: "Chest", role: "primary" },
+      { code: "chest", name: "Chest", role: "primary" },
+      { code: "chest", name: "Chest", role: "secondary" },
+      { code: "triceps", name: "Triceps", role: "secondary" },
+      { code: "triceps", name: "Triceps", role: "secondary" },
+    ]),
+    [
+      { code: "chest", name: "Chest", role: "primary" },
+      { code: "chest", name: "Chest", role: "secondary" },
+      { code: "triceps", name: "Triceps", role: "secondary" },
+    ],
+  );
 });
 
 void test("parses canonical query parameters and rejects unknown, malformed, and unknown-muscle input", () => {

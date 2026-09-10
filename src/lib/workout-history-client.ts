@@ -48,6 +48,17 @@ export interface HistoryFilterMuscleOption extends MuscleOption {
   role: MuscleRole;
 }
 
+export function deduplicateHistoryMuscleOptions(
+  options: readonly HistoryFilterMuscleOption[],
+): HistoryFilterMuscleOption[] {
+  const uniqueOptions = new Map<string, HistoryFilterMuscleOption>();
+  for (const option of options) {
+    const key = `${option.role}:${option.code}`;
+    if (!uniqueOptions.has(key)) uniqueOptions.set(key, option);
+  }
+  return [...uniqueOptions.values()];
+}
+
 export interface WorkoutHistoryMuscleTag extends MuscleOption {
   role: MuscleRole;
 }
