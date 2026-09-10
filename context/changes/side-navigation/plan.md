@@ -263,21 +263,21 @@ The user reset is separately destructive. Local reset clears local Auth/applicat
 
 #### Automated
 
-- [x] 1.1 Remove confirmation route/docs and align hosted-auth configuration guidance
-- [x] 1.2 Drop key-prefix/key-hint metadata and align generated types/stale assertions
-- [x] 1.3 Document the approved local and hosted Auth-user reset procedure
-- [x] 1.4 Repository lint succeeds: `pnpm lint`
-- [x] 1.5 Production SSR build succeeds: `pnpm build`
+- [x] 1.1 Remove confirmation route/docs and align hosted-auth configuration guidance — e832f0b
+- [x] 1.2 Drop key-prefix/key-hint metadata and align generated types/stale assertions — e832f0b
+- [x] 1.3 Document the approved local and hosted Auth-user reset procedure — e832f0b
+- [x] 1.4 Repository lint succeeds: `pnpm lint` — e832f0b
+- [x] 1.5 Production SSR build succeeds: `pnpm build` — e832f0b
 
 ### Phase 2: Auto-Session Signup and Validated Key Lifecycle
 
 #### Automated
 
-- [ ] 2.1 Redirect session-established signups to Dashboard with the creation status
-- [ ] 2.2 Validate keys server-side with OpenRouter before encryption/upsert
-- [ ] 2.3 Remove saved-key fragments from account data, UI, and ARIA; add Account-page sign-out
-- [ ] 2.4 Repository lint succeeds: `pnpm lint`
-- [ ] 2.5 Production SSR build succeeds: `pnpm build`
+- [x] 2.1 Redirect session-established signups to Dashboard with the creation status
+- [x] 2.2 Validate keys server-side with OpenRouter before encryption/upsert
+- [x] 2.3 Remove saved-key fragments from account data, UI, and ARIA; add Account-page sign-out
+- [x] 2.4 Repository lint succeeds: `pnpm lint`
+- [x] 2.5 Production SSR build succeeds: `pnpm build`
 
 ### Phase 3: Responsive Sidebar and Drawer Adaptation
 

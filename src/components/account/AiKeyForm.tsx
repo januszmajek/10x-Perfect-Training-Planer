@@ -87,59 +87,57 @@ export default function AiKeyForm({ configured, provider, updatedAt, encryptionA
         )}
       </div>
 
-      {!configured && (
-        <form method="POST" action="/api/account/ai-key" className="mt-6 space-y-4" onSubmit={handleSave} noValidate>
-          <div>
-            <label htmlFor="apiKey" className="sr-only">
-              OpenRouter API key
-            </label>
-            <div className="relative mt-3">
-              <KeyRound
-                aria-hidden="true"
-                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-white/35"
-              />
-              <input
-                id="apiKey"
-                name="apiKey"
-                type="password"
-                value={apiKey}
-                onChange={(event) => {
-                  setApiKey(event.target.value);
-                  if (error) setError(null);
-                }}
-                readOnly={savePending || !encryptionAvailable}
-                disabled={!encryptionAvailable}
-                maxLength={AI_PROVIDER_KEY_MAX_LENGTH}
-                autoComplete="off"
-                autoCapitalize="none"
-                spellCheck={false}
-                aria-invalid={error ? "true" : undefined}
-                aria-describedby={error ? "api-key-error" : undefined}
-                className="w-full rounded-lg border border-white/15 bg-black/20 py-2.5 pr-3 pl-10 text-white placeholder:text-white/30 read-only:cursor-wait focus:border-purple-300 focus:ring-2 focus:ring-purple-400/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="Enter your OpenRouter API key"
-              />
-            </div>
-            {error && (
-              <p id="api-key-error" role="alert" className="mt-2 text-sm text-red-200">
-                {error}
-              </p>
-            )}
+      <form method="POST" action="/api/account/ai-key" className="mt-6 space-y-4" onSubmit={handleSave} noValidate>
+        <div>
+          <label htmlFor="apiKey" className="sr-only">
+            OpenRouter API key
+          </label>
+          <div className="relative mt-3">
+            <KeyRound
+              aria-hidden="true"
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-white/35"
+            />
+            <input
+              id="apiKey"
+              name="apiKey"
+              type="password"
+              value={apiKey}
+              onChange={(event) => {
+                setApiKey(event.target.value);
+                if (error) setError(null);
+              }}
+              readOnly={savePending || !encryptionAvailable}
+              disabled={!encryptionAvailable}
+              maxLength={AI_PROVIDER_KEY_MAX_LENGTH}
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              aria-invalid={error ? "true" : undefined}
+              aria-describedby={error ? "api-key-error" : undefined}
+              className="w-full rounded-lg border border-white/15 bg-black/20 py-2.5 pr-3 pl-10 text-white placeholder:text-white/30 read-only:cursor-wait focus:border-purple-300 focus:ring-2 focus:ring-purple-400/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder="Enter your OpenRouter API key"
+            />
           </div>
+          {error && (
+            <p id="api-key-error" role="alert" className="mt-2 text-sm text-red-200">
+              {error}
+            </p>
+          )}
+        </div>
 
-          <button
-            type="submit"
-            disabled={savePending || !encryptionAvailable}
-            className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-purple-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-          >
-            {savePending ? (
-              <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
-            ) : (
-              <Check aria-hidden="true" className="size-4" />
-            )}
-            <span aria-live="polite">{savePending ? "Saving…" : "Save key"}</span>
-          </button>
-        </form>
-      )}
+        <button
+          type="submit"
+          disabled={savePending || !encryptionAvailable}
+          className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-purple-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+        >
+          {savePending ? (
+            <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+          ) : (
+            <Check aria-hidden="true" className="size-4" />
+          )}
+          <span aria-live="polite">{savePending ? "Saving…" : configured ? "Replace key" : "Save key"}</span>
+        </button>
+      </form>
 
       {configured && confirmingRemoval && (
         <div className="mt-5 rounded-xl border border-red-300/20 bg-red-400/5 p-4">
