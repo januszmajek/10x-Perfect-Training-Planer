@@ -1,5 +1,6 @@
 ---
 import Layout from "@/layouts/Layout.astro";
+import MobileNavigation from "@/components/MobileNavigation";
 
 interface Props {
   title?: string;
@@ -30,17 +31,27 @@ function isActivePath(href: string): boolean {
 <Layout title={title}>
   <div class="bg-cosmic min-h-screen text-white">
     <header class="border-b border-white/10 bg-slate-950/60 backdrop-blur-xl">
-      <div class="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div class="min-w-0">
+      <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
+        <div class="hidden min-w-0 sm:block">
           <a
             href="/dashboard"
-            class="inline-flex rounded-sm text-base font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-purple-300"
+            class="inline-flex rounded-sm text-xl font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-purple-300 sm:text-2xl"
           >
             Perfect Training Planner
           </a>
         </div>
 
-        <nav class="flex flex-wrap items-center gap-1" aria-label="Private workspace">
+        <div class="mr-auto flex items-center gap-3 sm:hidden">
+          <MobileNavigation currentPath={Astro.url.pathname} navigation={navigation} client:load />
+          <a
+            href="/dashboard"
+            class="inline-flex rounded-sm text-xl font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-purple-300"
+          >
+            Perfect Training Planner
+          </a>
+        </div>
+
+        <nav class="hidden items-center gap-1 sm:flex" aria-label="Private workspace">
           {
             navigation.map(({ href, label }) => (
               <a
