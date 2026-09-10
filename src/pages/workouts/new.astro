@@ -4,6 +4,7 @@ import AuthenticatedLayout from "@/layouts/AuthenticatedLayout.astro";
 import { getMaskedAiProviderKey } from "@/lib/ai-provider-keys";
 import { loadAiExercisePreferences } from "@/lib/history-aware-ai-profile";
 import { loadWorkoutBuilderData } from "@/lib/manual-workouts";
+import { parseWorkoutCatalogueNavigation, toWorkoutCatalogueNavigationUrl } from "@/lib/workout-catalogue-navigation";
 
 const { user, supabase } = Astro.locals;
 
@@ -16,6 +17,20 @@ const [builderResult, credentialResult, preferencesResult] = await Promise.all([
   getMaskedAiProviderKey(supabase, user.id),
   loadAiExercisePreferences(supabase, user.id),
 ]);
+
+const initialCatalogueNavigation = builderResult.ok
+  ? parseWorkoutCatalogueNavigation(Astro.url.searchParams, builderResult.data.catalogue)
+  : null;
+
+if (builderResult.ok && initialCatalogueNavigation) {
+  const canonicalUrl = toWorkoutCatalogueNavigationUrl(
+    Astro.url.pathname,
+    Astro.url.searchParams,
+    initialCatalogueNavigation,
+    builderResult.data.catalogue,
+  );
+  if (`${Astro.url.pathname}${Astro.url.search}` !== canonicalUrl) return Astro.redirect(canonicalUrl, 302);
+}
 ---
 
 <AuthenticatedLayout title="Workout builder | Perfect Training Planner">
@@ -31,6 +46,7 @@ const [builderResult, credentialResult, preferencesResult] = await Promise.all([
         initialCurrentPlan={builderResult.data.currentPlan}
         credentialConfigured={credentialResult.ok && credentialResult.data !== null}
         initialPreferences={preferencesResult.ok ? Object.fromEntries(preferencesResult.data) : null}
+        initialCatalogueNavigation={initialCatalogueNavigation!}
         client:load
       />
     ) : (

@@ -29,12 +29,14 @@ import {
 import { PLANNED_WORKOUT_API_PATH, parseCurrentPlanResponse } from "@/lib/planned-workout-client";
 import { resolvePlannedWorkoutConflict } from "@/lib/planned-workout-conflict";
 import type { CurrentPlannedWorkout } from "@/lib/planned-workouts";
+import type { WorkoutCatalogueNavigationState } from "@/lib/workout-catalogue-navigation";
 
 interface Props {
   catalogue: CatalogueExercise[];
   initialCurrentPlan: CurrentPlannedWorkout | null;
   credentialConfigured: boolean;
   initialPreferences: Record<string, Exclude<AiExercisePreference, null>> | null;
+  initialCatalogueNavigation: WorkoutCatalogueNavigationState;
 }
 
 type DraftOrigin = "manual" | "ai";
@@ -82,6 +84,7 @@ export default function WorkoutBuilder({
   initialCurrentPlan,
   credentialConfigured,
   initialPreferences,
+  initialCatalogueNavigation,
 }: Props) {
   const [draft, setDraft] = useState<ManualWorkoutDraftItem[]>([]);
   const [draftOrigin, setDraftOrigin] = useState<DraftOrigin>("manual");
@@ -368,6 +371,7 @@ export default function WorkoutBuilder({
         originalProposalExerciseIds={activeProposal?.originalExerciseIds}
         feedback={feedback}
         preferenceError={preferenceLoadError ?? preferenceError}
+        initialCatalogueNavigation={initialCatalogueNavigation}
         onChange={(nextDraft) => {
           setDraft(nextDraft);
           setSaveError(null);

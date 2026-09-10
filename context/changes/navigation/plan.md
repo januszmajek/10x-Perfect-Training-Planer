@@ -270,34 +270,34 @@ ignored by the previous version.
 
 #### Automated
 
-- [x] 1.1 Type-aware lint succeeds: `pnpm lint`
-- [x] 1.2 Production SSR build succeeds: `pnpm build`
+- [x] 1.1 Type-aware lint succeeds: `pnpm lint` — 86de675
+- [x] 1.2 Production SSR build succeeds: `pnpm build` — 86de675
 
 #### Manual
 
-- [x] 1.3 Dialog and mobile-drawer Back/Forward restores close transient UI
-- [x] 1.4 Sign-out Back navigation reloads through middleware to `/auth/signin`
-- [x] 1.5 Back/Forward preserves the current private-page URL
+- [x] 1.3 Dialog and mobile-drawer Back/Forward restores close transient UI — 86de675
+- [x] 1.4 Sign-out Back navigation reloads through middleware to `/auth/signin` — 86de675
+- [x] 1.5 Back/Forward preserves the current private-page URL — 86de675
 
 ### Phase 2: Preserve Catalogue Filters and Recovery Sort
 
 #### Automated
 
-- [ ] 2.1 Type-aware lint succeeds: `pnpm lint`
-- [ ] 2.2 Production SSR build succeeds: `pnpm build`
+- [x] 2.1 Type-aware lint succeeds: `pnpm lint`
+- [x] 2.2 Production SSR build succeeds: `pnpm build`
 
 #### Manual
 
-- [ ] 2.3 New-workout catalogue criteria survive Back/Forward while volatile state resets
-- [ ] 2.4 Edit-workout catalogue criteria survive Back/Forward while volatile state resets
-- [ ] 2.5 Reset catalogue criteria remain reset without extra browser-history entries
+- [x] 2.3 New-workout catalogue criteria survive Back/Forward while volatile state resets
+- [x] 2.4 Edit-workout catalogue criteria survive Back/Forward while volatile state resets
+- [x] 2.5 Reset catalogue criteria remain reset without extra browser-history entries
 
 ### Phase 3: Regression Verification and Handoff
 
 #### Automated
 
-- [ ] 3.1 Repository lint succeeds: `pnpm lint`
-- [ ] 3.2 Production SSR build succeeds: `pnpm build`
+- [x] 3.1 Repository lint succeeds: `pnpm lint`
+- [x] 3.2 Production SSR build succeeds: `pnpm build`
 
 #### Manual
 

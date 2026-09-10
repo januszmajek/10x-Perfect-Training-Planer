@@ -11,10 +11,14 @@ import {
   replaceDraftItem,
   validateDraftItems,
   type CatalogueExercise,
-  type EquipmentType,
   type ManualWorkoutDraftItem,
 } from "@/lib/manual-workout-builder";
 import type { AiWorkoutFeedbackControls } from "@/lib/ai-workout-feedback-client";
+import {
+  DEFAULT_WORKOUT_CATALOGUE_NAVIGATION,
+  toWorkoutCatalogueNavigationUrl,
+  type WorkoutCatalogueNavigationState,
+} from "@/lib/workout-catalogue-navigation";
 
 interface Props<T extends CatalogueExercise> {
   catalogue: T[];
@@ -25,6 +29,7 @@ interface Props<T extends CatalogueExercise> {
   originalProposalExerciseIds?: readonly string[];
   feedback?: AiWorkoutFeedbackControls;
   preferenceError?: string | null;
+  initialCatalogueNavigation: WorkoutCatalogueNavigationState;
   onChange: (draft: ManualWorkoutDraftItem[]) => void;
   onInteraction?: (interaction: AiWorkoutDraftInteraction) => void;
   onSave: () => void;
@@ -40,22 +45,26 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
   originalProposalExerciseIds = [],
   feedback,
   preferenceError = null,
+  initialCatalogueNavigation,
   onChange,
   onInteraction,
   onSave,
   onCancel,
 }: Props<T>) {
-  const [search, setSearch] = useState("");
-  const [selectedMuscles, setSelectedMuscles] = useState<string[]>([]);
-  const [selectedEquipment, setSelectedEquipment] = useState<EquipmentType[]>([]);
+  const [catalogueNavigation, setCatalogueNavigation] = useState(initialCatalogueNavigation);
   const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filterTriggerRef = useRef<HTMLButtonElement>(null);
   const knownExerciseIds = useMemo(() => new Set(catalogue.map(({ id }) => id)), [catalogue]);
   const exercisesById = useMemo(() => new Map(catalogue.map((exercise) => [exercise.id, exercise])), [catalogue]);
   const filteredCatalogue = useMemo(
-    () => filterCatalogue(catalogue, { search, muscleGroups: selectedMuscles, equipment: selectedEquipment }),
-    [catalogue, search, selectedEquipment, selectedMuscles],
+    () =>
+      filterCatalogue(catalogue, {
+        search: catalogueNavigation.search,
+        muscleGroups: catalogueNavigation.muscles,
+        equipment: catalogueNavigation.equipment,
+      }),
+    [catalogue, catalogueNavigation],
   );
   const muscleOptions = useMemo(() => {
     const options = new Map<string, string>();
@@ -84,7 +93,10 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
     [catalogue, muscleOptions],
   );
   const draftValid = validateDraftItems(draft, knownExerciseIds);
-  const filtersActive = search.trim() !== "" || selectedMuscles.length > 0 || selectedEquipment.length > 0;
+  const filtersActive =
+    catalogueNavigation.search !== "" ||
+    catalogueNavigation.muscles.length > 0 ||
+    catalogueNavigation.equipment.length > 0;
   const replacingExercise = replacingIndex === null ? null : draft[replacingIndex];
   const replacingExerciseName = replacingExercise ? exercisesById.get(replacingExercise.exerciseId)?.name : null;
   const originalProposalExerciseIdSet = useMemo(
@@ -107,6 +119,16 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
       trigger?.focus();
     };
   }, [filtersOpen]);
+
+  useEffect(() => {
+    const url = toWorkoutCatalogueNavigationUrl(
+      window.location.pathname,
+      new URLSearchParams(window.location.search),
+      catalogueNavigation,
+      catalogue,
+    );
+    if (`${window.location.pathname}${window.location.search}` !== url) window.history.replaceState(null, "", url);
+  }, [catalogue, catalogueNavigation]);
 
   function selectExercise(exerciseId: string) {
     if (replacingIndex !== null) {
@@ -150,9 +172,9 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
         <WorkoutCatalogueFilters
           open={filtersOpen}
           active={filtersActive}
-          search={search}
-          selectedMuscles={selectedMuscles}
-          selectedEquipment={selectedEquipment}
+          search={catalogueNavigation.search}
+          selectedMuscles={catalogueNavigation.muscles}
+          selectedEquipment={catalogueNavigation.equipment}
           primaryMuscles={primaryMuscleOptions}
           secondaryMuscles={secondaryMuscleOptions}
           equipment={equipmentOptions}
@@ -160,20 +182,26 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
             setFiltersOpen(false);
           }}
           onReset={() => {
-            setSearch("");
-            setSelectedMuscles([]);
-            setSelectedEquipment([]);
+            setCatalogueNavigation(DEFAULT_WORKOUT_CATALOGUE_NAVIGATION);
           }}
-          onSearchChange={setSearch}
+          onSearchChange={(search) => {
+            setCatalogueNavigation((current) => ({ ...current, search }));
+          }}
           onToggleMuscle={(code) => {
-            setSelectedMuscles((items) =>
-              items.includes(code) ? items.filter((item) => item !== code) : [...items, code],
-            );
+            setCatalogueNavigation((current) => ({
+              ...current,
+              muscles: current.muscles.includes(code)
+                ? current.muscles.filter((item) => item !== code)
+                : [...current.muscles, code],
+            }));
           }}
           onToggleEquipment={(equipment) => {
-            setSelectedEquipment((items) =>
-              items.includes(equipment) ? items.filter((item) => item !== equipment) : [...items, equipment],
-            );
+            setCatalogueNavigation((current) => ({
+              ...current,
+              equipment: current.equipment.includes(equipment)
+                ? current.equipment.filter((item) => item !== equipment)
+                : [...current.equipment, equipment],
+            }));
           }}
         />
         <WorkoutCataloguePanel
@@ -183,9 +211,13 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
           replacingIndex={replacingIndex}
           pending={pending}
           feedback={feedback}
+          order={catalogueNavigation.recoveryOrder}
           filterTriggerRef={filterTriggerRef}
           onOpenFilters={() => {
             setFiltersOpen(true);
+          }}
+          onOrderChange={(recoveryOrder) => {
+            setCatalogueNavigation((current) => ({ ...current, recoveryOrder }));
           }}
           onSelectExercise={selectExercise}
         />

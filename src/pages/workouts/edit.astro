@@ -1,7 +1,8 @@
 ---
 import PlannedWorkoutEditor from "@/components/workouts/PlannedWorkoutEditor.tsx";
 import AuthenticatedLayout from "@/layouts/AuthenticatedLayout.astro";
-import { loadCurrentPlannedWorkout, loadWorkoutCatalogue } from "@/lib/planned-workouts";
+import { loadWorkoutBuilderData } from "@/lib/manual-workouts";
+import { parseWorkoutCatalogueNavigation, toWorkoutCatalogueNavigationUrl } from "@/lib/workout-catalogue-navigation";
 
 const { user, supabase } = Astro.locals;
 
@@ -9,22 +10,33 @@ if (!user || !supabase) {
   return Astro.redirect("/auth/signin");
 }
 
-const [catalogueResult, currentPlanResult] = await Promise.all([
-  loadWorkoutCatalogue(supabase),
-  loadCurrentPlannedWorkout(supabase, user.id),
-]);
+const editorResult = await loadWorkoutBuilderData(supabase, user.id);
 
-if (currentPlanResult.ok && currentPlanResult.data === null) {
+if (editorResult.ok && editorResult.data.currentPlan === null) {
   return Astro.redirect("/dashboard");
 }
 
 const editorData =
-  catalogueResult.ok && currentPlanResult.ok && currentPlanResult.data
+  editorResult.ok && editorResult.data.currentPlan
     ? {
-        catalogue: catalogueResult.data,
-        plan: currentPlanResult.data,
+        catalogue: editorResult.data.catalogue,
+        plan: editorResult.data.currentPlan,
       }
     : null;
+
+const initialCatalogueNavigation = editorData
+  ? parseWorkoutCatalogueNavigation(Astro.url.searchParams, editorData.catalogue)
+  : null;
+
+if (editorData && initialCatalogueNavigation) {
+  const canonicalUrl = toWorkoutCatalogueNavigationUrl(
+    Astro.url.pathname,
+    Astro.url.searchParams,
+    initialCatalogueNavigation,
+    editorData.catalogue,
+  );
+  if (`${Astro.url.pathname}${Astro.url.search}` !== canonicalUrl) return Astro.redirect(canonicalUrl, 302);
+}
 ---
 
 <AuthenticatedLayout title="Edit planned workout | Perfect Training Planner">
@@ -38,7 +50,12 @@ const editorData =
 
   {
     editorData ? (
-      <PlannedWorkoutEditor catalogue={editorData.catalogue} initialPlan={editorData.plan} client:load />
+      <PlannedWorkoutEditor
+        catalogue={editorData.catalogue}
+        initialPlan={editorData.plan}
+        initialCatalogueNavigation={initialCatalogueNavigation!}
+        client:load
+      />
     ) : (
       <section class="rounded-2xl border border-red-400/30 bg-red-500/10 p-5 text-red-100 sm:p-7">
         <h2 class="text-lg font-semibold">Your planned workout could not be loaded</h2>

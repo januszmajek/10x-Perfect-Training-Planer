@@ -1,4 +1,4 @@
-import { useMemo, useState, type RefObject } from "react";
+import { useMemo, type RefObject } from "react";
 import { Dumbbell, SlidersHorizontal } from "lucide-react";
 import WorkoutCatalogueExerciseCard from "@/components/workouts/WorkoutCatalogueExerciseCard";
 import type { AiWorkoutFeedbackControls } from "@/lib/ai-workout-feedback-client";
@@ -23,8 +23,10 @@ interface Props {
   replacingIndex: number | null;
   pending: boolean;
   feedback?: AiWorkoutFeedbackControls;
+  order: RecoveryOrder;
   filterTriggerRef: RefObject<HTMLButtonElement | null>;
   onOpenFilters: () => void;
+  onOrderChange: (order: RecoveryOrder) => void;
   onSelectExercise: (exerciseId: string) => void;
 }
 
@@ -45,11 +47,12 @@ export default function WorkoutCataloguePanel({
   replacingIndex,
   pending,
   feedback,
+  order,
   filterTriggerRef,
   onOpenFilters,
+  onOrderChange,
   onSelectExercise,
 }: Props) {
-  const [order, setOrder] = useState<RecoveryOrder>("not-sorted");
   const selectedIds = useMemo(() => new Set(draft.map(({ exerciseId }) => exerciseId)), [draft]);
   const recoveryAvailable = catalogue.length > 0 && catalogue.every(isRecoveryAware);
   const recoveryCatalogue = useMemo(() => filteredCatalogue.filter(isRecoveryAware), [filteredCatalogue]);
@@ -80,7 +83,7 @@ export default function WorkoutCataloguePanel({
             type="button"
             aria-label={`Recovery order: ${RECOVERY_ORDER_LABELS[order]}. Activate to show ${RECOVERY_ORDER_LABELS[nextRecoveryOrder(order)]}.`}
             onClick={() => {
-              setOrder((current) => nextRecoveryOrder(current));
+              onOrderChange(nextRecoveryOrder(order));
             }}
             className="inline-flex min-h-11 items-center rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-blue-50 hover:bg-white/10"
           >

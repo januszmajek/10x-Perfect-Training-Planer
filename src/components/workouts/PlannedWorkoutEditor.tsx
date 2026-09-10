@@ -11,10 +11,12 @@ import { PLANNED_WORKOUT_API_PATH, parseCurrentPlanResponse } from "@/lib/planne
 import { resolvePlannedWorkoutConflict } from "@/lib/planned-workout-conflict";
 import { PLANNED_WORKOUT_MUTATION_VERSION } from "@/lib/planned-workout-mutation";
 import type { CurrentPlannedWorkout, WorkoutErrorCode } from "@/lib/planned-workouts";
+import type { WorkoutCatalogueNavigationState } from "@/lib/workout-catalogue-navigation";
 
 interface Props {
   catalogue: CatalogueExercise[];
   initialPlan: CurrentPlannedWorkout;
+  initialCatalogueNavigation: WorkoutCatalogueNavigationState;
 }
 
 interface ApiFailureEnvelope {
@@ -55,7 +57,7 @@ async function readApiFailure(response: Response): Promise<ApiFailureEnvelope | 
   }
 }
 
-export default function PlannedWorkoutEditor({ catalogue, initialPlan }: Props) {
+export default function PlannedWorkoutEditor({ catalogue, initialPlan, initialCatalogueNavigation }: Props) {
   const initialDraft = useMemo(() => createDraftFromCurrentPlan(initialPlan.exercises), [initialPlan.exercises]);
   const [draft, setDraft] = useState<ManualWorkoutDraftItem[]>(initialDraft);
   const [baseline, setBaseline] = useState<ManualWorkoutDraftItem[]>(initialDraft);
@@ -202,6 +204,7 @@ export default function PlannedWorkoutEditor({ catalogue, initialPlan }: Props) 
         pending={pending}
         saveLabel={conflictPlan ? "Review conflict" : "Save changes"}
         error={error}
+        initialCatalogueNavigation={initialCatalogueNavigation}
         onChange={(nextDraft) => {
           setDraft(nextDraft);
           setError(null);
