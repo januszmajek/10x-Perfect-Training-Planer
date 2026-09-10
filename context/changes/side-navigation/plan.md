@@ -300,4 +300,4 @@ The user reset is separately destructive. Local reset clears local Auth/applicat
 
 #### Manual
 
-- [ ] 4.4 No manual test is planned; the sole manual requirement is an operator release gate: after confirmed-project review, apply the hosted migration through the documented dry-run/`db push` workflow, then hard-delete all hosted Auth users.
+- [x] 4.4 No manual test is planned; the sole manual requirement is an operator release gate: after confirmed-project review, apply the hosted migration through the documented dry-run/`db push` workflow, then hard-delete all hosted Auth users.
