@@ -2,7 +2,6 @@ import { buildAiWorkoutResponseSchema } from "./ai-workout-contract.ts";
 import type { AiWorkoutPrompt } from "./ai-workout-prompt.ts";
 
 export const OPENROUTER_CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions";
-export const OPENROUTER_CURRENT_KEY_URL = "https://openrouter.ai/api/v1/key";
 export const MAX_OPENROUTER_RESPONSE_BYTES = 128 * 1024;
 const OPENROUTER_KEY_VALIDATION_TIMEOUT_MS = 5_000;
 
@@ -31,17 +30,25 @@ export type OpenRouterFetch = (input: RequestInfo | URL, init?: RequestInit) => 
 
 export async function validateOpenRouterKey(
   apiKey: string,
+  model: string | undefined,
   fetchImpl: OpenRouterFetch = fetch,
 ): Promise<OpenRouterKeyValidationResult> {
+  if (!model) return { ok: false, code: "retry" };
+
   const abortController = new AbortController();
   const timeout = setTimeout(() => {
     abortController.abort();
   }, OPENROUTER_KEY_VALIDATION_TIMEOUT_MS);
 
   try {
-    const response = await fetchImpl(OPENROUTER_CURRENT_KEY_URL, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${apiKey}` },
+    const response = await fetchImpl(OPENROUTER_CHAT_COMPLETIONS_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        max_tokens: 1,
+        messages: [{ role: "user", content: "Reply with 1." }],
+      }),
       signal: abortController.signal,
     });
 

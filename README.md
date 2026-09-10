@@ -120,7 +120,9 @@ explicit operational procedure.
 `OPENROUTER_MODEL` is a server-only fixed model identifier used only by the AI workout-generation route. Pick an
 OpenRouter model that supports strict structured JSON output; users cannot provide or override it from the browser.
 The model setting is not an OpenRouter API key. Each user supplies their own disposable or personal OpenRouter key in
-the Account page, where it is encrypted before storage.
+the Account page. Before encryption or storage, the Worker sends that key through one fixed-model completion limited to
+one output token and discards the response body. This validates the capability the app actually needs and can consume a
+small amount of the user's OpenRouter credit. An unsuccessful validation never replaces an existing encrypted key.
 
 `AI_CONFIRMATION_SIGNING_SECRET` is a separate Worker-only HMAC secret used to sign the short-lived, owner-bound
 confirmation required for a reduced three- or four-exercise history-aware proposal. It must be unrelated to

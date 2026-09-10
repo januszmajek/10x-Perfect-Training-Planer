@@ -1,4 +1,4 @@
-import { AI_KEY_ENCRYPTION_KEY_V1 } from "astro:env/server";
+import { AI_KEY_ENCRYPTION_KEY_V1, OPENROUTER_MODEL } from "astro:env/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   decryptAiProviderKey,
@@ -87,7 +87,7 @@ export async function saveAiProviderKey(
     return { ok: false, reason: "invalid_input" };
   }
 
-  const providerValidation = await validateOpenRouterKey(validation.value);
+  const providerValidation = await validateOpenRouterKey(validation.value, OPENROUTER_MODEL);
 
   if (!providerValidation.ok) {
     return { ok: false, reason: providerValidation.code === "rejected" ? "rejected_key" : "validation_unavailable" };
