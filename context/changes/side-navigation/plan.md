@@ -294,9 +294,9 @@ The user reset is separately destructive. Local reset clears local Auth/applicat
 
 #### Automated
 
-- [x] 4.1 Remove remaining stale confirmation/key-fragment references and assertions
-- [x] 4.2 Repository lint succeeds: `pnpm lint`
-- [x] 4.3 Production SSR build succeeds: `pnpm build`
+- [x] 4.1 Remove remaining stale confirmation/key-fragment references and assertions — bd8a351
+- [x] 4.2 Repository lint succeeds: `pnpm lint` — bd8a351
+- [x] 4.3 Production SSR build succeeds: `pnpm build` — bd8a351
 
 #### Manual
 
