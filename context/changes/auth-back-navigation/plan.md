@@ -142,23 +142,23 @@ No database or deployment migration is required. Roll back by removing the auth-
 
 #### Automated
 
-- [x] 1.1 Type-aware lint succeeds: `pnpm lint`
-- [x] 1.2 Production SSR build succeeds: `pnpm build`
+- [x] 1.1 Type-aware lint succeeds: `pnpm lint` — 611552c
+- [x] 1.2 Production SSR build succeeds: `pnpm build` — 611552c
 
 #### Manual
 
-- [x] 1.3 Signed-in direct visits to credential-entry routes redirect to Dashboard
-- [x] 1.4 Signed-out direct visits to credential-entry routes render their forms
+- [x] 1.3 Signed-in direct visits to credential-entry routes redirect to Dashboard — 611552c
+- [x] 1.4 Signed-out direct visits to credential-entry routes render their forms — 611552c
 
 ### Phase 2: Revalidate Restored Credential-entry Pages
 
 #### Automated
 
-- [ ] 2.1 Type-aware lint succeeds: `pnpm lint`
-- [ ] 2.2 Production SSR build succeeds: `pnpm build`
+- [x] 2.1 Type-aware lint succeeds: `pnpm lint`
+- [x] 2.2 Production SSR build succeeds: `pnpm build`
 
 #### Manual
 
-- [ ] 2.3 Sign-in, Dashboard, and browser Back never show a stale sign-in card
-- [ ] 2.4 Signed-out Back/Forward restoration renders a credential-entry form
-- [ ] 2.5 Sign-up Back restoration redirects an authenticated user to Dashboard
+- [x] 2.3 Sign-in, Dashboard, and browser Back never show a stale sign-in card
+- [x] 2.4 Signed-out Back/Forward restoration renders a credential-entry form
+- [x] 2.5 Sign-up Back restoration redirects an authenticated user to Dashboard

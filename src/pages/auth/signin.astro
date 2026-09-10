@@ -1,11 +1,13 @@
 ---
-import Layout from "@/layouts/Layout.astro";
+import AuthEntryLayout from "@/layouts/AuthEntryLayout.astro";
 import SignInForm from "@/components/auth/SignInForm";
 
 const error = Astro.url.searchParams.get("error");
+
+Astro.response.headers.set("Cache-Control", "no-store");
 ---
 
-<Layout title="Sign in">
+<AuthEntryLayout title="Sign in">
   <div class="bg-cosmic flex min-h-screen items-center justify-center p-4">
     <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-white/10 p-8 text-white backdrop-blur-xl">
       <h1
@@ -19,4 +21,4 @@ const error = Astro.url.searchParams.get("error");
       </p>
     </div>
   </div>
-</Layout>
+</AuthEntryLayout>
