@@ -41,8 +41,6 @@ export type Database = {
           created_at: string;
           encryption_key_version: number;
           iv: string;
-          key_hint: string;
-          key_prefix: string | null;
           provider: Database["public"]["Enums"]["ai_provider"];
           updated_at: string;
           user_id: string;
@@ -52,8 +50,6 @@ export type Database = {
           created_at?: string;
           encryption_key_version: number;
           iv: string;
-          key_hint: string;
-          key_prefix?: string | null;
           provider?: Database["public"]["Enums"]["ai_provider"];
           updated_at?: string;
           user_id: string;
@@ -63,8 +59,6 @@ export type Database = {
           created_at?: string;
           encryption_key_version?: number;
           iv?: string;
-          key_hint?: string;
-          key_prefix?: string | null;
           provider?: Database["public"]["Enums"]["ai_provider"];
           updated_at?: string;
           user_id?: string;

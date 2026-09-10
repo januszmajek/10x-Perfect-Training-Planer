@@ -2,7 +2,9 @@ import { buildAiWorkoutResponseSchema } from "./ai-workout-contract.ts";
 import type { AiWorkoutPrompt } from "./ai-workout-prompt.ts";
 
 export const OPENROUTER_CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions";
+export const OPENROUTER_CURRENT_KEY_URL = "https://openrouter.ai/api/v1/key";
 export const MAX_OPENROUTER_RESPONSE_BYTES = 128 * 1024;
+const OPENROUTER_KEY_VALIDATION_TIMEOUT_MS = 5_000;
 
 export type OpenRouterFailureCode =
   | "invalid_credential"
@@ -15,6 +17,7 @@ export type OpenRouterFailureCode =
   | "invalid_completion";
 
 export type OpenRouterResult = { ok: true; data: { content: string } } | { ok: false; code: OpenRouterFailureCode };
+export type OpenRouterKeyValidationResult = { ok: true } | { ok: false; code: "rejected" | "retry" };
 
 export interface OpenRouterRequest {
   apiKey: string;
@@ -25,6 +28,32 @@ export interface OpenRouterRequest {
 }
 
 export type OpenRouterFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
+export async function validateOpenRouterKey(
+  apiKey: string,
+  fetchImpl: OpenRouterFetch = fetch,
+): Promise<OpenRouterKeyValidationResult> {
+  const abortController = new AbortController();
+  const timeout = setTimeout(() => {
+    abortController.abort();
+  }, OPENROUTER_KEY_VALIDATION_TIMEOUT_MS);
+
+  try {
+    const response = await fetchImpl(OPENROUTER_CURRENT_KEY_URL, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: abortController.signal,
+    });
+
+    if (response.ok) return { ok: true };
+    if (response.status === 401 || response.status === 403) return { ok: false, code: "rejected" };
+    return { ok: false, code: "retry" };
+  } catch {
+    return { ok: false, code: "retry" };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 function mapStatus(status: number): OpenRouterFailureCode {
   if (status === 401 || status === 403) return "invalid_credential";

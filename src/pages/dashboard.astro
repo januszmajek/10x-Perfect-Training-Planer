@@ -18,6 +18,7 @@ const showDeletedStatus = Astro.url.searchParams.get("status") === "workout-dele
 const showChangedStatus = Astro.url.searchParams.get("status") === "workout-changed";
 const showCompletedStatus =
   Astro.url.searchParams.get("status") === "workout-completed" && planResult.ok && currentPlan === null;
+const showAccountCreatedStatus = Astro.url.searchParams.get("status") === "account-created";
 ---
 
 <AuthenticatedLayout title="Dashboard | Perfect Training Planner">
@@ -26,6 +27,16 @@ const showCompletedStatus =
     <h1 class="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">Dashboard</h1>
   </div>
 
+  {
+    showAccountCreatedStatus && (
+      <p
+        role="status"
+        class="mb-5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
+      >
+        Your account was created successfully.
+      </p>
+    )
+  }
   {
     showSavedStatus && (
       <p

@@ -197,11 +197,12 @@ Applying migrations to a hosted database is a separate operational action. A hum
 `pnpm exec supabase db push --dry-run`, verify the linked target, and explicitly approve the real
 `pnpm exec supabase db push`. Never use `db reset --linked` for this project.
 
-### Email confirmation in local development
+### Email confirmation and immediate signup
 
-Local email confirmation is disabled in `supabase/config.toml`, so disposable local users can sign in immediately.
-Change hosted-project email settings in its Supabase dashboard when needed; local configuration does not mutate the
-hosted project.
+Local email confirmation is disabled in `supabase/config.toml`, so email/password signups establish a session and
+redirect immediately to the dashboard. Before deploying, disable **Email Confirmations** in the hosted project's
+Supabase dashboard too; local configuration does not mutate the hosted project. This app has no confirmation callback
+or replacement signup email.
 
 ### Auth routes
 
@@ -209,10 +210,25 @@ hosted project.
 | --------------------- | ----------------------------------------------------------------------- |
 | `/auth/signin`        | Email/password sign-in form                                             |
 | `/auth/signup`        | Email/password sign-up form                                             |
-| `/auth/confirm-email` | Post-signup "check your inbox" page                                     |
 | `/dashboard`          | Example protected page (redirects to `/auth/signin` if unauthenticated) |
 
 Route protection is handled in `src/middleware.ts`. Add paths to the `PROTECTED_ROUTES` array there to require authentication.
+
+### Deliberate user-data reset
+
+Resetting users is destructive and must be performed only after recording a backup and confirming the exact target.
+Foreign-key cascades delete the user's private application data, including encrypted provider keys and workouts.
+Refresh sessions are invalidated, but an already-issued JWT can remain accepted until it expires.
+
+For local development only, run `pnpm exec supabase db reset --local`; never add `--linked`. This rebuilds the local
+database from the committed migrations and removes local Auth/application rows.
+
+For a hosted project, an authorized operator must first confirm its project ref, capture any required backup, and
+check whether Storage contains user-owned objects. Remove those objects through the dashboard if present, then
+hard-delete every Auth user through the confirmed project's Supabase dashboard (or a separately secured Admin API
+operation). Apply the migration only after `pnpm exec supabase db push --dry-run` has been reviewed and the operator
+has explicitly approved the confirmed target. Do not put a service-role credential in this app, its environment files,
+or shell history.
 
 ## Deployment
 

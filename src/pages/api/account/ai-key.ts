@@ -42,6 +42,14 @@ export const POST: APIRoute = async (context) => {
     return redirectToAccount(context, "invalid");
   }
 
+  if (result.reason === "rejected_key") {
+    return redirectToAccount(context, "rejected");
+  }
+
+  if (result.reason === "validation_unavailable") {
+    return redirectToAccount(context, "retry");
+  }
+
   if (result.reason === "unavailable_encryption") {
     return redirectToAccount(context, "unavailable");
   }

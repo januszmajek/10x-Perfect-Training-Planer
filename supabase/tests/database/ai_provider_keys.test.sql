@@ -21,8 +21,6 @@ select columns_are(
     'provider',
     'ciphertext',
     'iv',
-    'key_prefix',
-    'key_hint',
     'encryption_key_version',
     'created_at',
     'updated_at'
@@ -45,14 +43,12 @@ select ok(
 );
 select ok(
   (
-    select count(*) = 5
+    select count(*) = 3
     from pg_catalog.pg_constraint
     where conrelid = 'public.ai_provider_keys'::regclass
       and conname in (
         'ai_provider_keys_ciphertext_base64url_check',
         'ai_provider_keys_iv_base64url_check',
-        'ai_provider_keys_key_prefix_length_check',
-        'ai_provider_keys_key_hint_length_check',
         'ai_provider_keys_encryption_key_version_positive_check'
       )
       and contype = 'c'
@@ -68,26 +64,6 @@ select ok(
       and column_name = 'provider'
   ),
   'provider defaults to openrouter'
-);
-select ok(
-  (
-    select bool_and(is_nullable = 'NO')
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'ai_provider_keys'
-      and column_name <> 'key_prefix'
-  ),
-  'every encrypted credential column is required'
-);
-select ok(
-  (
-    select is_nullable = 'YES'
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'ai_provider_keys'
-      and column_name = 'key_prefix'
-  ),
-  'legacy credentials may omit the non-secret key prefix'
 );
 select ok(
   exists (
@@ -125,15 +101,13 @@ select ok(
     and has_column_privilege('authenticated', 'public.ai_provider_keys', 'user_id', 'INSERT, UPDATE')
     and has_column_privilege('authenticated', 'public.ai_provider_keys', 'ciphertext', 'INSERT, UPDATE')
     and has_column_privilege('authenticated', 'public.ai_provider_keys', 'iv', 'INSERT, UPDATE')
-    and has_column_privilege('authenticated', 'public.ai_provider_keys', 'key_prefix', 'INSERT, UPDATE')
-    and has_column_privilege('authenticated', 'public.ai_provider_keys', 'key_hint', 'INSERT, UPDATE')
     and has_column_privilege(
       'authenticated',
       'public.ai_provider_keys',
       'encryption_key_version',
       'INSERT, UPDATE'
     ),
-  'authenticated can read, delete, and upsert only the credential payload columns'
+  'authenticated can read, delete, and upsert only encrypted credential payload columns'
 );
 select ok(
   not has_table_privilege('authenticated', 'public.ai_provider_keys', 'INSERT, UPDATE')
@@ -162,7 +136,6 @@ insert into public.ai_provider_keys (
   user_id,
   ciphertext,
   iv,
-  key_hint,
   encryption_key_version,
   created_at,
   updated_at
@@ -171,7 +144,6 @@ values (
   '00000000-0000-0000-0000-000000000011',
   'RmFrZUNpcGhlcnRleHQ',
   'AAAAAAAAAAAAAAAA',
-  'hint',
   1,
   '2000-01-01 00:00:00+00',
   '2000-01-01 00:00:00+00'
@@ -188,12 +160,11 @@ select is(
 );
 select throws_ok(
   $$
-    insert into public.ai_provider_keys (user_id, ciphertext, iv, key_hint, encryption_key_version)
+    insert into public.ai_provider_keys (user_id, ciphertext, iv, encryption_key_version)
     values (
       '00000000-0000-0000-0000-000000000011',
       'QW5vdGhlckZha2VDaXBoZXJ0ZXh0',
       'BBBBBBBBBBBBBBBB',
-      'last',
       1
     )
   $$,
@@ -203,61 +174,52 @@ select throws_ok(
 );
 select throws_like(
   $$
-    insert into public.ai_provider_keys (user_id, ciphertext, iv, key_hint, encryption_key_version)
-    values ('00000000-0000-0000-0000-000000000012', '', 'AAAAAAAAAAAAAAAA', 'hint', 1)
+    insert into public.ai_provider_keys (user_id, ciphertext, iv, encryption_key_version)
+    values ('00000000-0000-0000-0000-000000000012', '', 'AAAAAAAAAAAAAAAA', 1)
   $$,
   '%ai_provider_keys_ciphertext_base64url_check%',
   'ciphertext cannot be empty'
 );
 select throws_like(
   $$
-    insert into public.ai_provider_keys (user_id, ciphertext, iv, key_hint, encryption_key_version)
-    values ('00000000-0000-0000-0000-000000000012', 'not+padded=', 'AAAAAAAAAAAAAAAA', 'hint', 1)
+    insert into public.ai_provider_keys (user_id, ciphertext, iv, encryption_key_version)
+    values ('00000000-0000-0000-0000-000000000012', 'not+padded=', 'AAAAAAAAAAAAAAAA', 1)
   $$,
   '%ai_provider_keys_ciphertext_base64url_check%',
   'ciphertext must use unpadded base64url characters'
 );
 select throws_like(
   $$
-    insert into public.ai_provider_keys (user_id, ciphertext, iv, key_hint, encryption_key_version)
-    values ('00000000-0000-0000-0000-000000000012', 'RmFrZQ', 'short', 'hint', 1)
+    insert into public.ai_provider_keys (user_id, ciphertext, iv, encryption_key_version)
+    values ('00000000-0000-0000-0000-000000000012', 'RmFrZQ', 'short', 1)
   $$,
   '%ai_provider_keys_iv_base64url_check%',
   'IV metadata must encode exactly twelve bytes without padding'
 );
 select throws_like(
   $$
-    insert into public.ai_provider_keys (user_id, ciphertext, iv, key_hint, encryption_key_version)
-    values ('00000000-0000-0000-0000-000000000012', 'RmFrZQ', 'AAAAAAAAAAAAAAA=', 'hint', 1)
+    insert into public.ai_provider_keys (user_id, ciphertext, iv, encryption_key_version)
+    values ('00000000-0000-0000-0000-000000000012', 'RmFrZQ', 'AAAAAAAAAAAAAAA=', 1)
   $$,
   '%ai_provider_keys_iv_base64url_check%',
   'IV metadata rejects padded base64url'
 );
 select throws_like(
   $$
-    insert into public.ai_provider_keys (user_id, ciphertext, iv, key_hint, encryption_key_version)
-    values ('00000000-0000-0000-0000-000000000012', 'RmFrZQ', 'AAAAAAAAAAAAAAAA', 'abc', 1)
-  $$,
-  '%ai_provider_keys_key_hint_length_check%',
-  'the display hint must contain exactly four characters'
-);
-select throws_like(
-  $$
-    insert into public.ai_provider_keys (user_id, ciphertext, iv, key_hint, encryption_key_version)
-    values ('00000000-0000-0000-0000-000000000012', 'RmFrZQ', 'AAAAAAAAAAAAAAAA', 'hint', 0)
+    insert into public.ai_provider_keys (user_id, ciphertext, iv, encryption_key_version)
+    values ('00000000-0000-0000-0000-000000000012', 'RmFrZQ', 'AAAAAAAAAAAAAAAA', 0)
   $$,
   '%ai_provider_keys_encryption_key_version_positive_check%',
   'the encryption key version must be positive'
 );
 select throws_like(
   $$
-    insert into public.ai_provider_keys (user_id, provider, ciphertext, iv, key_hint, encryption_key_version)
+    insert into public.ai_provider_keys (user_id, provider, ciphertext, iv, encryption_key_version)
     values (
       '00000000-0000-0000-0000-000000000012',
       'unsupported',
       'RmFrZQ',
       'AAAAAAAAAAAAAAAA',
-      'hint',
       1
     )
   $$,
@@ -279,12 +241,11 @@ select ok(
   'the trigger advances updated_at without changing created_at'
 );
 
-insert into public.ai_provider_keys (user_id, ciphertext, iv, key_hint, encryption_key_version)
+insert into public.ai_provider_keys (user_id, ciphertext, iv, encryption_key_version)
 values (
   '00000000-0000-0000-0000-000000000013',
   'T3RoZXJVc2VyRmFrZUNpcGhlcnRleHQ',
   'BBBBBBBBBBBBBBBB',
-  'othr',
   1
 );
 
@@ -294,12 +255,11 @@ set local role authenticated;
 
 select lives_ok(
   $$
-    insert into public.ai_provider_keys (user_id, ciphertext, iv, key_hint, encryption_key_version)
+    insert into public.ai_provider_keys (user_id, ciphertext, iv, encryption_key_version)
     values (
       '00000000-0000-0000-0000-000000000012',
       'T3duZXJGYWtlQ2lwaGVydGV4dA',
       'CCCCCCCCCCCCCCCC',
-      'ownr',
       1
     )
   $$,
@@ -307,12 +267,11 @@ select lives_ok(
 );
 select throws_like(
   $$
-    insert into public.ai_provider_keys (user_id, ciphertext, iv, key_hint, encryption_key_version)
+    insert into public.ai_provider_keys (user_id, ciphertext, iv, encryption_key_version)
     values (
       '00000000-0000-0000-0000-000000000014',
       'Tm90VGhlT3duZXJGYWtlQ2lwaGVydGV4dA',
       'DDDDDDDDDDDDDDDD',
-      'nope',
       1
     )
   $$,
@@ -335,12 +294,11 @@ select is(
 );
 select lives_ok(
   $$
-    insert into public.ai_provider_keys (user_id, ciphertext, iv, key_hint, encryption_key_version)
+    insert into public.ai_provider_keys (user_id, ciphertext, iv, encryption_key_version)
     values (
       '00000000-0000-0000-0000-000000000012',
       'UmVwbGFjZWRGYWtlQ2lwaGVydGV4dA',
       'EEEEEEEEEEEEEEEE',
-      'newr',
       2
     )
     on conflict (user_id) do update
@@ -348,18 +306,17 @@ select lives_ok(
       user_id = excluded.user_id,
       ciphertext = excluded.ciphertext,
       iv = excluded.iv,
-      key_hint = excluded.key_hint,
       encryption_key_version = excluded.encryption_key_version
   $$,
   'the owner can atomically replace a credential through direct upsert'
 );
 select is(
   (
-    select key_hint
+    select ciphertext
     from public.ai_provider_keys
     where user_id = '00000000-0000-0000-0000-000000000012'
   ),
-  'newr',
+  'UmVwbGFjZWRGYWtlQ2lwaGVydGV4dA',
   'the direct upsert persists the replacement payload'
 );
 select lives_ok(

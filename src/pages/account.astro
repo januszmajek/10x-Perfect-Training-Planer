@@ -16,7 +16,9 @@ const encryptionAvailable = isAiProviderKeyEncryptionAvailable();
 const statusMessages = {
   saved: { kind: "success", text: "Your OpenRouter key was saved." },
   removed: { kind: "success", text: "Your OpenRouter key was removed." },
-  invalid: { kind: "error", text: "Enter a valid OpenRouter API key and try again." },
+  invalid: { kind: "error", text: "Enter an API key and try again." },
+  rejected: { kind: "error", text: "The key could not be verified. Check it and try again." },
+  retry: { kind: "error", text: "Key verification is temporarily unavailable. Your existing key was not changed." },
   unavailable: { kind: "error", text: "Key encryption is unavailable. Your existing key was not changed." },
   error: { kind: "error", text: "The account update could not be completed. Please try again." },
 } as const;
@@ -29,7 +31,7 @@ const statusMessage = status && status in statusMessages ? statusMessages[status
   <div class="mx-auto max-w-2xl">
     <div class="mb-8">
       <p class="text-sm font-medium tracking-wide text-purple-300 uppercase">Account</p>
-      <h1 class="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">AI provider key</h1>
+      <h1 class="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">Account settings</h1>
     </div>
 
     {
@@ -74,12 +76,23 @@ const statusMessage = status && status in statusMessages ? statusMessages[status
       <AiKeyForm
         configured={credential !== null}
         provider={credential?.provider ?? "openrouter"}
-        keyPrefix={credential?.keyPrefix}
-        keyHint={credential?.keyHint}
         updatedAt={credential?.updatedAt}
         encryptionAvailable={encryptionAvailable}
         client:load
       />
+    </section>
+
+    <section class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-7">
+      <h2 class="text-lg font-semibold text-white">Sign out</h2>
+      <p class="mt-2 text-sm leading-6 text-blue-100/65">End this browser session on this device.</p>
+      <form method="POST" action="/api/auth/signout" class="mt-4">
+        <button
+          type="submit"
+          class="inline-flex min-h-10 items-center justify-center rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-blue-50 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
+        >
+          Sign out
+        </button>
+      </form>
     </section>
   </div>
 </AuthenticatedLayout>

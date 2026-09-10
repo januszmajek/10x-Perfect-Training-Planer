@@ -1,16 +1,11 @@
 import React, { useState } from "react";
 import { Check, KeyRound, LoaderCircle, Trash2, X } from "lucide-react";
-import {
-  AI_PROVIDER_KEY_MAX_LENGTH,
-  AI_PROVIDER_KEY_MIN_LENGTH,
-  validateAiProviderKey,
-} from "@/lib/ai-provider-key-validation";
+
+const AI_PROVIDER_KEY_MAX_LENGTH = 512;
 
 interface Props {
   configured: boolean;
   provider: "openrouter";
-  keyPrefix?: string | null;
-  keyHint?: string;
   updatedAt?: string;
   encryptionAvailable: boolean;
 }
@@ -37,21 +32,7 @@ function formatUpdatedAt(value: string | undefined): string | null {
   }).format(date);
 }
 
-function validationMessage(value: string): string | null {
-  const result = validateAiProviderKey(value);
-
-  if (result.valid) {
-    return null;
-  }
-
-  if (result.reason === "invalid_length") {
-    return `Enter between ${AI_PROVIDER_KEY_MIN_LENGTH} and ${AI_PROVIDER_KEY_MAX_LENGTH} characters.`;
-  }
-
-  return "Use printable characters only, without spaces or line breaks.";
-}
-
-export default function AiKeyForm({ configured, provider, keyPrefix, keyHint, updatedAt, encryptionAvailable }: Props) {
+export default function AiKeyForm({ configured, provider, updatedAt, encryptionAvailable }: Props) {
   const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [savePending, setSavePending] = useState(false);
@@ -60,11 +41,9 @@ export default function AiKeyForm({ configured, provider, keyPrefix, keyHint, up
   const formattedUpdatedAt = formatUpdatedAt(updatedAt);
 
   function handleSave(event: React.SubmitEvent<HTMLFormElement>) {
-    const nextError = validationMessage(apiKey);
-
-    if (nextError) {
+    if (apiKey.length === 0 || apiKey.length > AI_PROVIDER_KEY_MAX_LENGTH) {
       event.preventDefault();
-      setError(nextError);
+      setError("Enter an API key and try again.");
       return;
     }
 
@@ -83,19 +62,10 @@ export default function AiKeyForm({ configured, provider, keyPrefix, keyHint, up
           <p className="mt-1 text-sm text-blue-100/60">Provider: {provider}</p>
         </div>
 
-        {configured && keyHint ? (
+        {configured ? (
           <div className="mt-1 flex items-start gap-3 sm:mt-0">
             <div className="text-right">
-              <p
-                className="font-mono text-base font-semibold tracking-wider text-purple-100"
-                aria-label={
-                  keyPrefix
-                    ? `Saved key starting in ${keyPrefix} and ending in ${keyHint}`
-                    : `Saved key ending in ${keyHint}`
-                }
-              >
-                {keyPrefix ? `${keyPrefix}••••${keyHint}` : `••••${keyHint}`}
-              </p>
+              <p className="text-sm font-semibold text-emerald-100">Configured</p>
               {formattedUpdatedAt && <p className="mt-1 text-xs text-blue-100/50">Updated {formattedUpdatedAt}</p>}
             </div>
             <button
@@ -139,7 +109,6 @@ export default function AiKeyForm({ configured, provider, keyPrefix, keyHint, up
                 }}
                 readOnly={savePending || !encryptionAvailable}
                 disabled={!encryptionAvailable}
-                minLength={AI_PROVIDER_KEY_MIN_LENGTH}
                 maxLength={AI_PROVIDER_KEY_MAX_LENGTH}
                 autoComplete="off"
                 autoCapitalize="none"
