@@ -85,8 +85,7 @@ export default function WorkoutCatalogueFilters({
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-medium tracking-wide text-purple-300 uppercase">Exercise catalogue</p>
-            <div className="mt-1 flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 aria-label="Close filters"
@@ -95,7 +94,7 @@ export default function WorkoutCatalogueFilters({
               >
                 <ArrowLeft aria-hidden="true" className="size-5" />
               </button>
-              <h2 className="text-2xl font-bold text-white">Filters</h2>
+              <h2 className="text-2xl font-bold text-purple-300">Filters</h2>
             </div>
           </div>
           {active && (

@@ -77,13 +77,13 @@ export default function SidebarNavigation({ currentPath, workoutRoute }: Props) 
   return (
     <>
       <aside
-        className={`hidden w-64 shrink-0 flex-col border-r border-white/10 bg-slate-950/70 px-4 py-5 backdrop-blur-xl xl:flex ${
+        className={`sticky top-0 hidden h-dvh w-64 shrink-0 self-start overflow-hidden border-r border-white/10 bg-slate-950/70 px-4 py-5 backdrop-blur-xl xl:flex ${
           workoutRoute ? "xl:hidden" : ""
         }`}
       >
         <a
           href="/dashboard"
-          className="rounded-sm px-3 text-lg font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-purple-300"
+          className="rounded-sm px-2 text-center text-sm leading-tight font-semibold tracking-tight text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-purple-300"
         >
           Perfect Training Planner
         </a>
@@ -94,7 +94,7 @@ export default function SidebarNavigation({ currentPath, workoutRoute }: Props) 
       </aside>
 
       <aside
-        className={`hidden w-20 shrink-0 flex-col items-center border-r border-white/10 bg-slate-950/70 px-3 py-5 backdrop-blur-xl sm:flex ${
+        className={`sticky top-0 hidden h-dvh w-20 shrink-0 self-start overflow-hidden border-r border-white/10 bg-slate-950/70 px-3 py-5 backdrop-blur-xl sm:flex ${
           workoutRoute ? "" : "xl:hidden"
         }`}
       >
@@ -103,7 +103,7 @@ export default function SidebarNavigation({ currentPath, workoutRoute }: Props) 
           aria-label="Perfect Training Planner"
           className="inline-flex size-11 items-center justify-center rounded-xl bg-purple-500/20 text-lg font-bold text-purple-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
         >
-          PT
+          PTP
         </a>
         <nav className="mt-8 flex flex-col items-center gap-2" aria-label="Private workspace">
           {primaryLinks(currentPath, true)}

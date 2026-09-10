@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { UserRound } from "lucide-react";
 
@@ -20,9 +20,21 @@ function isActivePath(href: string, currentPath: string): boolean {
   return currentPath === href || currentPath.startsWith(`${href}/`);
 }
 
+function subscribeToPortalTarget() {
+  return () => undefined;
+}
+
+function getPortalTarget() {
+  return document.body;
+}
+
+function getServerPortalTarget() {
+  return null;
+}
+
 export default function MobileNavigation({ currentPath, navigation }: Props) {
   const [isOpen, setIsOpen] = useState(false);
-  const portalTarget = typeof document === "undefined" ? null : document.body;
+  const portalTarget = useSyncExternalStore(subscribeToPortalTarget, getPortalTarget, getServerPortalTarget);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const firstNavigationLinkRef = useRef<HTMLAnchorElement>(null);
 

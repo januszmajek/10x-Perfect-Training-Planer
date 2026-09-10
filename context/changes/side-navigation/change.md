@@ -25,3 +25,13 @@ response body is logged, rendered, or stored.
 Applied `20260910130000_remove_ai_provider_key_metadata.sql` to the local Supabase database with `supabase migration
 up --local`. This forward-only migration removes the obsolete required metadata columns while preserving local Auth and
 application rows, allowing the new metadata-free credential upsert to persist successfully.
+
+### 2026-09-10: Navigation and account refinement
+
+Added Astro's shared client router so ordinary internal navigation swaps pages without a browser document reload. The
+existing `pageshow` reload remains unchanged and still applies only to browser back/forward-cache restoration. The
+mobile drawer's portal now uses React's server snapshot mechanism so its browser-only target mounts after hydration
+without a mismatch during client-side route swaps. Both desktop sidebar variants now stay viewport-height and
+non-scrolling, the compact mark reads `PTP`, and the full mark is smaller. Account settings now hide the key entry form
+after configuration (remove the saved key before adding another) and align Sign out with its card's right edge on wider
+screens. Paired section eyebrows were removed; their surviving headings use the same `text-purple-300` color.
