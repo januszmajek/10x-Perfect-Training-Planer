@@ -1,10 +1,10 @@
 ---
 change_id: filtering-in-history
 title: Filtering in history
-status: new
+status: archived
 created: 2026-09-10
 updated: 2026-09-10
-archived_at: null
+archived_at: 2026-09-10T12:20:44Z
 ---
 
 ## Notes
