@@ -49,9 +49,6 @@ export default function AiKeyForm({ configured, provider, updatedAt, encryptionA
 
     setError(null);
     setSavePending(true);
-    window.setTimeout(() => {
-      setApiKey("");
-    }, 0);
   }
 
   return (
