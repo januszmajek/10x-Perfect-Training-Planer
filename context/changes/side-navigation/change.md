@@ -19,3 +19,9 @@ one output token, inspect only the HTTP outcome, and discard its body. This can 
 credit, but it verifies the capability the product actually requires. Invalid, timeout, rate-limit, network, and
 provider failures remain fail-closed and preserve any existing credential. No key, key-derived metadata, or provider
 response body is logged, rendered, or stored.
+
+### 2026-09-10: Local migration applied
+
+Applied `20260910130000_remove_ai_provider_key_metadata.sql` to the local Supabase database with `supabase migration
+up --local`. This forward-only migration removes the obsolete required metadata columns while preserving local Auth and
+application rows, allowing the new metadata-free credential upsert to persist successfully.
