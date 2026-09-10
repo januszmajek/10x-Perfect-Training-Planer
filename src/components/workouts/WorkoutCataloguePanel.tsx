@@ -67,7 +67,7 @@ export default function WorkoutCataloguePanel({
 
   return (
     <section className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl sm:p-6">
-      <h2 className="text-2xl font-bold text-purple-300">Find exercises</h2>
+      <h2 className="text-2xl font-bold text-white">Find exercises</h2>
       <div className="mt-4 flex flex-wrap gap-3">
         <button
           ref={filterTriggerRef}

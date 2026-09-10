@@ -35,3 +35,11 @@ without a mismatch during client-side route swaps. Both desktop sidebar variants
 non-scrolling, the compact mark reads `PTP`, and the full mark is smaller. Account settings now hide the key entry form
 after configuration (remove the saved key before adding another) and align Sign out with its card's right edge on wider
 screens. Paired section eyebrows were removed; their surviving headings use the same `text-purple-300` color.
+
+### 2026-09-10: Regression correction
+
+The first client-router rollout left the document's default light canvas exposed during route replacement, which could
+flash white. The root document now has the same dark fallback background as the application, and Astro route animation
+is disabled while retaining client-side swapping. The responsive display utilities changed the sidebar containers back
+to row flex direction at their visible breakpoints; their column direction is now explicit. The full wordmark is a
+single line and the compact `PTP` mark uses a smaller, tighter letter treatment. Section headings are white again.

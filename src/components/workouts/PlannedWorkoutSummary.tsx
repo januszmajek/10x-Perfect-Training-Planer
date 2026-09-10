@@ -267,7 +267,7 @@ export default function PlannedWorkoutSummary({ plan }: Props) {
         <section className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl shadow-black/10 backdrop-blur-xl sm:p-7">
           <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight text-purple-300">{originLabel}</h2>
+              <h2 className="text-2xl font-bold tracking-tight text-white">{originLabel}</h2>
               <p className="mt-2 text-sm text-blue-100/60">
                 Created <time dateTime={plan.createdAt}>{formatCreatedAt(plan.createdAt)}</time>
               </p>

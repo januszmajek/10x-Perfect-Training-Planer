@@ -94,7 +94,7 @@ export default function WorkoutCatalogueFilters({
               >
                 <ArrowLeft aria-hidden="true" className="size-5" />
               </button>
-              <h2 className="text-2xl font-bold text-purple-300">Filters</h2>
+              <h2 className="text-2xl font-bold text-white">Filters</h2>
             </div>
           </div>
           {active && (

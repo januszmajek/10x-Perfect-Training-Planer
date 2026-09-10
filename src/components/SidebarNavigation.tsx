@@ -80,10 +80,11 @@ export default function SidebarNavigation({ currentPath, workoutRoute }: Props) 
         className={`sticky top-0 hidden h-dvh w-64 shrink-0 self-start overflow-hidden border-r border-white/10 bg-slate-950/70 px-4 py-5 backdrop-blur-xl xl:flex ${
           workoutRoute ? "xl:hidden" : ""
         }`}
+        style={{ flexDirection: "column" }}
       >
         <a
           href="/dashboard"
-          className="rounded-sm px-2 text-center text-sm leading-tight font-semibold tracking-tight text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-purple-300"
+          className="block w-full rounded-sm px-2 text-center text-sm font-semibold tracking-tight whitespace-nowrap text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-purple-300"
         >
           Perfect Training Planner
         </a>
@@ -97,11 +98,12 @@ export default function SidebarNavigation({ currentPath, workoutRoute }: Props) 
         className={`sticky top-0 hidden h-dvh w-20 shrink-0 self-start overflow-hidden border-r border-white/10 bg-slate-950/70 px-3 py-5 backdrop-blur-xl sm:flex ${
           workoutRoute ? "" : "xl:hidden"
         }`}
+        style={{ flexDirection: "column" }}
       >
         <a
           href="/dashboard"
           aria-label="Perfect Training Planner"
-          className="inline-flex size-11 items-center justify-center rounded-xl bg-purple-500/20 text-lg font-bold text-purple-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
+          className="inline-flex size-11 items-center justify-center rounded-xl bg-purple-500/20 text-xs font-extrabold tracking-tight text-purple-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
         >
           PTP
         </a>
