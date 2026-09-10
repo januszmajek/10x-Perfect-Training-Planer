@@ -296,11 +296,11 @@ ignored by the previous version.
 
 #### Automated
 
-- [x] 3.1 Repository lint succeeds: `pnpm lint`
-- [x] 3.2 Production SSR build succeeds: `pnpm build`
+- [x] 3.1 Repository lint succeeds: `pnpm lint` — 69d8874
+- [x] 3.2 Production SSR build succeeds: `pnpm build` — 69d8874
 
 #### Manual
 
-- [x] 3.3 Every current dialog stays closed after BFCache Back/Forward restoration
-- [x] 3.4 Dashboard and history data refresh after Back/Forward navigation
-- [x] 3.5 Sign-out Back navigation is private in a second major browser when available
+- [x] 3.3 Every current dialog stays closed after BFCache Back/Forward restoration — 69d8874
+- [x] 3.4 Dashboard and history data refresh after Back/Forward navigation — 69d8874
+- [x] 3.5 Sign-out Back navigation is private in a second major browser when available — 69d8874
