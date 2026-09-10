@@ -1,6 +1,7 @@
 ---
 import Layout from "@/layouts/Layout.astro";
 import MobileNavigation from "@/components/MobileNavigation";
+import SidebarNavigation from "@/components/SidebarNavigation";
 
 interface Props {
   title?: string;
@@ -17,31 +18,16 @@ const navigation = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/workouts/new", label: "Workout" },
   { href: "/history", label: "History" },
-  { href: "/account", label: "Account" },
 ];
 
-function isActivePath(href: string): boolean {
-  if (href === "/workouts/new") {
-    return Astro.url.pathname === "/workouts/new" || Astro.url.pathname === "/workouts/edit";
-  }
-  return Astro.url.pathname === href || Astro.url.pathname.startsWith(`${href}/`);
-}
+const isWorkoutRoute = Astro.url.pathname === "/workouts/new" || Astro.url.pathname === "/workouts/edit";
 ---
 
 <Layout title={title}>
-  <div class="bg-cosmic min-h-screen text-white">
-    <header class="border-b border-white/10 bg-slate-950/60 backdrop-blur-xl">
+  <div class="bg-cosmic min-h-screen text-white sm:flex">
+    <header class="border-b border-white/10 bg-slate-950/60 backdrop-blur-xl sm:hidden">
       <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-        <div class="hidden min-w-0 sm:block">
-          <a
-            href="/dashboard"
-            class="inline-flex rounded-sm text-xl font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-purple-300 sm:text-2xl"
-          >
-            Perfect Training Planner
-          </a>
-        </div>
-
-        <div class="mr-auto flex items-center gap-3 sm:hidden">
+        <div class="mr-auto flex items-center gap-3">
           <MobileNavigation currentPath={Astro.url.pathname} navigation={navigation} client:load />
           <a
             href="/dashboard"
@@ -50,35 +36,10 @@ function isActivePath(href: string): boolean {
             Perfect Training Planner
           </a>
         </div>
-
-        <nav class="hidden items-center gap-1 sm:flex" aria-label="Private workspace">
-          {
-            navigation.map(({ href, label }) => (
-              <a
-                href={href}
-                aria-current={isActivePath(href) ? "page" : undefined}
-                class:list={[
-                  "rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300",
-                  isActivePath(href)
-                    ? "bg-purple-500/20 text-purple-100"
-                    : "text-blue-100/70 hover:bg-white/10 hover:text-white",
-                ]}
-              >
-                {label}
-              </a>
-            ))
-          }
-          <form method="POST" action="/api/auth/signout">
-            <button
-              type="submit"
-              class="rounded-lg px-3 py-2 text-sm font-medium text-blue-100/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
-            >
-              Sign out
-            </button>
-          </form>
-        </nav>
       </div>
     </header>
+
+    <SidebarNavigation currentPath={Astro.url.pathname} workoutRoute={isWorkoutRoute} />
 
     <main class="mx-auto w-full max-w-5xl px-4 py-8 sm:py-12">
       <slot />

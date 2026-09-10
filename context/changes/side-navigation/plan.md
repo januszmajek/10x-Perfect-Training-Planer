@@ -273,22 +273,22 @@ The user reset is separately destructive. Local reset clears local Auth/applicat
 
 #### Automated
 
-- [x] 2.1 Redirect session-established signups to Dashboard with the creation status
-- [x] 2.2 Validate keys server-side with OpenRouter before encryption/upsert
-- [x] 2.3 Remove saved-key fragments from account data, UI, and ARIA; add Account-page sign-out
-- [x] 2.4 Repository lint succeeds: `pnpm lint`
-- [x] 2.5 Production SSR build succeeds: `pnpm build`
+- [x] 2.1 Redirect session-established signups to Dashboard with the creation status — ed073c5
+- [x] 2.2 Validate keys server-side with OpenRouter before encryption/upsert — ed073c5
+- [x] 2.3 Remove saved-key fragments from account data, UI, and ARIA; add Account-page sign-out — ed073c5
+- [x] 2.4 Repository lint succeeds: `pnpm lint` — ed073c5
+- [x] 2.5 Production SSR build succeeds: `pnpm build` — ed073c5
 
 ### Phase 3: Responsive Sidebar and Drawer Adaptation
 
 #### Automated
 
-- [ ] 3.1 Replace private desktop header with full-sidebar and compact-rail variants
-- [ ] 3.2 Add generic Account links, accessible icon labels/tooltips, and active-state semantics
-- [ ] 3.3 Adapt the existing mobile drawer footer without changing its lifecycle behavior
-- [ ] 3.4 Preserve descriptive page headings and protected-route behavior
-- [ ] 3.5 Repository lint succeeds: `pnpm lint`
-- [ ] 3.6 Production SSR build succeeds: `pnpm build`
+- [x] 3.1 Replace private desktop header with full-sidebar and compact-rail variants
+- [x] 3.2 Add generic Account links, accessible icon labels/tooltips, and active-state semantics
+- [x] 3.3 Adapt the existing mobile drawer footer without changing its lifecycle behavior
+- [x] 3.4 Preserve descriptive page headings and protected-route behavior
+- [x] 3.5 Repository lint succeeds: `pnpm lint`
+- [x] 3.6 Production SSR build succeeds: `pnpm build`
 
 ### Phase 4: Configuration and Handoff Cleanup
 

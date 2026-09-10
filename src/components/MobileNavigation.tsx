@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { UserRound } from "lucide-react";
 
 interface NavigationItem {
   href: string;
@@ -144,14 +145,20 @@ export default function MobileNavigation({ currentPath, navigation }: Props) {
                 ))}
               </nav>
 
-              <form method="POST" action="/api/auth/signout" className="mt-auto border-t border-white/10 pt-4">
-                <button
-                  type="submit"
-                  className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-white/15 px-4 py-2 text-sm font-medium text-blue-100/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
+              <div className="mt-auto border-t border-white/10 pt-4">
+                <a
+                  href="/account"
+                  onClick={() => {
+                    closeMenu();
+                  }}
+                  className="flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium text-blue-100/75 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
                 >
-                  Sign out
-                </button>
-              </form>
+                  <span className="inline-flex size-8 items-center justify-center rounded-full bg-purple-500/25 text-purple-100">
+                    <UserRound aria-hidden="true" className="size-4" />
+                  </span>
+                  Account
+                </a>
+              </div>
             </aside>
           </div>,
           portalTarget,
