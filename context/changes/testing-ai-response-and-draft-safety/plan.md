@@ -298,25 +298,25 @@ No migration is planned. Reuse existing local Supabase fixtures, RLS policies, R
 
 #### Automated
 
-- [x] 1.1 Cover independent valid and invalid provider proposal classes.
-- [x] 1.2 Compose mocked provider responses with production parser and generation service.
-- [x] 1.3 Run the AI workout contract suite.
+- [x] 1.1 Cover independent valid and invalid provider proposal classes. — 0f16b12
+- [x] 1.2 Compose mocked provider responses with production parser and generation service. — 0f16b12
+- [x] 1.3 Run the AI workout contract suite. — 0f16b12
 
 #### Manual
 
-- [x] 1.4 Review the independent proposal fixture oracle.
+- [x] 1.4 Review the independent proposal fixture oracle. — 0f16b12
 
 ### Phase 2: Verify AI API Rejection and Ownership Boundaries
 
 #### Automated
 
-- [ ] 2.1 Prove AI generate/save request guards and the actual-byte body limit fail closed with safe public responses.
-- [ ] 2.2 Preserve and extend only concrete database ownership and atomicity gaps.
-- [ ] 2.3 Run the local database and targeted AI-safety browser checks.
+- [x] 2.1 Prove AI generate/save request guards and the actual-byte body limit fail closed with safe public responses.
+- [x] 2.2 Preserve and extend only concrete database ownership and atomicity gaps.
+- [x] 2.3 Run the local database and targeted AI-safety browser checks.
 
 #### Manual
 
-- [ ] 2.4 Confirm route checks do not duplicate database ownership contracts.
+- [x] 2.4 Confirm route checks do not duplicate database ownership contracts.
 
 ### Phase 3: Prove Rendered Draft Preservation
 
