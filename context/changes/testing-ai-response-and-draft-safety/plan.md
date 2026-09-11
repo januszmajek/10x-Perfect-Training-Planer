@@ -335,9 +335,9 @@ No migration is planned. Reuse existing local Supabase fixtures, RLS policies, R
 
 #### Automated
 
-- [x] 4.1 Verify test discovery through the existing local and CI commands.
-- [x] 4.2 Run database, AI, UI, browser, lint, and Worker build gates.
+- [x] 4.1 Verify test discovery through the existing local and CI commands. — 16cac3e
+- [x] 4.2 Run database, AI, UI, browser, lint, and Worker build gates. — 16cac3e
 
 #### Manual
 
-- [x] 4.3 Confirm CI coverage and secret-free local test setup.
+- [x] 4.3 Confirm CI coverage and secret-free local test setup. — 16cac3e
