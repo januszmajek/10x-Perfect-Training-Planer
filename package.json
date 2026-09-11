@@ -12,6 +12,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "test:node": "node --experimental-strip-types --test src/lib/*.test.ts",
     "test:crypto": "node --experimental-strip-types --test src/lib/ai-provider-key-crypto.test.ts",
     "test:manual-workout": "node --experimental-strip-types --test src/lib/manual-workout-builder.test.ts src/lib/recovery-aware-catalogue.test.ts src/lib/manual-workouts.test.ts",
     "test:planned-workout": "node --experimental-strip-types --test src/lib/planned-workout-mutation.test.ts src/lib/planned-workout-client.test.ts src/lib/planned-workout-completion.test.ts",
