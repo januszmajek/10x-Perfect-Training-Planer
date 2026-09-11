@@ -68,6 +68,18 @@ export default function MobileNavigation({ currentPath, navigation }: Props) {
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    const closeAtDesktopBreakpoint = () => {
+      if (window.matchMedia("(min-width: 640px)").matches) setIsOpen(false);
+    };
+
+    window.addEventListener("resize", closeAtDesktopBreakpoint);
+    closeAtDesktopBreakpoint();
+    return () => {
+      window.removeEventListener("resize", closeAtDesktopBreakpoint);
+    };
+  }, []);
+
   return (
     <div className="sm:hidden">
       <button

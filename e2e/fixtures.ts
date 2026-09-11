@@ -12,6 +12,7 @@ export const test = base.extend<{ authenticatedPage: E2eUser }>({
   authenticatedPage: async ({ page }, use, testInfo) => {
     const email = `e2e-${testInfo.workerIndex}-${testInfo.parallelIndex}-${Date.now()}@example.test`;
     await page.goto("/auth/signup");
+    await page.waitForLoadState("networkidle");
     await page.getByLabel("Email").fill(email);
     await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
     await page.getByLabel("Confirm password").fill(PASSWORD);

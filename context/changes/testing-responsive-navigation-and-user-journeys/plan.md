@@ -180,26 +180,26 @@ No database migration or production data migration is required. The browser harn
 
 #### Automated
 
-- [x] 1.1 Add and discover the isolated Chromium browser harness.
-- [x] 1.2 Provision local-only authenticated/manual/AI fixtures without external provider traffic.
-- [x] 1.3 Run the browser suite in CI after local Supabase setup.
+- [x] 1.1 Add and discover the isolated Chromium browser harness. — e613d53
+- [x] 1.2 Provision local-only authenticated/manual/AI fixtures without external provider traffic. — e613d53
+- [x] 1.3 Run the browser suite in CI after local Supabase setup. — e613d53
 
 #### Manual
 
-- [x] 1.4 Confirm committed fixture/config sources and sanitized Phase 1 runner output contain no credential values.
+- [x] 1.4 Confirm committed fixture/config sources and sanitized Phase 1 runner output contain no credential values. — e613d53
 
 ### Phase 2: Responsive Navigation Fix and Browser Contracts
 
 #### Automated
 
-- [ ] 2.1 Fix and prove mobile-to-desktop drawer reconciliation.
-- [ ] 2.2 Prove scoped 360px and desktop navigation/filter reachability.
-- [ ] 2.3 Prove scoped drawer close lifecycle.
-- [ ] 2.4 Review the two deterministic Chromium visual checkpoints.
+- [x] 2.1 Fix and prove mobile-to-desktop drawer reconciliation. — 8d54c3c
+- [x] 2.2 Prove scoped 360px and desktop navigation/filter reachability. — 8d54c3c
+- [x] 2.3 Prove scoped drawer close lifecycle. — 8d54c3c
+- [x] 2.4 Review the two deterministic Chromium visual checkpoints. — 8d54c3c
 
 #### Manual
 
-- [ ] 2.5 Verify narrow-to-desktop navigation and filter behavior in a real browser viewport.
+- [x] 2.5 Verify narrow-to-desktop navigation and filter behavior in a real browser viewport. — 8d54c3c
 
 ### Phase 3: Durable Workout Journeys and True Cross-Route Contracts
 
