@@ -25,6 +25,8 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+blob-report/
+test-results/
 
 # local agent skills and tooling
 .agents/

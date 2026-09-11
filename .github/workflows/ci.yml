@@ -52,6 +52,19 @@ jobs:
         run: pnpm test:history
       - name: Test rendered UI contracts
         run: pnpm test:ui
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Test browser harness
+        run: pnpm test:e2e
+      - name: Upload browser failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: |
+            test-results/
+            blob-report/
+          if-no-files-found: ignore
       - name: Synchronize Astro types
         run: pnpm astro sync
       - name: Lint repository
