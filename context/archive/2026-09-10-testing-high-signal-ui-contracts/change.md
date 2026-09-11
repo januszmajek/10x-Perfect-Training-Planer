@@ -1,10 +1,10 @@
 ---
 change_id: testing-high-signal-ui-contracts
 title: Establish high-signal UI testing contracts
-status: impl_reviewed
+status: archived
 created: 2026-09-10
 updated: 2026-09-11
-archived_at: null
+archived_at: 2026-09-11T08:40:16Z
 ---
 
 ## Notes
