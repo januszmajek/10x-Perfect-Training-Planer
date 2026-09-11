@@ -15,7 +15,6 @@ export default defineConfig({
       },
     },
     include: ["src/**/*.test.tsx"],
-    passWithNoTests: true,
     setupFiles: ["./src/test/ui/setup.ts"],
   },
 });

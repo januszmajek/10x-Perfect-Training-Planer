@@ -54,6 +54,7 @@ test("disables pending selection, exposes recovery duration, and limits feedback
   );
 
   expect(screen.getByRole("button", { name: "Add Barbell Bench Press" }).disabled).toBe(true);
+  expect(screen.getByText("48h")).toBeTruthy();
   expect(screen.getByText("48 hours of recovery time remaining")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Like Barbell Bench Press" })).toBeNull();
 
