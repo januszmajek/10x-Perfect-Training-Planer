@@ -208,11 +208,11 @@ or replacement signup email.
 
 ### Auth routes
 
-| Route                 | Description                                                             |
-| --------------------- | ----------------------------------------------------------------------- |
-| `/auth/signin`        | Email/password sign-in form                                             |
-| `/auth/signup`        | Email/password sign-up form                                             |
-| `/dashboard`          | Example protected page (redirects to `/auth/signin` if unauthenticated) |
+| Route          | Description                                                             |
+| -------------- | ----------------------------------------------------------------------- |
+| `/auth/signin` | Email/password sign-in form                                             |
+| `/auth/signup` | Email/password sign-up form                                             |
+| `/dashboard`   | Example protected page (redirects to `/auth/signin` if unauthenticated) |
 
 Route protection is handled in `src/middleware.ts`. Add paths to the `PROTECTED_ROUTES` array there to require authentication.
 
@@ -292,11 +292,24 @@ response, generated prescription, proposal/event content, or user identifier.
 
 ## CI
 
-GitHub Actions starts an isolated local Supabase stack and runs reset, database lint, pgTAP tests, lifecycle and
-mutation concurrency tests, generated-type drift detection, AI provider cryptography, the dedicated
-`pnpm test:ai-workout` contract suite, Astro sync, repository lint, and the Cloudflare Worker build as separate gates
-on every push and PR to `master`. Configure `SUPABASE_URL` and `SUPABASE_KEY` as repository secrets for the build
-step; use only a publishable or anon key. CI never calls a real OpenRouter provider or uses production credentials.
+GitHub Actions runs on every push and pull request to `master`. Its single ordered job uses an isolated local Supabase
+stack and locked dependencies, then performs these gates:
+
+1. Start and reset local Supabase; lint the public schema; run pgTAP in `supabase/tests/database`; and run the workout
+   lifecycle, manual-mutation, and planned-mutation concurrency scripts.
+2. Generate local database types and fail on drift from `src/types/database.types.ts`.
+3. Run every direct Node contract under `src/lib/*.test.ts` through `pnpm test:node`, followed by rendered UI contracts
+   through `pnpm test:ui`.
+4. Install Chromium, run `pnpm test:e2e`, and upload Playwright screenshots, traces, and its blob report only when a
+   browser gate fails.
+5. Run `pnpm astro sync`, `pnpm lint`, and the Cloudflare Worker build; stop local Supabase even if an earlier gate
+   fails.
+
+For the browser harness locally, start local Supabase, install the browser once with
+`pnpm exec playwright install chromium`, then run `pnpm test:e2e`. The harness creates isolated local test users and
+test-only runtime values; it does not call a real OpenRouter provider or use production credentials. CI’s Worker build
+uses `SUPABASE_URL` and `SUPABASE_KEY` repository secrets only; `SUPABASE_KEY` must be a publishable or anon key, never
+a service-role key.
 
 ## License
 

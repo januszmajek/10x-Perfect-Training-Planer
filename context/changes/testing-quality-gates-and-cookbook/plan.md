@@ -254,23 +254,23 @@ steps and package script if the aggregate command exposes an unsupported test-fi
 
 #### Automated
 
-- [x] 2.1 Verify the test plan has no stale shipped-harness placeholders.
-- [x] 2.2 Run Prettier's check for the test plan.
-- [x] 2.3 Run lint.
+- [x] 2.1 Verify the test plan has no stale shipped-harness placeholders. — 9271e11
+- [x] 2.2 Run Prettier's check for the test plan. — 9271e11
+- [x] 2.3 Run lint. — 9271e11
 
 #### Manual
 
-- [x] 2.4 Confirm every representative regression maps to one runner and prerequisite, including Chromium for browser tests.
-- [x] 2.5 Confirm all deliberate scope exclusions remain explicit.
+- [x] 2.4 Confirm every representative regression maps to one runner and prerequisite, including Chromium for browser tests. — 9271e11
+- [x] 2.5 Confirm all deliberate scope exclusions remain explicit. — 9271e11
 
 ### Phase 3: Align Contributor CI Documentation
 
 #### Automated
 
-- [ ] 3.1 Run `git diff --check`.
-- [ ] 3.2 Run Prettier's check for the README.
-- [ ] 3.3 Run lint and build.
+- [x] 3.1 Run `git diff --check`.
+- [x] 3.2 Run Prettier's check for the README.
+- [x] 3.3 Run lint and build.
 
 #### Manual
 
-- [ ] 3.4 Compare the README gate sequence to CI and confirm a secret-free pre-PR path.
+- [x] 3.4 Compare the README gate sequence to CI and confirm a secret-free pre-PR path.
