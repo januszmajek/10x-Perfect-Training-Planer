@@ -59,7 +59,7 @@ Each phase opens its own change folder. Status values are orchestrator state.
 
 | # | Phase name | Goal (one line) | Risks covered | Test types | Status | Change folder |
 |---|---|---|---|---|---|---|
-| 1 | High-signal UI contracts | Establish trustworthy rendered behavior coverage for filters, cards, and shared interaction patterns | #3, #5 | test audit, component integration | implementing | testing-high-signal-ui-contracts |
+| 1 | High-signal UI contracts | Establish trustworthy rendered behavior coverage for filters, cards, and shared interaction patterns | #3, #5 | test audit, component integration | done | testing-high-signal-ui-contracts |
 | 2 | Responsive navigation and user journeys | Protect critical flows, navigation state, responsive layouts, drawers, and dialogs | #1, #2, #5 | focused e2e, deterministic visual checks | not started | — |
 | 3 | AI response and draft safety | Prove invalid provider output and failures cannot create unsafe workouts or destroy user work | #4, #6 | contract, integration, targeted e2e | not started | — |
 | 4 | Quality gates and cookbook | Wire the high-signal suites into CI and preserve canonical UI-testing patterns | #3, cross-cutting | CI gates, cookbook | not started | — |
