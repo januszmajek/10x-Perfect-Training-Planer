@@ -1,126 +1,272 @@
----
-import Topbar from "@/components/Topbar.astro";
----
+<div class="min-h-screen overflow-hidden bg-[#080d1c] text-white">
+  <!-- Background decoration -->
+  <div class="pointer-events-none fixed inset-0">
+    <div class="absolute -top-40 left-1/2 h-150 w-200 -translate-x-1/2 rounded-full bg-purple-700/15 blur-[180px]">
+    </div>
 
-<div class="bg-cosmic relative min-h-screen w-full overflow-hidden">
-  <!-- Cosmic orbs -->
-  <div
-    class="pointer-events-none absolute top-1/4 -left-24 h-[350px] w-[350px] rounded-full bg-purple-500/20 blur-[120px]"
-  >
-  </div>
-  <div
-    class="pointer-events-none absolute top-2/3 -right-16 h-[250px] w-[250px] rounded-full bg-blue-500/15 blur-[100px]"
-  >
-  </div>
-  <div
-    class="pointer-events-none absolute top-0 left-1/2 h-[300px] w-[300px] -translate-x-1/2 rounded-full bg-indigo-400/10 blur-[140px]"
-  >
+    <div class="absolute top-225 -left-60 h-125 w-125 rounded-full bg-violet-700/10 blur-[160px]"></div>
   </div>
 
-  <!-- Star field -->
-  <div
-    class="pointer-events-none absolute inset-0"
-    style="background-image: radial-gradient(circle, rgba(255,255,255,0.15) 1px, transparent 1px), radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px), radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px); background-size: 200px 200px, 150px 150px, 100px 100px; background-position: 0 0, 40px 60px, 80px 30px;"
-  >
-  </div>
+  <div class="relative z-10">
+    <!-- HERO -->
+    <section
+      class="mx-auto grid min-h-205 max-w-360 items-center gap-16 px-6 py-20 lg:grid-cols-[1.15fr_0.85fr] lg:px-10"
+    >
+      <div class="min-w-0">
+        <h1 class="text-[clamp(2.5rem,4.5vw,4.5rem)] leading-[0.97] font-bold tracking-tighter">
+          <span class="block whitespace-nowrap">
+            Train with
+            <span class="bg-linear-to-r from-purple-300 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+              a plan.
+            </span>
+          </span>
 
-  <div class="relative z-10 p-4 sm:p-8">
-    <Topbar />
+          <span class="mt-2 block whitespace-nowrap"> Not a guess. </span>
+        </h1>
 
-    <!-- Hero section -->
-    <div class="mx-auto flex max-w-4xl flex-col items-center justify-center px-4 py-24 text-center sm:py-32 lg:py-40">
-      <h1
-        class="mb-6 bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 bg-clip-text text-5xl leading-tight font-bold text-transparent sm:text-6xl lg:text-7xl"
+        <p class="mt-8 max-w-lg text-lg leading-8 text-slate-400">
+          Generate balanced workouts with AI, build your own routines and keep your training history in one simple
+          place.
+        </p>
+
+        <div class="mt-10 flex flex-wrap gap-3">
+          <a
+            href="/auth/signup"
+            class="inline-flex items-center gap-3 rounded-xl bg-purple-600 px-6 py-3.5 font-semibold shadow-lg shadow-purple-900/30 transition hover:bg-purple-500"
+          >
+            Start planning
+
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-4 w-4" stroke-width="2">
+              <path d="M5 12h14M13 6l6 6-6 6"></path>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Screenshot stack -->
+      <div class="relative mx-auto w-full max-w-190 lg:translate-x-8">
+        <div class="absolute inset-10 rounded-full bg-purple-600/20 blur-[100px]"></div>
+
+        <div
+          class="relative translate-x-12 rotate-[4deg] overflow-hidden rounded-2xl border border-white/10 bg-[#111728] shadow-2xl shadow-black/50"
+        >
+          <img src="/landing/history.png" alt="Workout history" class="w-full" />
+        </div>
+
+        <div
+          class="absolute top-12 -left-8 w-[92%] rotate-[-5deg] overflow-hidden rounded-2xl border border-white/10 bg-[#111728] shadow-2xl shadow-black/70"
+        >
+          <img src="/landing/workout-builder.png" alt="Workout builder" class="w-full" />
+        </div>
+
+        <div
+          class="absolute top-24 left-6 w-[94%] rotate-[0.5deg] overflow-hidden rounded-2xl border border-purple-400/20 bg-[#111728] shadow-2xl shadow-black/70"
+        >
+          <img src="/landing/dashboard.png" alt="Perfect Training Planner dashboard" class="w-full" />
+        </div>
+      </div>
+    </section>
+
+    <!-- PRODUCT NUMBERS -->
+    <section class="mx-auto max-w-330 px-6 py-16 lg:px-0">
+      <div
+        class="grid divide-y divide-white/10 overflow-hidden rounded-2xl border border-white/10 bg-[#0d1324]/80 shadow-xl shadow-black/10 sm:grid-cols-3 sm:divide-x sm:divide-y-0"
       >
-        10x Astro Starter
-      </h1>
-      <p class="mb-10 max-w-2xl text-lg text-blue-100/70 sm:text-xl">
-        A production-ready starter with authentication, modern tooling, and a cosmic developer experience.
-      </p>
-      <div class="flex flex-col gap-4 sm:flex-row">
-        <a
-          href="/auth/signin"
-          class="inline-flex items-center justify-center rounded-lg bg-purple-600 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-purple-500"
-        >
-          Sign In
-        </a>
-        <a
-          href="/auth/signup"
-          class="inline-flex items-center justify-center rounded-lg border border-white/20 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-white/10"
-        >
-          Sign Up
-        </a>
-      </div>
-    </div>
+        <div class="px-8 py-10 sm:px-10">
+          <p class="mb-3 text-lg text-purple-400">Exercises available</p>
 
-    <!-- Feature cards -->
-    <div class="mx-auto grid max-w-4xl grid-cols-1 gap-6 px-4 pb-24 sm:grid-cols-3">
-      <div class="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="mb-4 text-purple-300"
-        >
-          <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-        </svg>
-        <h3 class="mb-2 text-lg font-semibold text-white">Authentication Ready</h3>
-        <p class="text-sm leading-relaxed text-blue-100/60">
-          Built-in Supabase auth with sign in, sign up, and protected routes out of the box.
+          <p class="text-5xl font-bold tracking-tight">50+</p>
+        </div>
+
+        <div class="px-8 py-10 sm:px-10">
+          <p class="mb-3 text-lg text-purple-400">Workout creation</p>
+
+          <p class="text-5xl font-bold tracking-tight">
+            AI
+            <span class="text-purple-400">+</span>
+            Manual
+          </p>
+        </div>
+
+        <div class="px-8 py-10 sm:px-10">
+          <p class="mb-3 text-lg text-purple-400">Training history</p>
+
+          <p class="text-5xl font-bold tracking-tight">Always yours.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- WORKOUT BUILDER -->
+    <section class="mx-auto grid max-w-330 items-center gap-16 px-6 py-32 lg:grid-cols-2 lg:px-0 lg:py-40">
+      <div>
+        <p class="mb-5 text-sm font-semibold tracking-wide text-purple-400">BUILD YOUR WORKOUT</p>
+
+        <h2 class="max-w-lg text-4xl leading-tight font-bold tracking-[-0.04em] sm:text-5xl">
+          Your workout.
+          <br />
+          Your rules.
+        </h2>
+
+        <p class="mt-7 max-w-md text-lg leading-8 text-slate-400">
+          Search exercises, filter by muscles and equipment, choose the order and create exactly the workout you want.
+        </p>
+
+        <div class="mt-10 space-y-5">
+          {
+            [
+              "Filter exercises by muscles and equipment",
+              "Create your own exercise order",
+              "Adjust sets and repetitions before saving",
+            ].map((item) => (
+              <div class="flex items-center gap-4">
+                <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-500/15 text-purple-300">
+                  ✓
+                </div>
+
+                <span class="text-slate-300">{item}</span>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+
+      <div class="relative">
+        <div class="absolute inset-10 rounded-full bg-purple-700/15 blur-[100px]"></div>
+
+        <div class="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl shadow-black/50">
+          <img src="/landing/workout-builder.png" alt="Workout builder interface" class="w-full" />
+        </div>
+      </div>
+    </section>
+
+    <!-- AI -->
+    <section class="bg-linear-to-b from-transparent via-white/[0.015] to-transparent">
+      <div class="mx-auto grid max-w-330 items-center gap-16 px-6 py-32 lg:grid-cols-2 lg:px-0 lg:py-40">
+        <div class="relative lg:order-1">
+          <div class="absolute inset-10 rounded-full bg-violet-600/15 blur-[100px]"></div>
+
+          <div class="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl shadow-black/50">
+            <img src="/landing/dashboard.png" alt="Generated workout dashboard" class="w-full" />
+          </div>
+        </div>
+
+        <div class="lg:order-2 lg:pl-16">
+          <p class="mb-5 text-sm font-semibold tracking-wide text-purple-400">AI WORKOUTS</p>
+
+          <h2 class="text-4xl leading-tight font-bold tracking-[-0.04em] sm:text-5xl">
+            Let AI do
+            <br />
+            the planning.
+          </h2>
+
+          <p class="mt-7 max-w-md text-lg leading-8 text-slate-400">
+            Generate a balanced full-body workout from the exercise catalog, then change anything you want before saving
+            it.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section class="mx-auto grid max-w-330 items-center gap-16 px-6 py-32 lg:grid-cols-2 lg:px-0 lg:py-40">
+      <div>
+        <p class="mb-5 text-sm font-semibold tracking-wide text-purple-400">TRAINING HISTORY</p>
+
+        <h2 class="text-4xl leading-tight font-bold tracking-[-0.04em] sm:text-5xl">
+          Every workout.
+          <br />
+          Kept in one place.
+        </h2>
+
+        <p class="mt-7 max-w-md text-lg leading-8 text-slate-400">
+          Complete a workout and it automatically becomes part of your history. Find previous sessions by date, muscles
+          or equipment.
         </p>
       </div>
 
-      <div class="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="mb-4 text-purple-300"
-        >
-          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-          <polyline points="2 17 12 22 22 17"></polyline>
-          <polyline points="2 12 12 17 22 12"></polyline>
-        </svg>
-        <h3 class="mb-2 text-lg font-semibold text-white">Modern Stack</h3>
-        <p class="text-sm leading-relaxed text-blue-100/60">
-          Astro 5, React 19, Tailwind 4, and TypeScript — the latest tools, ready to go.
-        </p>
-      </div>
+      <div class="relative">
+        <div class="absolute inset-10 rounded-full bg-purple-700/15 blur-[100px]"></div>
 
-      <div class="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="mb-4 text-purple-300"
-        >
-          <polyline points="16 18 22 12 16 6"></polyline>
-          <polyline points="8 6 2 12 8 18"></polyline>
-        </svg>
-        <h3 class="mb-2 text-lg font-semibold text-white">Developer Experience</h3>
-        <p class="text-sm leading-relaxed text-blue-100/60">
-          ESLint, Prettier, and pre-commit hooks keep your codebase clean from day one.
-        </p>
+        <div class="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl shadow-black/50">
+          <img src="/landing/history.png" alt="Workout history" class="w-full" />
+        </div>
       </div>
-    </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="bg-linear-to-b from-transparent via-[#090f20] to-transparent">
+      <div class="mx-auto max-w-330 px-6 py-32 lg:px-0">
+        <div class="mb-16 max-w-2xl">
+          <h2 class="text-4xl font-bold tracking-[-0.04em] sm:text-5xl">
+            Less setup.
+            <br />
+            More training.
+          </h2>
+
+          <p class="mt-6 text-lg text-slate-400">Everything needed to go from an empty plan to a finished workout.</p>
+        </div>
+
+        <div
+          class="grid divide-y divide-white/10 overflow-hidden rounded-2xl border border-white/10 bg-[#0d1324]/80 shadow-xl shadow-black/10 md:grid-cols-3 md:divide-x md:divide-y-0"
+        >
+          {
+            [
+              {
+                number: "1",
+                title: "Generate",
+                description: "Create a balanced workout automatically using AI.",
+              },
+              {
+                number: "2",
+                title: "Customize",
+                description: "Change exercises, their order, sets and repetitions.",
+              },
+              {
+                number: "3",
+                title: "Complete",
+                description: "Finish the session and keep it permanently in your history.",
+              },
+            ].map((feature) => (
+              <div class="px-8 py-10 sm:px-10">
+                <h3 class="mt-1 text-2xl font-semibold">{feature.title}</h3>
+
+                <p class="mt-4 text-2xl leading-7 text-slate-400">{feature.description}</p>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <section
+      class="mx-auto grid min-h-155 max-w-360 items-center gap-16 px-6 py-32 lg:grid-cols-[1.15fr_0.85fr] lg:px-10"
+    >
+      <div class="min-w-0">
+        <h2 class="text-[clamp(2.5rem,4.5vw,4.5rem)] leading-[0.97] font-bold tracking-tighter whitespace-nowrap">
+          Your next workout
+          <span class="bg-linear-to-r from-purple-300 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+            starts here.
+          </span>
+        </h2>
+
+        <p class="mt-8 max-w-lg text-lg leading-8 text-slate-400">
+          Stop figuring out what to train next. Build it yourself or let AI create the starting point.
+        </p>
+
+        <div class="mt-10 flex flex-wrap gap-3">
+          <a
+            href="/auth/signup"
+            class="inline-flex items-center gap-3 rounded-xl bg-purple-600 px-6 py-3.5 font-semibold shadow-lg shadow-purple-900/30 transition hover:bg-purple-500"
+          >
+            Create your workout
+
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-4 w-4" stroke-width="2">
+              <path d="M5 12h14M13 6l6 6-6 6"></path>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </section>
   </div>
 </div>

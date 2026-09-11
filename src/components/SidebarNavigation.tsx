@@ -96,8 +96,8 @@ export default function SidebarNavigation({ currentPath }: Props) {
         }}
       >
         <a
-          href="/dashboard"
-          className="block w-full rounded-sm pr-2 pl-3 text-left text-lg font-semibold tracking-tight whitespace-nowrap text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-purple-300"
+          href="/"
+          className="mt-8 block w-full rounded-sm pr-2 pl-3 text-left text-lg font-semibold tracking-tight whitespace-nowrap text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-purple-300"
         >
           Perfect Training Planner
         </a>
@@ -116,13 +116,15 @@ export default function SidebarNavigation({ currentPath }: Props) {
           flexDirection: "column",
         }}
       >
-        <a
-          href="/dashboard"
-          aria-label="Perfect Training Planner"
-          className="inline-flex size-11 items-center justify-center self-center rounded-xl bg-purple-500/20 text-xs font-extrabold tracking-tight text-purple-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
-        >
-          PTP
-        </a>
+        <span className="pt-6 pl-1">
+          <a
+            href="/"
+            aria-label="Perfect Training Planner"
+            className="inline-flex size-11 items-center justify-center self-center rounded-xl bg-purple-500/20 text-xs font-extrabold tracking-tight text-purple-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
+          >
+            PTP
+          </a>
+        </span>
 
         <nav className="mt-8 flex flex-col items-center gap-2" aria-label="Private workspace">
           {primaryLinks(currentPath, true)}
