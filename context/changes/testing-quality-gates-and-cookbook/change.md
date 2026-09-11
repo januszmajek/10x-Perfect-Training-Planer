@@ -1,7 +1,7 @@
 ---
 change_id: testing-quality-gates-and-cookbook
 title: Wire high-signal suites into CI and preserve testing patterns
-status: implementing
+status: implemented
 created: 2026-09-11
 updated: 2026-09-11
 archived_at: null

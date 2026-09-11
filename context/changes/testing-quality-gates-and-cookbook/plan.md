@@ -267,10 +267,10 @@ steps and package script if the aggregate command exposes an unsupported test-fi
 
 #### Automated
 
-- [x] 3.1 Run `git diff --check`.
-- [x] 3.2 Run Prettier's check for the README.
-- [x] 3.3 Run lint and build.
+- [x] 3.1 Run `git diff --check`. — 14ffda8
+- [x] 3.2 Run Prettier's check for the README. — 14ffda8
+- [x] 3.3 Run lint and build. — 14ffda8
 
 #### Manual
 
-- [x] 3.4 Compare the README gate sequence to CI and confirm a secret-free pre-PR path.
+- [x] 3.4 Compare the README gate sequence to CI and confirm a secret-free pre-PR path. — 14ffda8
