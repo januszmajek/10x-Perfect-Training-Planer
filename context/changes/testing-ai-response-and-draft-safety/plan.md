@@ -322,22 +322,22 @@ No migration is planned. Reuse existing local Supabase fixtures, RLS policies, R
 
 #### Automated
 
-- [x] 3.1 Cover failed planner transitions and valid replacement transitions.
-- [x] 3.2 Prove failed generation preserves an editable manual draft in the browser.
-- [x] 3.3 Record the Phase 3 AI-safety cookbook pattern.
-- [x] 3.4 Run AI, UI, and targeted browser suites.
+- [x] 3.1 Cover failed planner transitions and valid replacement transitions. — e30749b
+- [x] 3.2 Prove failed generation preserves an editable manual draft in the browser. — e30749b
+- [x] 3.3 Record the Phase 3 AI-safety cookbook pattern. — e30749b
+- [x] 3.4 Run AI, UI, and targeted browser suites. — e30749b
 
 #### Manual
 
-- [x] 3.5 Confirm controlled generation failures preserve a usable draft in the browser.
+- [x] 3.5 Confirm controlled generation failures preserve a usable draft in the browser. — e30749b
 
 ### Phase 4: Run Complete Regression Gates
 
 #### Automated
 
-- [ ] 4.1 Verify test discovery through the existing local and CI commands.
-- [ ] 4.2 Run database, AI, UI, browser, lint, and Worker build gates.
+- [x] 4.1 Verify test discovery through the existing local and CI commands.
+- [x] 4.2 Run database, AI, UI, browser, lint, and Worker build gates.
 
 #### Manual
 
-- [ ] 4.3 Confirm CI coverage and secret-free local test setup.
+- [x] 4.3 Confirm CI coverage and secret-free local test setup.

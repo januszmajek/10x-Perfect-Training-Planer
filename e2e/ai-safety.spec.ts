@@ -101,7 +101,10 @@ test("authenticated AI routes reject non-exact generation and save commands befo
   }
 });
 
-test("failed generation keeps an edited manual draft editable and saves it manually", async ({ page, authenticatedPage }) => {
+test("failed generation keeps an edited manual draft editable and saves it manually", async ({
+  page,
+  authenticatedPage,
+}) => {
   const exercises = loadWorkoutFixture();
   await configureAiProviderKey(authenticatedPage.email);
   const generationBodies = [
