@@ -250,25 +250,25 @@ The jsdom suite uses a narrow `*.test.tsx` discovery boundary, small in-memory f
 
 #### Automated
 
-- [x] 2.1 Add deterministic catalogue UI fixtures
-- [x] 2.2 Prove controlled filter callbacks and visible state
-- [x] 2.3 Prove card and panel interaction, recovery, and empty-result contracts
-- [x] 2.4 Pass UI, manual-workout, lint, and build verification
+- [x] 2.1 Add deterministic catalogue UI fixtures — c05b53c
+- [x] 2.2 Prove controlled filter callbacks and visible state — c05b53c
+- [x] 2.3 Prove card and panel interaction, recovery, and empty-result contracts — c05b53c
+- [x] 2.4 Pass UI, manual-workout, lint, and build verification — c05b53c
 
 #### Manual
 
-- [x] 2.5 Confirm live create and edit catalogue interactions match the protected contracts
-- [x] 2.6 Confirm the suite remains product-visible and free of accessibility-specific checks
+- [x] 2.5 Confirm live create and edit catalogue interactions match the protected contracts — c05b53c
+- [x] 2.6 Confirm the suite remains product-visible and free of accessibility-specific checks — c05b53c
 
 ### Phase 3: Protect History Card Behavior
 
 #### Automated
 
-- [ ] 3.1 Add the fixture-backed History summary/detail contract
-- [ ] 3.2 Pass UI, history, lint, and build verification
-- [ ] 3.3 Confirm one UI command and CI gate cover all new contracts
+- [x] 3.1 Add the fixture-backed History summary/detail contract
+- [x] 3.2 Pass UI, history, lint, and build verification
+- [x] 3.3 Confirm one UI command and CI gate cover all new contracts
 
 #### Manual
 
-- [ ] 3.4 Confirm manual and AI History cards expand and collapse with complete prescriptions
-- [ ] 3.5 Confirm browser, responsiveness, drawer, and asynchronous History scope remains deferred
+- [x] 3.4 Confirm manual and AI History cards expand and collapse with complete prescriptions
+- [x] 3.5 Confirm browser, responsiveness, drawer, and asynchronous History scope remains deferred
