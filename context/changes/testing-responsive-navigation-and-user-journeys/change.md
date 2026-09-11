@@ -1,7 +1,7 @@
 ---
 change_id: testing-responsive-navigation-and-user-journeys
 title: Protect responsive navigation and critical user journeys
-status: implementing
+status: implemented
 created: 2026-09-11
 updated: 2026-09-11
 archived_at: null

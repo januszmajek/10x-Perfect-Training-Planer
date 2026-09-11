@@ -205,12 +205,12 @@ No database migration or production data migration is required. The browser harn
 
 #### Automated
 
-- [x] 3.1 Prove the manual save, edit, completion, and History journey.
-- [x] 3.2 Prove the mocked-AI save, edit, completion, and History journey.
-- [x] 3.3 Prove volatile create-draft discard and failed-save retention.
-- [x] 3.4 Prove scoped filter URL contracts.
-- [x] 3.5 Run browser, UI, lint, and Worker build gates.
+- [x] 3.1 Prove the manual save, edit, completion, and History journey. — 02314b3
+- [x] 3.2 Prove the mocked-AI save, edit, completion, and History journey. — 02314b3
+- [x] 3.3 Prove volatile create-draft discard and failed-save retention. — 02314b3
+- [x] 3.4 Prove scoped filter URL contracts. — 02314b3
+- [x] 3.5 Run browser, UI, lint, and Worker build gates. — 02314b3
 
 #### Manual
 
-- [x] 3.6 Review failure-only journey artifacts for meaningful user-visible diagnostics and absent secrets.
+- [x] 3.6 Review failure-only journey artifacts for meaningful user-visible diagnostics and absent secrets. — 02314b3
