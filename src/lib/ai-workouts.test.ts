@@ -6,8 +6,10 @@ import {
   saveAiPlannedWorkout,
   type AiWorkoutGenerationDependencies,
 } from "./ai-workouts.ts";
+import { parseAiWorkoutProposalJson, parseHistoryAwareAiWorkoutProposalJson } from "./ai-workout-contract.ts";
 import { aiGenerationFailureResponse } from "./ai-workout-api.ts";
 import { createReducedGenerationConfirmation, fingerprintCandidates } from "./ai-workout-confirmation.ts";
+import { requestOpenRouterWorkout } from "./openrouter-client.ts";
 import type { CatalogueExercise } from "./manual-workout-builder.ts";
 
 const USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -52,6 +54,10 @@ const catalogue: CatalogueExercise[] = [
 
 const proposal = { exercises: catalogue.map(({ id }) => ({ exerciseId: id, sets: 3, reps: 10 })) };
 
+function proposalWith(exerciseIds: readonly string[]) {
+  return { exercises: exerciseIds.map((exerciseId) => ({ exerciseId, sets: 3, reps: 10 })) };
+}
+
 function dependencies(overrides: Partial<AiWorkoutGenerationDependencies> = {}): AiWorkoutGenerationDependencies {
   return {
     loadColdStartEligibility: () => Promise.resolve({ ok: true, data: "eligible" }),
@@ -62,6 +68,34 @@ function dependencies(overrides: Partial<AiWorkoutGenerationDependencies> = {}):
     parseAiWorkoutProposalJson: () => ({ ok: true, data: proposal }),
     ...overrides,
   } satisfies AiWorkoutGenerationDependencies;
+}
+
+function providerResponse(content: string) {
+  return () =>
+    requestOpenRouterWorkout(
+      {
+        apiKey: "private-key",
+        model: "provider/model",
+        prompt: { system: "system", user: "catalogue" },
+        allowedExerciseIds: IDS,
+        requestedExerciseCount: { min: 5, max: 7 },
+      },
+      () => Promise.resolve(new Response(JSON.stringify({ choices: [{ message: { content } }] }))),
+    );
+}
+
+function malformedProviderWrapper() {
+  return () =>
+    requestOpenRouterWorkout(
+      {
+        apiKey: "private-key",
+        model: "provider/model",
+        prompt: { system: "system", user: "catalogue" },
+        allowedExerciseIds: IDS,
+        requestedExerciseCount: { min: 5, max: 7 },
+      },
+      () => Promise.resolve(new Response(JSON.stringify({ choices: [] }))),
+    );
 }
 
 void test("stops before credential or provider use for completed-history accounts", async () => {
@@ -94,6 +128,123 @@ void test("returns only a validated proposal after cold-start prerequisites succ
     ok: true,
     data: { proposal, metadata: { kind: "cold_start", exerciseCount: proposal.exercises.length } },
   });
+});
+
+void test("composes controlled OpenRouter content with the cold-start parser before exposing a proposal", async () => {
+  const valid = await generateColdStartAiWorkout(
+    {} as never,
+    USER_ID,
+    "provider/model",
+    dependencies({ requestOpenRouterWorkout: providerResponse(JSON.stringify(proposal)), parseAiWorkoutProposalJson }),
+  );
+  assert.equal(valid.ok, true);
+
+  const invalid = await generateColdStartAiWorkout(
+    {} as never,
+    USER_ID,
+    "provider/model",
+    dependencies({
+      requestOpenRouterWorkout: providerResponse(
+        JSON.stringify(proposalWith([IDS[0], IDS[0], IDS[2], IDS[3], IDS[4]])),
+      ),
+      parseAiWorkoutProposalJson,
+    }),
+  );
+  assert.deepEqual(invalid, {
+    ok: false,
+    code: "invalid_output",
+    internal: { layer: "service", technicalCode: "PROPOSAL_INVALID_PROPOSAL" },
+  });
+
+  const malformed = await generateColdStartAiWorkout(
+    {} as never,
+    USER_ID,
+    "provider/model",
+    dependencies({ requestOpenRouterWorkout: malformedProviderWrapper(), parseAiWorkoutProposalJson }),
+  );
+  assert.equal(malformed.ok, false);
+  assert.equal(malformed.code, "invalid_output");
+  assert.doesNotMatch(JSON.stringify(malformed), /private-key|catalogue|choices/);
+});
+
+void test("composes history-aware provider content with the parser and blocks unsafe proposals before recording lineage", async () => {
+  const calls: [string, unknown][] = [];
+  const client = {
+    rpc: (name: string, args: unknown) => {
+      calls.push([name, args]);
+      return Promise.resolve({ data: [{ proposal_id: IDS[0], lineage_id: IDS[1] }], error: null });
+    },
+  };
+  const recommendation = {
+    decision: { kind: "normal", requestedExerciseCount: { min: 5, max: 7 } },
+    readyCandidates: catalogue,
+    shortlist: catalogue,
+    feasibleCoverage: ["lower_body", "core", "upper_body_push", "upper_body_pull"],
+  } as never;
+  const valid = await generateHistoryAwareAiWorkout(
+    client as never,
+    USER_ID,
+    "provider/model",
+    { version: 1 },
+    dependencies({
+      loadHistoryAwareAiProfile: () =>
+        Promise.resolve({
+          ok: true as const,
+          data: {
+            completions: [
+              {
+                exerciseId: IDS[0],
+                completedCount: 1,
+                lastCompletedAt: "2025-01-01T00:00:00.000Z",
+                inLastCompletedWorkout: false,
+              },
+            ],
+            preferences: new Map(),
+          },
+        }),
+      recommendHistoryAwareWorkout: () => recommendation,
+      buildHistoryAwareWorkoutPrompt: () => ({ ok: true as const, data: { system: "system", user: "shortlist" } }),
+      requestOpenRouterWorkout: providerResponse(JSON.stringify(proposal)),
+      parseHistoryAwareAiWorkoutProposalJson,
+    }),
+  );
+  assert.equal(valid.ok, true);
+  assert.equal(calls.length, 1);
+  calls.length = 0;
+
+  const result = await generateHistoryAwareAiWorkout(
+    client as never,
+    USER_ID,
+    "provider/model",
+    { version: 1 },
+    dependencies({
+      loadHistoryAwareAiProfile: () =>
+        Promise.resolve({
+          ok: true as const,
+          data: {
+            completions: [
+              {
+                exerciseId: IDS[0],
+                completedCount: 1,
+                lastCompletedAt: "2025-01-01T00:00:00.000Z",
+                inLastCompletedWorkout: false,
+              },
+            ],
+            preferences: new Map(),
+          },
+        }),
+      recommendHistoryAwareWorkout: () => recommendation,
+      buildHistoryAwareWorkoutPrompt: () => ({ ok: true as const, data: { system: "system", user: "shortlist" } }),
+      requestOpenRouterWorkout: providerResponse(
+        JSON.stringify(proposalWith([IDS[0], IDS[0], IDS[2], IDS[3], IDS[4]])),
+      ),
+      parseHistoryAwareAiWorkoutProposalJson,
+    }),
+  );
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, "invalid_output");
+  assert.deepEqual(calls, []);
 });
 
 void test("records history-aware proposal lineage for initial generation and re-rolls", async () => {

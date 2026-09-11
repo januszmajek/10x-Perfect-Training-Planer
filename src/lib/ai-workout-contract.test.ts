@@ -5,6 +5,7 @@ import {
   parseAiWorkoutProposal,
   parseAiWorkoutProposalJson,
   parseHistoryAwareAiWorkoutProposal,
+  parseHistoryAwareAiWorkoutProposalJson,
   type AiWorkoutProposal,
 } from "./ai-workout-contract.ts";
 import type { CatalogueExercise } from "./manual-workout-builder.ts";
@@ -61,6 +62,13 @@ const catalogue: CatalogueExercise[] = [
     movementPattern: "pull",
     muscles: [{ code: "upper_back", name: "Upper Back", category: "upper_body", role: "primary", recoveryHours: 72 }],
   },
+  {
+    id: IDS[7],
+    name: "Overhead Press",
+    equipment: "barbell",
+    movementPattern: "push",
+    muscles: [{ code: "shoulders", name: "Shoulders", category: "upper_body", role: "primary", recoveryHours: 48 }],
+  },
 ];
 
 function proposal(exerciseIds = IDS.slice(0, 5)): AiWorkoutProposal {
@@ -76,7 +84,12 @@ void test("rejects malformed JSON, unknown IDs, duplicates, extra fields, and in
   assert.deepEqual(parseAiWorkoutProposalJson("not-json", catalogue), { ok: false, code: "malformed_json" });
   assert.equal(
     parseAiWorkoutProposal(
-      { exercises: [{ exerciseId: IDS[7], sets: 3, reps: 10 }, ...proposal().exercises.slice(1)] },
+      {
+        exercises: [
+          { exerciseId: "00000000-0000-0000-0000-000000000999", sets: 3, reps: 10 },
+          ...proposal().exercises.slice(1),
+        ],
+      },
       catalogue,
     ).ok,
     false,
@@ -90,6 +103,11 @@ void test("rejects malformed JSON, unknown IDs, duplicates, extra fields, and in
     ).ok,
     false,
   );
+});
+
+void test("rejects cold-start proposals outside the independently stated 5-7 exercise range", () => {
+  assert.equal(parseAiWorkoutProposal(proposal(IDS.slice(0, 4)), catalogue).ok, false);
+  assert.equal(parseAiWorkoutProposal(proposal(IDS.slice(0, 8)), catalogue).ok, false);
 });
 
 void test("rejects proposals that omit a required full-body coverage category", () => {
@@ -108,7 +126,7 @@ void test("builds a provider schema constrained to the vetted IDs and requested 
 
 void test("history-aware validation rejects extra provider fields", () => {
   const input = {
-    exercises: proposal(IDS.slice(0, 4)).exercises.map((item, index) =>
+    exercises: proposal(IDS.slice(0, 3)).exercises.map((item, index) =>
       index === 0 ? { ...item, explanation: "extra" } : item,
     ),
   };
@@ -116,9 +134,72 @@ void test("history-aware validation rejects extra provider fields", () => {
   assert.deepEqual(
     parseHistoryAwareAiWorkoutProposal(input, {
       shortlist: catalogue.slice(0, 4),
-      feasibleCoverage: ["lower_body", "core", "upper_body_push", "upper_body_pull"],
+      feasibleCoverage: ["lower_body", "upper_body_push", "upper_body_pull"],
       requestedExerciseCount: { min: 3, max: 3 },
     }),
     { ok: false, code: "invalid_proposal" },
   );
+});
+
+void test("accepts reduced history-aware proposals only at their requested 3- or 4-exercise counts", () => {
+  const reducedThreeContext = {
+    shortlist: catalogue.slice(0, 4),
+    feasibleCoverage: ["lower_body", "upper_body_push", "upper_body_pull"] as const,
+    requestedExerciseCount: { min: 3, max: 3 } as const,
+  };
+  const reducedFourContext = {
+    shortlist: catalogue.slice(0, 4),
+    feasibleCoverage: ["lower_body", "core", "upper_body_push", "upper_body_pull"] as const,
+    requestedExerciseCount: { min: 4, max: 4 } as const,
+  };
+
+  assert.equal(parseHistoryAwareAiWorkoutProposal(proposal(IDS.slice(0, 3)), reducedThreeContext).ok, true);
+  assert.equal(parseHistoryAwareAiWorkoutProposal(proposal(IDS.slice(0, 4)), reducedFourContext).ok, true);
+  assert.equal(parseHistoryAwareAiWorkoutProposal(proposal(IDS.slice(0, 4)), reducedThreeContext).ok, false);
+  assert.equal(parseHistoryAwareAiWorkoutProposal(proposal(IDS.slice(0, 3)), reducedFourContext).ok, false);
+});
+
+const historyAwareContext = {
+  shortlist: catalogue.slice(0, 5),
+  feasibleCoverage: ["lower_body", "core", "upper_body_push", "upper_body_pull"] as const,
+  requestedExerciseCount: { min: 5, max: 7 } as const,
+};
+
+void test("accepts a history-aware proposal that meets the independently stated shortlist, count, and coverage rules", () => {
+  assert.deepEqual(parseHistoryAwareAiWorkoutProposal(proposal(), historyAwareContext), {
+    ok: true,
+    data: proposal(),
+  });
+});
+
+void test("rejects each independent history-aware provider-invalid class", () => {
+  const invalidCases: [string, unknown][] = [
+    [
+      "unknown shortlist ID",
+      { exercises: [{ ...proposal().exercises[0], exerciseId: IDS[6] }, ...proposal().exercises.slice(1)] },
+    ],
+    ["duplicate ID", proposal([IDS[0], IDS[0], IDS[2], IDS[3], IDS[4]])],
+    [
+      "non-integer prescription",
+      { exercises: [{ ...proposal().exercises[0], reps: 10.5 }, ...proposal().exercises.slice(1)] },
+    ],
+    [
+      "out-of-range prescription",
+      { exercises: [{ ...proposal().exercises[0], sets: 0 }, ...proposal().exercises.slice(1)] },
+    ],
+    ["inconsistent requested count", proposal(IDS.slice(0, 4))],
+    ["missing feasible coverage", proposal([IDS[0], IDS[1], IDS[2], IDS[4], IDS[5]])],
+  ];
+
+  for (const [name, input] of invalidCases) {
+    assert.deepEqual(
+      parseHistoryAwareAiWorkoutProposal(input, historyAwareContext),
+      { ok: false, code: "invalid_proposal" },
+      name,
+    );
+  }
+  assert.deepEqual(parseHistoryAwareAiWorkoutProposalJson("not-json", historyAwareContext), {
+    ok: false,
+    code: "malformed_json",
+  });
 });
