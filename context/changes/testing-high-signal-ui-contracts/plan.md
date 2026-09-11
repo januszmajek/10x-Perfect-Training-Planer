@@ -264,11 +264,11 @@ The jsdom suite uses a narrow `*.test.tsx` discovery boundary, small in-memory f
 
 #### Automated
 
-- [x] 3.1 Add the fixture-backed History summary/detail contract
-- [x] 3.2 Pass UI, history, lint, and build verification
-- [x] 3.3 Confirm one UI command and CI gate cover all new contracts
+- [x] 3.1 Add the fixture-backed History summary/detail contract — 68e172f
+- [x] 3.2 Pass UI, history, lint, and build verification — 68e172f
+- [x] 3.3 Confirm one UI command and CI gate cover all new contracts — 68e172f
 
 #### Manual
 
-- [x] 3.4 Confirm manual and AI History cards expand and collapse with complete prescriptions
-- [x] 3.5 Confirm browser, responsiveness, drawer, and asynchronous History scope remains deferred
+- [x] 3.4 Confirm manual and AI History cards expand and collapse with complete prescriptions — 68e172f
+- [x] 3.5 Confirm browser, responsiveness, drawer, and asynchronous History scope remains deferred — 68e172f
