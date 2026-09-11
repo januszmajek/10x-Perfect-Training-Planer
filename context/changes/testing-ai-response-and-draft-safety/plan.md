@@ -310,26 +310,26 @@ No migration is planned. Reuse existing local Supabase fixtures, RLS policies, R
 
 #### Automated
 
-- [x] 2.1 Prove AI generate/save request guards and the actual-byte body limit fail closed with safe public responses.
-- [x] 2.2 Preserve and extend only concrete database ownership and atomicity gaps.
-- [x] 2.3 Run the local database and targeted AI-safety browser checks.
+- [x] 2.1 Prove AI generate/save request guards and the actual-byte body limit fail closed with safe public responses. — 6653023
+- [x] 2.2 Preserve and extend only concrete database ownership and atomicity gaps. — 6653023
+- [x] 2.3 Run the local database and targeted AI-safety browser checks. — 6653023
 
 #### Manual
 
-- [x] 2.4 Confirm route checks do not duplicate database ownership contracts.
+- [x] 2.4 Confirm route checks do not duplicate database ownership contracts. — 6653023
 
 ### Phase 3: Prove Rendered Draft Preservation
 
 #### Automated
 
-- [ ] 3.1 Cover failed planner transitions and valid replacement transitions.
-- [ ] 3.2 Prove failed generation preserves an editable manual draft in the browser.
-- [ ] 3.3 Record the Phase 3 AI-safety cookbook pattern.
-- [ ] 3.4 Run AI, UI, and targeted browser suites.
+- [x] 3.1 Cover failed planner transitions and valid replacement transitions.
+- [x] 3.2 Prove failed generation preserves an editable manual draft in the browser.
+- [x] 3.3 Record the Phase 3 AI-safety cookbook pattern.
+- [x] 3.4 Run AI, UI, and targeted browser suites.
 
 #### Manual
 
-- [ ] 3.5 Confirm controlled generation failures preserve a usable draft in the browser.
+- [x] 3.5 Confirm controlled generation failures preserve a usable draft in the browser.
 
 ### Phase 4: Run Complete Regression Gates
 

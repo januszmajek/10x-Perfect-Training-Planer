@@ -80,6 +80,8 @@ void test("parses history-aware metadata only when it matches the displayed prop
 });
 
 void test("rejects malformed, unknown, and inconsistent browser response payloads", () => {
+  assert.equal(parseAiWorkoutGenerationResponse(null), null);
+  assert.equal(parseAiWorkoutGenerationResponse("not-json"), null);
   assert.equal(parseAiWorkoutGenerationResponse({ code: "provider-secret", requestId: "request-1" }), null);
   assert.equal(
     parseAiWorkoutGenerationResponse({
@@ -97,4 +99,9 @@ void test("rejects malformed, unknown, and inconsistent browser response payload
     }),
     null,
   );
+  assert.deepEqual(parseAiWorkoutGenerationResponse({ code: "provider_unavailable", requestId: "request-5" }), {
+    ok: false,
+    code: "provider_unavailable",
+    requestId: "request-5",
+  });
 });

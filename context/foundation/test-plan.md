@@ -60,8 +60,8 @@ Each phase opens its own change folder. Status values are orchestrator state.
 | # | Phase name | Goal (one line) | Risks covered | Test types | Status | Change folder |
 |---|---|---|---|---|---|---|
 | 1 | High-signal UI contracts | Establish trustworthy rendered behavior coverage for filters, cards, and shared interaction patterns | #3, #5 | test audit, component integration | complete | testing-high-signal-ui-contracts |
-| 2 | Responsive navigation and user journeys | Protect critical flows, navigation state, responsive layouts, drawers, and dialogs | #1, #2, #5 | focused e2e, deterministic visual checks | change opened | testing-responsive-navigation-and-user-journeys |
-| 3 | AI response and draft safety | Prove invalid provider output and failures cannot create unsafe workouts or destroy user work | #4, #6 | contract, integration, targeted e2e | not started | — |
+| 2 | Responsive navigation and user journeys | Protect critical flows, navigation state, responsive layouts, drawers, and dialogs | #1, #2, #5 | focused e2e, deterministic visual checks | complete | testing-responsive-navigation-and-user-journeys |
+| 3 | AI response and draft safety | Prove invalid provider output and failures cannot create unsafe workouts or destroy user work | #4, #6 | contract, integration, targeted e2e | change opened | testing-ai-response-and-draft-safety |
 | 4 | Quality gates and cookbook | Wire the high-signal suites into CI and preserve canonical UI-testing patterns | #3, cross-cutting | CI gates, cookbook | not started | — |
 
 ## 4. Stack
@@ -109,11 +109,18 @@ TBD — see §3 Phase 2 for viewport, Back/Forward, drawer, dialog, and state-li
 
 ### 6.4 Testing an AI response or provider failure
 
-TBD — see §3 Phase 3 for independent domain oracles, mocked provider boundaries, and draft preservation.
+Use independent fixtures at the provider boundary; never derive expected validity from the production validator. Compose
+mocked provider output with the production parser in Node tests, and keep a single authenticated Builder journey for
+the rendered recovery seam. That journey starts from an edited manual draft, covers malformed JSON, structurally invalid
+JSON, and a typed provider failure, then proves the visible alert, editable draft, and manual-save endpoint remain
+intact. Keep pgTAP as the authority for ownership and rollback; do not duplicate it in browser attacks. Exclude real
+provider calls and artificial generation deadlines.
 
 ### 6.5 Per-rollout-phase notes
 
-TBD — each rollout phase records the canonical patterns and surprises it ships.
+Phase 3: AI response and draft safety uses contract fixtures for proposal validity, controlled provider responses for
+service composition, and one browser recovery journey for the state-to-render boundary. This keeps failures retryable
+without broad endpoint harnesses or real-provider dependencies.
 
 ## 7. What We Deliberately Don't Test
 

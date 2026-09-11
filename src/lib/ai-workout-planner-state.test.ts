@@ -25,6 +25,30 @@ void test("keeps the current proposal and its edits after a failed generation", 
   });
 });
 
+void test("preserves the exact edited draft and history-aware proposal for every failed parsed response", () => {
+  const activeProposal = {
+    kind: "history_aware" as const,
+    proposalId: "00000000-0000-0000-0000-000000000099",
+    exerciseCount: existingDraft.length,
+    reduced: false,
+    originalExerciseIds: existingDraft.map(({ exerciseId }) => exerciseId),
+    preferences: Object.fromEntries(existingDraft.map(({ exerciseId }) => [exerciseId, "neutral" as const])),
+  };
+  const failures = [
+    null,
+    { ok: false as const, code: "invalid_output" as const, requestId: "request-invalid" },
+    { ok: false as const, code: "provider_unavailable" as const, requestId: "request-provider" },
+    { ok: false as const, code: "timeout" as const, requestId: "request-timeout" },
+  ];
+
+  for (const failure of failures) {
+    const transition = applyAiGenerationResponse(existingDraft, failure, activeProposal);
+    assert.strictEqual(transition.draft, existingDraft);
+    assert.strictEqual(transition.activeProposal, activeProposal);
+    assert.equal(transition.code, failure?.code ?? "invalid_output");
+  }
+});
+
 void test("replaces a proposal only after a validated generation response", () => {
   assert.deepEqual(
     applyAiGenerationResponse(existingDraft, {
