@@ -242,26 +242,26 @@ steps and package script if the aggregate command exposes an unsupported test-fi
 
 #### Automated
 
-- [x] 1.1 Run `test:node` and verify it includes the request-size test.
-- [x] 1.2 Verify retained focused Node scripts pass.
-- [x] 1.3 Run lint and build after package and workflow edits.
+- [x] 1.1 Run `test:node` and verify it includes the request-size test. — 1fa28b6
+- [x] 1.2 Verify retained focused Node scripts pass. — 1fa28b6
+- [x] 1.3 Run lint and build after package and workflow edits. — 1fa28b6
 
 #### Manual
 
-- [x] 1.4 Confirm CI retains all non-Node gates in their existing order.
+- [x] 1.4 Confirm CI retains all non-Node gates in their existing order. — 1fa28b6
 
 ### Phase 2: Publish the Canonical Runner Cookbook
 
 #### Automated
 
-- [ ] 2.1 Verify the test plan has no stale shipped-harness placeholders.
-- [ ] 2.2 Run Prettier's check for the test plan.
-- [ ] 2.3 Run lint.
+- [x] 2.1 Verify the test plan has no stale shipped-harness placeholders.
+- [x] 2.2 Run Prettier's check for the test plan.
+- [x] 2.3 Run lint.
 
 #### Manual
 
-- [ ] 2.4 Confirm every representative regression maps to one runner and prerequisite, including Chromium for browser tests.
-- [ ] 2.5 Confirm all deliberate scope exclusions remain explicit.
+- [x] 2.4 Confirm every representative regression maps to one runner and prerequisite, including Chromium for browser tests.
+- [x] 2.5 Confirm all deliberate scope exclusions remain explicit.
 
 ### Phase 3: Align Contributor CI Documentation
 
