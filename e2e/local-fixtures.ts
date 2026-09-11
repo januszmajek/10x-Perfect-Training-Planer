@@ -1,6 +1,19 @@
 import { execFileSync } from "node:child_process";
 import { encryptAiProviderKey } from "@/lib/ai-provider-key-crypto";
 
+export interface WorkoutFixtureExercise {
+  id: string;
+  name: string;
+}
+
+const WORKOUT_FIXTURE_SLUGS = [
+  "barbell-bench-press",
+  "pull-up",
+  "conventional-deadlift",
+  "overhead-barbell-press",
+  "plank",
+] as const;
+
 function required(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`Missing local E2E environment: ${name}`);
@@ -33,4 +46,32 @@ export async function configureAiProviderKey(email: string) {
     ],
     { stdio: "pipe" },
   );
+}
+
+export function loadWorkoutFixture(): WorkoutFixtureExercise[] {
+  const databaseUrl = required("SUPABASE_DB_URL");
+  const output = execFileSync(
+    "psql",
+    [
+      databaseUrl,
+      "-AtF",
+      "|",
+      "-c",
+      `select slug, id, name from public.exercises where slug in (${WORKOUT_FIXTURE_SLUGS.map((slug) => `'${slug}'`).join(", ")});`,
+    ],
+    { encoding: "utf8" },
+  );
+  const bySlug = new Map(
+    output
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => line.split("|"))
+      .map(([slug, id, name]) => [slug, { id, name }] as const),
+  );
+  const exercises = WORKOUT_FIXTURE_SLUGS.map((slug) => bySlug.get(slug));
+  if (exercises.some((exercise) => !exercise)) {
+    throw new Error("The local E2E catalogue fixture is incomplete.");
+  }
+  return exercises as WorkoutFixtureExercise[];
 }
