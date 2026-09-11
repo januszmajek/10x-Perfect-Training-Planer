@@ -236,29 +236,29 @@ The jsdom suite uses a narrow `*.test.tsx` discovery boundary, small in-memory f
 
 #### Automated
 
-- [x] 1.1 Update the test rollout policy to exclude automated accessibility coverage
-- [x] 1.2 Add and run the isolated Vitest/jsdom UI harness
-- [x] 1.3 Add the required `pnpm test:ui` CI gate
-- [x] 1.4 Preserve existing Node suite, lint, and build verification
+- [x] 1.1 Update the test rollout policy to exclude automated accessibility coverage — d79af63
+- [x] 1.2 Add and run the isolated Vitest/jsdom UI harness — d79af63
+- [x] 1.3 Add the required `pnpm test:ui` CI gate — d79af63
+- [x] 1.4 Preserve existing Node suite, lint, and build verification — d79af63
 
 #### Manual
 
-- [x] 1.5 Confirm the focused audit distinguishes retained pure tests from rendered behavior gaps
-- [x] 1.6 Confirm the narrowed test policy and CI gate are acceptable
+- [x] 1.5 Confirm the focused audit distinguishes retained pure tests from rendered behavior gaps — d79af63
+- [x] 1.6 Confirm the narrowed test policy and CI gate are acceptable — d79af63
 
 ### Phase 2: Audit and Protect Catalogue Interactions
 
 #### Automated
 
-- [ ] 2.1 Add deterministic catalogue UI fixtures
-- [ ] 2.2 Prove controlled filter callbacks and visible state
-- [ ] 2.3 Prove card and panel interaction, recovery, and empty-result contracts
-- [ ] 2.4 Pass UI, manual-workout, lint, and build verification
+- [x] 2.1 Add deterministic catalogue UI fixtures
+- [x] 2.2 Prove controlled filter callbacks and visible state
+- [x] 2.3 Prove card and panel interaction, recovery, and empty-result contracts
+- [x] 2.4 Pass UI, manual-workout, lint, and build verification
 
 #### Manual
 
-- [ ] 2.5 Confirm live create and edit catalogue interactions match the protected contracts
-- [ ] 2.6 Confirm the suite remains product-visible and free of accessibility-specific checks
+- [x] 2.5 Confirm live create and edit catalogue interactions match the protected contracts
+- [x] 2.6 Confirm the suite remains product-visible and free of accessibility-specific checks
 
 ### Phase 3: Protect History Card Behavior
 
