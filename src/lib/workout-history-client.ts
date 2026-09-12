@@ -44,17 +44,10 @@ export interface MuscleOption {
   name: string;
 }
 
-export interface HistoryFilterMuscleOption extends MuscleOption {
-  role: MuscleRole;
-}
-
-export function deduplicateHistoryMuscleOptions(
-  options: readonly HistoryFilterMuscleOption[],
-): HistoryFilterMuscleOption[] {
-  const uniqueOptions = new Map<string, HistoryFilterMuscleOption>();
+export function deduplicateHistoryMuscleOptions(options: readonly MuscleOption[]): MuscleOption[] {
+  const uniqueOptions = new Map<string, MuscleOption>();
   for (const option of options) {
-    const key = `${option.role}:${option.code}`;
-    if (!uniqueOptions.has(key)) uniqueOptions.set(key, option);
+    if (!uniqueOptions.has(option.code)) uniqueOptions.set(option.code, option);
   }
   return [...uniqueOptions.values()];
 }

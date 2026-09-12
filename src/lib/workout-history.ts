@@ -6,7 +6,7 @@ import {
   isCompletedWorkoutHistoryEntry,
   WORKOUT_HISTORY_PAGE_SIZE,
   type CompletedWorkoutHistoryEntry,
-  type HistoryFilterMuscleOption,
+  type MuscleOption,
   type WorkoutHistoryCursor,
   type WorkoutHistoryFilters,
   type WorkoutHistoryPage,
@@ -101,33 +101,22 @@ function historyFailure(technicalCode: string): WorkoutFailure {
 export async function loadHistoryMuscleOptions(
   client: WorkoutClient,
   userId: string,
-): Promise<WorkoutResult<HistoryFilterMuscleOption[]>> {
+): Promise<WorkoutResult<MuscleOption[]>> {
   const authFailure = await verifyOwnedSession(client, userId);
   if (authFailure) return authFailure;
 
-  const { data, error } = await client
-    .from("exercise_muscle_groups")
-    .select("role,muscle_groups(code,name)")
-    .limit(100);
+  const { data, error } = await client.from("exercise_muscle_groups").select("muscle_groups(code,name)").limit(100);
   if (error) return workoutFailure("persistence_failed", "database", error.code);
-  const options = (data as unknown[]).flatMap<HistoryFilterMuscleOption>((item) => {
+  const options = (data as unknown[]).flatMap<MuscleOption>((item) => {
     if (!isRecord(item) || !isRecord(item.muscle_groups)) return [];
     const { code, name } = item.muscle_groups;
-    const role = item.role;
-    return typeof code === "string" &&
-      typeof name === "string" &&
-      name.trim() &&
-      (role === "primary" || role === "secondary")
-      ? [{ code, name, role }]
-      : [];
+    return typeof code === "string" && typeof name === "string" && name.trim() ? [{ code, name }] : [];
   });
   const uniqueOptions = deduplicateHistoryMuscleOptions(options);
   if (uniqueOptions.length === 0) return historyFailure("INVALID_MUSCLE_OPTION");
   return {
     ok: true,
-    data: uniqueOptions.sort(
-      (left, right) => left.name.localeCompare(right.name) || left.role.localeCompare(right.role),
-    ),
+    data: uniqueOptions.sort((left, right) => left.name.localeCompare(right.name)),
   };
 }
 

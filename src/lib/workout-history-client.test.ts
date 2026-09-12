@@ -89,19 +89,17 @@ void test("canonicalizes repeated muscles and serializes page and API URLs witho
   assert.equal(toWorkoutHistoryApiUrl(filters).replace(/^.*\?/u, "").includes("cursor="), false);
 });
 
-void test("deduplicates history muscle filters by code and role", () => {
+void test("deduplicates history muscle filters by code", () => {
   assert.deepEqual(
     deduplicateHistoryMuscleOptions([
-      { code: "chest", name: "Chest", role: "primary" },
-      { code: "chest", name: "Chest", role: "primary" },
-      { code: "chest", name: "Chest", role: "secondary" },
-      { code: "triceps", name: "Triceps", role: "secondary" },
-      { code: "triceps", name: "Triceps", role: "secondary" },
+      { code: "chest", name: "Chest" },
+      { code: "chest", name: "Chest" },
+      { code: "triceps", name: "Triceps" },
+      { code: "triceps", name: "Triceps" },
     ]),
     [
-      { code: "chest", name: "Chest", role: "primary" },
-      { code: "chest", name: "Chest", role: "secondary" },
-      { code: "triceps", name: "Triceps", role: "secondary" },
+      { code: "chest", name: "Chest" },
+      { code: "triceps", name: "Triceps" },
     ],
   );
 });

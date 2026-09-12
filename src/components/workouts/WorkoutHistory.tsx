@@ -11,7 +11,6 @@ import {
   toWorkoutHistoryApiUrl,
   toWorkoutHistoryPageUrl,
   type CompletedWorkoutHistoryEntry,
-  type HistoryFilterMuscleOption,
   type MuscleOption,
   type WorkoutHistoryFilters,
   type WorkoutHistoryPage,
@@ -21,7 +20,7 @@ import type { EquipmentType } from "@/lib/manual-workout-builder";
 interface Props {
   initialFilters: WorkoutHistoryFilters;
   initialPage: WorkoutHistoryPage;
-  muscleOptions: HistoryFilterMuscleOption[];
+  muscleOptions: MuscleOption[];
 }
 
 interface LocalDateRange {
@@ -315,6 +314,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
       return;
     }
     setRefreshFailure(null);
+    setIsReplacing(true);
     const request = () => void startReplacement(filters, true);
     if (immediate) request();
     else debounceTimerRef.current = window.setTimeout(request, 250);
@@ -427,10 +427,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
   const visibleMuscles = dateRange
     ? [dateRange.start === "" ? "Start date" : dateRange.start, dateRange.end === "" ? "End date" : dateRange.end]
     : [];
-  const primaryMuscles = muscleOptions.filter((option) => option.role === "primary");
-  const secondaryMuscles = muscleOptions.filter((option) => option.role === "secondary");
-
-  function muscleFacet(title: string, options: HistoryFilterMuscleOption[]) {
+  function muscleFacet(title: string, options: MuscleOption[]) {
     const count = options.filter((option) => selectedMuscles.includes(option.code)).length;
     return (
       <details className="mt-4 rounded-xl border border-white/10 bg-slate-950/25 p-4">
@@ -442,7 +439,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
             const selected = selectedMuscles.includes(muscle.code);
             return (
               <label
-                key={`${muscle.code}-${muscle.role}`}
+                key={muscle.code}
                 className="flex min-h-11 items-center gap-3 text-sm text-blue-100/80"
               >
                 <input
@@ -452,7 +449,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
                     const next = selected
                       ? selectedMuscles.filter((code) => code !== muscle.code)
                       : [...selectedMuscles, muscle.code].sort();
-                    scheduleReplacement(dateRange, next);
+                    scheduleReplacement(dateRange, next, true);
                   }}
                   className="size-4 accent-purple-500"
                 />
@@ -554,8 +551,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
             </div>
           </details>
 
-          {muscleFacet("Main muscles", primaryMuscles)}
-          {muscleFacet("Secondary muscles", secondaryMuscles)}
+          {muscleFacet("Muscles", muscleOptions)}
 
           <details className="mt-4 rounded-xl border border-white/10 bg-slate-950/25 p-4">
             <summary className="cursor-pointer text-sm font-semibold text-white">
@@ -571,7 +567,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
                       const next = selectedEquipment.includes(equipment)
                         ? selectedEquipment.filter((item) => item !== equipment)
                         : [...selectedEquipment, equipment];
-                      scheduleReplacement(dateRange, selectedMuscles, false, next);
+                      scheduleReplacement(dateRange, selectedMuscles, true, next);
                     }}
                     className="size-4 accent-purple-500"
                   />

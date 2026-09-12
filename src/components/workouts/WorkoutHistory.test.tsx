@@ -69,11 +69,11 @@ test("shows completed workout summaries and toggles each complete saved prescrip
       initialFilters={{ muscles: [], equipment: [] }}
       initialPage={historyPage}
       muscleOptions={[
-        { code: "chest", name: "Chest", role: "primary" },
-        { code: "triceps", name: "Triceps", role: "secondary" },
-        { code: "upper_back", name: "Upper Back", role: "primary" },
-        { code: "biceps", name: "Biceps", role: "secondary" },
-        { code: "quads", name: "Quads", role: "primary" },
+        { code: "chest", name: "Chest" },
+        { code: "triceps", name: "Triceps" },
+        { code: "upper_back", name: "Upper Back" },
+        { code: "biceps", name: "Biceps" },
+        { code: "quads", name: "Quads" },
       ]}
     />,
   );

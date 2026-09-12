@@ -190,23 +190,23 @@ No migration is required. Existing URLs already contain role-agnostic muscle cod
 
 #### Automated
 
-- [x] 1.1 Existing rendered catalogue-filter tests pass with the one-list component interface and `Muscles` label.
-- [x] 1.2 `pnpm test:ui` passes.
+- [x] 1.1 Existing rendered catalogue-filter tests pass with the one-list component interface and `Muscles` label. — aa06066
+- [x] 1.2 `pnpm test:ui` passes. — aa06066
 
 #### Manual
 
-- [x] 1.3 On the new-workout page, each muscle appears once under `Muscles`; selecting, resetting, and reopening the filter behave as before.
+- [x] 1.3 On the new-workout page, each muscle appears once under `Muscles`; selecting, resetting, and reopening the filter behave as before. — aa06066
 
 ### Phase 2: Unify History Muscle Facet
 
 #### Automated
 
-- [ ] 2.1 Existing History client and rendered-component tests pass after adapting role-specific option expectations to one code-level option list.
-- [ ] 2.2 `pnpm test:history` and `pnpm test:ui` pass.
+- [x] 2.1 Existing History client and rendered-component tests pass after adapting role-specific option expectations to one code-level option list.
+- [x] 2.2 `pnpm test:history` and `pnpm test:ui` pass.
 
 #### Manual
 
-- [ ] 2.3 On History, one `Muscles` facet controls each muscle once; date, equipment, reset, reload, Back, and Forward behavior remain intact.
+- [x] 2.3 On History, one `Muscles` facet controls each muscle once; date, equipment, reset, reload, Back, and Forward behavior remain intact.
 
 ### Phase 3: Preserve Existing Regression Coverage and Record the Contract
 
