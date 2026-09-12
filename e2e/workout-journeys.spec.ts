@@ -11,6 +11,10 @@ async function completePlannedWorkout(page: import("@playwright/test").Page) {
   await waitForHydration(page);
   const completion = page.waitForURL(COMPLETED_DASHBOARD_URL, { timeout: 10_000 });
   await page.getByRole("button", { name: "Mark done" }).click();
+  const gracePeriod = page.getByRole("complementary", { name: "Workout completion undo" });
+  await expect(gracePeriod).toBeVisible();
+  await expect(gracePeriod).toContainText("Undo is available for five seconds.");
+  await expect(gracePeriod.getByRole("button", { name: "Undo" })).toBeFocused();
   await completion;
 }
 

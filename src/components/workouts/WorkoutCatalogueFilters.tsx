@@ -78,10 +78,10 @@ export default function WorkoutCatalogueFilters({
   return (
     <>
       {open && (
-        <button aria-label="Close filters" className="fixed inset-0 z-30 bg-black/60 lg:hidden" onClick={onClose} />
+        <button aria-label="Close filters" className="fixed inset-0 z-[100] bg-black/60 lg:hidden" onClick={onClose} />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-r-2xl border border-white/10 bg-slate-950 p-4 shadow-2xl transition-transform duration-300 lg:static lg:w-auto lg:translate-x-0 lg:overflow-visible lg:rounded-2xl lg:bg-white/5 lg:p-6 lg:shadow-none ${open ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-[110] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-r-2xl border border-white/10 bg-slate-950 p-4 shadow-2xl transition-transform duration-300 lg:static lg:w-auto lg:translate-x-0 lg:overflow-visible lg:rounded-2xl lg:bg-white/5 lg:p-6 lg:shadow-none ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>

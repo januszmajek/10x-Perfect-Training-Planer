@@ -1,7 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 
-const mobileViewport = { width: 360, height: 720 };
 const desktopViewport = { width: 1280, height: 720 };
 
 async function expectScrollLock(page: Page, locked: boolean) {
@@ -12,7 +11,6 @@ test("closes the portalled mobile navigation when resizing to the desktop layout
   page,
   authenticatedPage,
 }) => {
-  await page.setViewportSize(mobileViewport);
   await page.goto("/dashboard");
 
   const menuButton = page.getByRole("button", { name: "Open navigation menu" });
@@ -37,7 +35,6 @@ test("keeps responsive navigation and independently owned filter drawers operabl
   page,
   authenticatedPage,
 }) => {
-  await page.setViewportSize(mobileViewport);
   await page.goto("/workouts/new");
 
   const menuButton = page.getByRole("button", { name: "Open navigation menu" });
@@ -50,9 +47,17 @@ test("keeps responsive navigation and independently owned filter drawers operabl
   await historyFilterTrigger.click();
   const historyFilters = page.locator("aside").filter({ has: page.getByRole("heading", { name: "Filters" }) });
   await expect(historyFilters).toBeVisible();
+  await expect(historyFilters.getByRole("button", { name: "Close filters" })).toBeVisible();
   await expectScrollLock(page, true);
   await page.keyboard.press("Escape");
   await expect(historyFilterTrigger).toBeFocused();
+  await expectScrollLock(page, false);
+
+  await historyFilterTrigger.click();
+  const historyBackdrop = page.locator("button.fixed.inset-0[aria-label='Close filters']");
+  await expect(historyBackdrop).toBeVisible();
+  await expectScrollLock(page, true);
+  await historyBackdrop.click({ position: { x: 350, y: 360 } });
   await expectScrollLock(page, false);
 
   await page.goto("/workouts/new");
@@ -60,12 +65,10 @@ test("keeps responsive navigation and independently owned filter drawers operabl
   await workoutFilterTrigger.click();
   const workoutFilters = page.locator("aside").filter({ has: page.getByRole("heading", { name: "Filters" }) });
   await expect(workoutFilters).toBeVisible();
+  await expect(workoutFilters.getByRole("button", { name: "Close filters" })).toBeVisible();
   await expectScrollLock(page, true);
   await expect(workoutFilters).toHaveScreenshot("workout-filters-open.png", { animations: "disabled", caret: "hide" });
-  await page
-    .getByRole("button", { name: "Close filters" })
-    .first()
-    .click({ position: { x: 340, y: 360 } });
+  await workoutFilters.getByRole("button", { name: "Close filters" }).click();
   await expect(workoutFilterTrigger).toBeFocused();
   await expectScrollLock(page, false);
 
@@ -73,6 +76,10 @@ test("keeps responsive navigation and independently owned filter drawers operabl
   await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Filters", exact: true })).not.toBeVisible();
   await expect(workoutFilters).toBeVisible();
+  const desktopChestFilter = workoutFilters.getByLabel("Chest");
+  await expect(desktopChestFilter).toBeVisible();
+  await desktopChestFilter.check();
+  await expect(page).toHaveURL(/\/workouts\/new\?muscle=chest/u);
 
   expect(authenticatedPage.email).toContain("@example.test");
 });

@@ -200,6 +200,7 @@ No database migration or production data migration is required. The browser harn
 #### Manual
 
 - [x] 2.5 Verify narrow-to-desktop navigation and filter behavior in a real browser viewport. — 8d54c3c
+  See `manual-verification.md` for the 2026-09-12 local narrow-browser evidence.
 
 ### Phase 3: Durable Workout Journeys and True Cross-Route Contracts
 
@@ -214,3 +215,4 @@ No database migration or production data migration is required. The browser harn
 #### Manual
 
 - [x] 3.6 Review failure-only journey artifacts for meaningful user-visible diagnostics and absent secrets. — 02314b3
+  See `manual-verification.md` for the 2026-09-12 retained controlled-failure trace review.

@@ -197,7 +197,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
       setAppendFailure(null);
       setExpandedIds(new Set());
       setCommittedFilters(filters);
-      if (shouldWriteUrl) window.history.replaceState(null, "", toWorkoutHistoryPageUrl(filters));
+      if (shouldWriteUrl) window.history.pushState(null, "", toWorkoutHistoryPageUrl(filters));
 
       try {
         const response = await fetch(toWorkoutHistoryApiUrl(filters), {
@@ -470,7 +470,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
       {filtersOpen && (
         <button
           aria-label="Close filters"
-          className="fixed inset-0 z-30 bg-black/60 lg:hidden"
+          className="fixed inset-0 z-[100] bg-black/60 lg:hidden"
           onClick={() => {
             setFiltersOpen(false);
           }}
@@ -478,7 +478,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
       )}
       <div className="grid gap-5 lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-start">
         <aside
-          className={`fixed inset-y-0 z-40 w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-r-xl border border-white/10 bg-slate-950 p-4 shadow-2xl transition-[left] duration-300 lg:static lg:left-auto lg:w-auto lg:overflow-visible lg:rounded-xl lg:bg-black/15 lg:p-5 lg:shadow-none ${filtersOpen ? "left-0" : "-left-full"}`}
+          className={`fixed inset-y-0 z-[110] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-r-xl border border-white/10 bg-slate-950 p-4 shadow-2xl transition-[left] duration-300 lg:static lg:left-auto lg:w-auto lg:overflow-visible lg:rounded-xl lg:bg-black/15 lg:p-5 lg:shadow-none ${filtersOpen ? "left-0" : "-left-full"}`}
         >
           <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
             <button

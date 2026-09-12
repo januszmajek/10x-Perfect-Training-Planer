@@ -75,3 +75,27 @@ export function loadWorkoutFixture(): WorkoutFixtureExercise[] {
   }
   return exercises as WorkoutFixtureExercise[];
 }
+
+export function seedCompletedHistoryFixture(email: string, exercise: WorkoutFixtureExercise) {
+  const databaseUrl = required("SUPABASE_DB_URL");
+  const workoutId = execFileSync(
+    "psql",
+    [databaseUrl, "-v", "ON_ERROR_STOP=1", "-v", `email=${email}`, "-v", `exercise_id=${exercise.id}`, "-Atq"],
+    {
+      encoding: "utf8",
+      input: `begin;
+       insert into public.workouts (user_id, status, origin)
+       select id, 'planned', 'manual' from auth.users where email = :'email'
+       returning id
+       \\gset
+       insert into public.workout_exercises (workout_id, exercise_id, position, sets, reps)
+       values (:'id'::uuid, :'exercise_id'::uuid, 0, 3, 10);
+       update public.workouts set status = 'completed', completed_at = now()
+       where id = :'id'::uuid
+       returning id;
+       commit;`,
+    },
+  ).trim();
+  if (!workoutId) throw new Error("The E2E completed-history fixture could not be created.");
+  return workoutId;
+}

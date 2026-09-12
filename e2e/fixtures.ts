@@ -1,5 +1,5 @@
 import { expect, test as base } from "@playwright/test";
-import { configureAiProviderKey, loadWorkoutFixture } from "./local-fixtures";
+import { configureAiProviderKey, loadWorkoutFixture, seedCompletedHistoryFixture } from "./local-fixtures";
 
 const PASSWORD = "e2e-local-password";
 
@@ -26,5 +26,6 @@ export const test = base.extend<{ authenticatedPage: E2eUser }>({
 
 export { configureAiProviderKey };
 export { loadWorkoutFixture };
+export { seedCompletedHistoryFixture };
 
 export { expect };

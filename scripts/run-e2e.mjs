@@ -30,15 +30,13 @@ const local = args.includes("--list") ? null : readLocalSupabaseEnv();
 const env = local
   ? {
       ...process.env,
-      SUPABASE_URL: process.env.SUPABASE_URL ?? local.API_URL,
-      SUPABASE_KEY: process.env.SUPABASE_KEY ?? local.ANON_KEY,
-      SUPABASE_SERVICE_ROLE_KEY:
-        process.env.SUPABASE_SERVICE_ROLE_KEY ??
-        (Object.hasOwn(local, "SECRET_KEY") ? local.SECRET_KEY : local.SERVICE_ROLE_KEY),
+      SUPABASE_URL: local.API_URL,
+      SUPABASE_KEY: local.ANON_KEY,
+      SUPABASE_SERVICE_ROLE_KEY: Object.hasOwn(local, "SECRET_KEY") ? local.SECRET_KEY : local.SERVICE_ROLE_KEY,
       SUPABASE_DB_URL: local.DB_URL,
-      OPENROUTER_MODEL: process.env.OPENROUTER_MODEL ?? "e2e-test-model",
-      AI_CONFIRMATION_SIGNING_SECRET: process.env.AI_CONFIRMATION_SIGNING_SECRET ?? randomBytes(32).toString("hex"),
-      AI_KEY_ENCRYPTION_KEY_V1: process.env.AI_KEY_ENCRYPTION_KEY_V1 ?? randomBytes(32).toString("base64url"),
+      OPENROUTER_MODEL: "e2e-test-model",
+      AI_CONFIRMATION_SIGNING_SECRET: randomBytes(32).toString("hex"),
+      AI_KEY_ENCRYPTION_KEY_V1: randomBytes(32).toString("base64url"),
     }
   : process.env;
 

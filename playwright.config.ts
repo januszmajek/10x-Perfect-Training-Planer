@@ -11,11 +11,21 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.ts",
   use: {
     baseURL: "http://127.0.0.1:4321",
-    browserName: "chromium",
-    viewport: { width: 1280, height: 720 },
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
   },
+  projects: [
+    {
+      name: "chromium-mobile",
+      testMatch: /responsive-navigation\.spec\.ts/u,
+      use: { browserName: "chromium", viewport: { width: 360, height: 720 } },
+    },
+    {
+      name: "chromium-desktop",
+      testIgnore: /responsive-navigation\.spec\.ts/u,
+      use: { browserName: "chromium", viewport: { width: 1280, height: 720 } },
+    },
+  ],
   webServer: isListing
     ? undefined
     : {
