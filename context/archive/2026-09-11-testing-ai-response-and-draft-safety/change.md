@@ -1,10 +1,10 @@
 ---
 change_id: testing-ai-response-and-draft-safety
 title: Protect AI responses and workout drafts
-status: impl_reviewed
+status: archived
 created: 2026-09-11
-updated: 2026-09-11
-archived_at: null
+updated: 2026-09-12
+archived_at: 2026-09-12T05:57:46Z
 ---
 
 ## Notes
