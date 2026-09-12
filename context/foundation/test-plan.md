@@ -62,7 +62,7 @@ Each phase opens its own change folder. Status values are orchestrator state.
 | 1   | High-signal UI contracts                | Establish trustworthy rendered behavior coverage for filters, cards, and shared interaction patterns | #3, #5            | test audit, component integration        | complete      | testing-high-signal-ui-contracts                |
 | 2   | Responsive navigation and user journeys | Protect critical flows, navigation state, responsive layouts, drawers, and dialogs                   | #1, #2, #5        | focused e2e, deterministic visual checks | complete      | testing-responsive-navigation-and-user-journeys |
 | 3   | AI response and draft safety            | Prove invalid provider output and failures cannot create unsafe workouts or destroy user work        | #4, #6            | contract, integration, targeted e2e      | complete      | testing-ai-response-and-draft-safety            |
-| 4   | Quality gates and cookbook              | Wire the high-signal suites into CI and preserve canonical UI-testing patterns                       | #3, cross-cutting | CI gates, cookbook                       | change opened | testing-quality-gates-and-cookbook              |
+| 4   | Quality gates and cookbook              | Wire the high-signal suites into CI and preserve canonical UI-testing patterns                       | #3, cross-cutting | CI gates, cookbook                       | complete      | testing-quality-gates-and-cookbook              |
 
 ## 4. Stack
 
