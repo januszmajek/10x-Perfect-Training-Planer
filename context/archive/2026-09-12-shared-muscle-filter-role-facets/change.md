@@ -1,8 +1,9 @@
 ---
 id: shared-muscle-filter-role-facets
-status: impl_reviewed
+status: archived
 created: 2026-09-12
 updated: 2026-09-12
+archived_at: 2026-09-12T21:28:00Z
 ---
 
 # Shared muscle filter role facets
