@@ -212,9 +212,9 @@ No migration is required. Existing URLs already contain role-agnostic muscle cod
 
 #### Automated
 
-- [x] 3.1 Existing E2E specs pass with their updated `Muscles` locators: `pnpm test:e2e`.
-- [x] 3.2 Full handoff gates pass: `pnpm lint` and `pnpm build`.
+- [x] 3.1 Existing E2E specs pass with their updated `Muscles` locators: `pnpm test:e2e`. — ed7e92a
+- [x] 3.2 Full handoff gates pass: `pnpm lint` and `pnpm build`. — ed7e92a
 
 #### Manual
 
-- [x] 3.3 Verify the one-facet experience at desktop and mobile widths, including a muscle present in both roles, without any duplicate checkbox or linked role-labelled control.
+- [x] 3.3 Verify the one-facet experience at desktop and mobile widths, including a muscle present in both roles, without any duplicate checkbox or linked role-labelled control. — ed7e92a
