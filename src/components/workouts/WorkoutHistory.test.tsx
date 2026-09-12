@@ -78,6 +78,13 @@ test("shows completed workout summaries and toggles each complete saved prescrip
     />,
   );
 
+  const musclesFacet = screen.getByText("Muscles (0 selected)").closest("details");
+  if (!musclesFacet) throw new Error("Could not find the unified muscles facet.");
+  expect(within(musclesFacet).getAllByRole("checkbox")).toHaveLength(5);
+  expect(within(musclesFacet).getByLabelText("Chest")).toBeTruthy();
+  expect(screen.queryByText(/^(Main|Secondary) muscles/u)).toBeNull();
+  expect(screen.getByRole("button", { name: "Reset filters" }).disabled).toBe(true);
+
   const completedWorkouts = screen.getByRole("list", { name: "Completed workouts" });
   const manualCard = workoutCard(completedWorkouts, "Manual workout");
   const aiCard = workoutCard(completedWorkouts, "AI workout");

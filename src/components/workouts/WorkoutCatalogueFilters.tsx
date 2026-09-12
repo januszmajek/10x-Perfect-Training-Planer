@@ -81,30 +81,26 @@ export default function WorkoutCatalogueFilters({
       <aside
         className={`fixed inset-y-0 left-0 z-[110] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-r-2xl border border-white/10 bg-slate-950 p-4 shadow-2xl transition-transform duration-300 lg:static lg:w-auto lg:translate-x-0 lg:overflow-visible lg:rounded-2xl lg:bg-white/5 lg:p-6 lg:shadow-none ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                aria-label="Close filters"
-                onClick={onClose}
-                className="inline-flex size-10 items-center justify-center rounded-lg border border-white/15 text-blue-50 lg:hidden"
-              >
-                <ArrowLeft aria-hidden="true" className="size-5" />
-              </button>
-              <h2 className="text-2xl font-bold text-white">Filters</h2>
-            </div>
-          </div>
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
+          <button
+            type="button"
+            aria-label="Close filters"
+            onClick={onClose}
+            className="inline-flex size-10 items-center justify-center rounded-lg border border-white/15 text-blue-50 lg:hidden"
+          >
+            <ArrowLeft aria-hidden="true" className="size-5" />
+          </button>
+          <h2 className="mr-auto text-xl font-bold text-white">Filters</h2>
           <button
             type="button"
             disabled={!active}
             onClick={onReset}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-blue-50 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
+            className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg border border-white/15 px-2 py-1 text-xs font-semibold text-blue-50 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300 disabled:cursor-not-allowed disabled:opacity-45"
           >
             Reset filters
           </button>
         </div>
-        <label htmlFor="exercise-search" className="mt-5 block text-sm font-medium text-blue-50">
+        <label htmlFor="exercise-search" className="mt-4 block text-sm font-medium text-blue-50">
           Search by name
         </label>
         <div className="relative mt-2">
@@ -124,12 +120,7 @@ export default function WorkoutCatalogueFilters({
           />
         </div>
         <div className="mt-4 grid gap-4">
-          <OptionGroup
-            label="Muscles"
-            options={muscles}
-            selected={selectedMuscles}
-            onToggle={onToggleMuscle}
-          />
+          <OptionGroup label="Muscles" options={muscles} selected={selectedMuscles} onToggle={onToggleMuscle} />
           <OptionGroup
             label="Equipment"
             options={equipment.map((value) => [value, formatLabel(value)])}

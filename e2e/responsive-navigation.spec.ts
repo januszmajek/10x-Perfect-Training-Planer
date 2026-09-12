@@ -121,12 +121,12 @@ test("keeps responsive navigation and independently owned filter drawers operabl
   await page.setViewportSize(desktopViewport);
   await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Filters", exact: true })).not.toBeVisible();
-  const mainMuscles = workoutFilters.locator("details").filter({ hasText: "Main muscles" });
-  const mainMusclesSummary = mainMuscles.locator("summary");
+  const muscles = workoutFilters.locator("details").filter({ hasText: "Muscles" });
+  const musclesSummary = muscles.locator("summary");
   await expect(workoutFilters).toBeInViewport();
-  await expect(mainMusclesSummary).toBeInViewport();
-  await mainMusclesSummary.click();
-  const desktopChestFilter = mainMuscles.getByLabel("Chest");
+  await expect(musclesSummary).toBeInViewport();
+  await musclesSummary.click();
+  const desktopChestFilter = muscles.getByLabel("Chest");
   await expect(desktopChestFilter).toBeVisible();
   await desktopChestFilter.check();
   await expect(page).toHaveURL(/\/workouts\/new\?muscle=chest/u);

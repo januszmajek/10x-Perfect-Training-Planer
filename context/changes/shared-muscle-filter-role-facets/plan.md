@@ -201,20 +201,20 @@ No migration is required. Existing URLs already contain role-agnostic muscle cod
 
 #### Automated
 
-- [x] 2.1 Existing History client and rendered-component tests pass after adapting role-specific option expectations to one code-level option list.
-- [x] 2.2 `pnpm test:history` and `pnpm test:ui` pass.
+- [x] 2.1 Existing History client and rendered-component tests pass after adapting role-specific option expectations to one code-level option list. — fc5cf76
+- [x] 2.2 `pnpm test:history` and `pnpm test:ui` pass. — fc5cf76
 
 #### Manual
 
-- [x] 2.3 On History, one `Muscles` facet controls each muscle once; date, equipment, reset, reload, Back, and Forward behavior remain intact.
+- [x] 2.3 On History, one `Muscles` facet controls each muscle once; date, equipment, reset, reload, Back, and Forward behavior remain intact. — fc5cf76
 
 ### Phase 3: Preserve Existing Regression Coverage and Record the Contract
 
 #### Automated
 
-- [ ] 3.1 Existing E2E specs pass with their updated `Muscles` locators: `pnpm test:e2e`.
-- [ ] 3.2 Full handoff gates pass: `pnpm lint` and `pnpm build`.
+- [x] 3.1 Existing E2E specs pass with their updated `Muscles` locators: `pnpm test:e2e`.
+- [x] 3.2 Full handoff gates pass: `pnpm lint` and `pnpm build`.
 
 #### Manual
 
-- [ ] 3.3 Verify the one-facet experience at desktop and mobile widths, including a muscle present in both roles, without any duplicate checkbox or linked role-labelled control.
+- [x] 3.3 Verify the one-facet experience at desktop and mobile widths, including a muscle present in both roles, without any duplicate checkbox or linked role-labelled control.

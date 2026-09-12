@@ -58,6 +58,7 @@ test("reflects controlled filters and sends visible interactions to their callba
 
   const search = screen.getByLabelText("Search by name");
   expect(search.value).toBe("bench");
+  expect(screen.getByText("Muscles (1 selected)")).toBeTruthy();
   expect(screen.getByLabelText("Chest").checked).toBe(true);
   expect(screen.getByLabelText("Barbell").checked).toBe(true);
 

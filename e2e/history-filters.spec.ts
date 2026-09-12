@@ -16,8 +16,8 @@ test("keeps all-selected catalogue and History filters in canonical URLs across 
   await page.goto("/workouts/new");
   await waitForHydration(page);
   await page.getByRole("button", { name: "Filters", exact: true }).click();
-  await page.locator("summary").filter({ hasText: "Main muscles" }).click();
-  await page.locator("details").filter({ hasText: "Main muscles" }).getByLabel("Chest").check();
+  await page.locator("summary").filter({ hasText: "Muscles" }).click();
+  await page.locator("details").filter({ hasText: "Muscles" }).getByLabel("Chest").check();
   await expect(page).toHaveURL(/\/workouts\/new\?muscle=chest/u);
   const workoutEquipment = page.locator("details").filter({ hasText: "Equipment" });
   await workoutEquipment.locator("summary").click();
@@ -27,14 +27,14 @@ test("keeps all-selected catalogue and History filters in canonical URLs across 
   await expect(page.getByRole("button", { name: `Add ${fixtureExercise.name}` })).toBeVisible();
   await page.reload();
   await waitForHydration(page);
-  await expect(page.locator("details").filter({ hasText: "Main muscles" }).getByLabel("Chest")).toBeChecked();
+  await expect(page.locator("details").filter({ hasText: "Muscles" }).getByLabel("Chest")).toBeChecked();
   await expect(page.locator("details").filter({ hasText: "Equipment" }).getByLabel("Barbell")).toBeChecked();
 
   await page.goto("/history");
   await waitForHydration(page);
   await page.getByRole("button", { name: "Filters", exact: true }).click();
-  await page.locator("summary").filter({ hasText: "Main muscles" }).click();
-  await page.locator("details").filter({ hasText: "Main muscles" }).getByLabel("Chest").check();
+  await page.locator("summary").filter({ hasText: "Muscles" }).click();
+  await page.locator("details").filter({ hasText: "Muscles" }).getByLabel("Chest").check();
   await expect(page).toHaveURL(/\/history\?muscle=chest/u);
   const historyEquipment = page.locator("details").filter({ hasText: "Equipment" });
   await historyEquipment.locator("summary").click();
@@ -49,18 +49,18 @@ test("keeps all-selected catalogue and History filters in canonical URLs across 
   await expect(card).toContainText(fixtureExercise.name);
   await page.reload();
   await waitForHydration(page);
-  await expect(page.locator("details").filter({ hasText: "Main muscles" }).getByLabel("Chest")).toBeChecked();
+  await expect(page.locator("details").filter({ hasText: "Muscles" }).getByLabel("Chest")).toBeChecked();
   await expect(page.locator("details").filter({ hasText: "Equipment" }).getByLabel("Barbell")).toBeChecked();
 
   await page.goBack();
   await waitForHydration(page);
   await expect(page).toHaveURL(/\/history\?muscle=chest/u);
-  await expect(page.locator("details").filter({ hasText: "Main muscles" }).getByLabel("Chest")).toBeChecked();
+  await expect(page.locator("details").filter({ hasText: "Muscles" }).getByLabel("Chest")).toBeChecked();
   await expect(page.locator("details").filter({ hasText: "Equipment" }).getByLabel("Barbell")).not.toBeChecked();
 
   await page.goForward();
   await waitForHydration(page);
   await expect(page).toHaveURL(/\/history\?muscle=chest&equipment=barbell/u);
-  await expect(page.locator("details").filter({ hasText: "Main muscles" }).getByLabel("Chest")).toBeChecked();
+  await expect(page.locator("details").filter({ hasText: "Muscles" }).getByLabel("Chest")).toBeChecked();
   await expect(page.locator("details").filter({ hasText: "Equipment" }).getByLabel("Barbell")).toBeChecked();
 });
