@@ -6,7 +6,7 @@
 >
 > Refresh: re-run `/10x-test-plan --refresh` when stale (see §8).
 >
-> Last updated: 2026-09-11
+> Last updated: 2026-09-12
 
 ## 1. Strategy
 
@@ -44,35 +44,34 @@ Risks are ordered by impact × likelihood. Sources are evidence, not assumed cod
 
 ### Risk Response Guidance
 
-| Risk | What would prove protection                                                                                                                  | Must challenge                                                             | Context `/10x-research` must ground                                                | Likely cheapest layer                                        | Anti-pattern to avoid                             |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------- |
-| #1   | A user completes representative manual and AI journeys while navigation, Back/Forward, durable state, and unsaved state behave as specified. | Individually working pages imply the journey works.                        | Route sequence, session transitions, persisted versus volatile state, side effects | Focused e2e                                                  | Happy-path-only journeys; arbitrary waits         |
-| #2   | At 360px and desktop widths, controls remain reachable, content does not overflow, drawers restore focus, and essential actions work.        | A successful build or desktop screenshot proves responsiveness.            | Breakpoints, overlay lifecycle, focus contract, critical viewports                 | Browser assertions plus selective deterministic visual diffs | Large brittle screenshot suites                   |
-| #3   | Representative defects fail tests for business-visible reasons, with expected values derived from product contracts.                         | Test count and green CI imply strong protection.                           | Existing oracles, mocking boundaries, negative cases, rendered gaps                | Test audit plus targeted replacement                         | Assertions copied from production logic           |
-| #4   | Invalid proposals are rejected before display/save, valid proposals satisfy independent workout rules, and failures preserve the draft.      | Schema-valid JSON is a valid workout.                                      | Provider boundary, server rules, error translation, draft and save lifecycle       | Contract and integration tests at the mocked provider edge   | Mirroring validators; one-fixture coverage        |
-| #5   | Equivalent filter and card interactions obey one observable contract across Workout and History.                                             | Similar appearance proves shared behavior; shared code proves correctness. | Current ownership, semantic differences, reuse boundary, URL state, accessibility  | Rendered component integration                               | Snapshots; duplicated implementation mirrors      |
-| #6   | Two-user and malformed-request scenarios fail closed without leaked data, secrets, or mutations.                                             | Authentication proves ownership; client validation protects the server.    | Ownership checks, request validation, error and logging boundary                   | Preserve database contracts plus targeted API integration    | Broad infrastructure testing; framework retesting |
+| Risk | What would prove protection                                                                                                                  | Must challenge                                                             | Context `/10x-research` must ground                                                | Likely cheapest layer                                      | Anti-pattern to avoid                             |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------- |
+| #1   | A user completes representative manual and AI journeys while navigation, Back/Forward, durable state, and unsaved state behave as specified. | Individually working pages imply the journey works.                        | Route sequence, session transitions, persisted versus volatile state, side effects | Focused e2e                                                | Happy-path-only journeys; arbitrary waits         |
+| #2   | At 360px and desktop widths, controls remain reachable, content does not overflow, drawers restore focus, and essential actions work.        | A successful build or desktop screenshot proves responsiveness.            | Breakpoints, overlay lifecycle, focus contract, critical viewports                 | Browser assertions plus deterministic viewport geometry    | Cross-host pixel snapshots                        |
+| #3   | Representative defects fail tests for business-visible reasons, with expected values derived from product contracts.                         | Test count and green CI imply strong protection.                           | Existing oracles, mocking boundaries, negative cases, rendered gaps                | Test audit plus targeted replacement                       | Assertions copied from production logic           |
+| #4   | Invalid proposals are rejected before display/save, valid proposals satisfy independent workout rules, and failures preserve the draft.      | Schema-valid JSON is a valid workout.                                      | Provider boundary, server rules, error translation, draft and save lifecycle       | Contract and integration tests at the mocked provider edge | Mirroring validators; one-fixture coverage        |
+| #5   | Equivalent filter and card interactions obey one observable contract across Workout and History.                                             | Similar appearance proves shared behavior; shared code proves correctness. | Current ownership, semantic differences, reuse boundary, URL state, accessibility  | Rendered component integration                             | Snapshots; duplicated implementation mirrors      |
+| #6   | Two-user and malformed-request scenarios fail closed without leaked data, secrets, or mutations.                                             | Authentication proves ownership; client validation protects the server.    | Ownership checks, request validation, error and logging boundary                   | Preserve database contracts plus targeted API integration  | Broad infrastructure testing; framework retesting |
 
 ## 3. Phased Rollout
 
 Each phase opens its own change folder. Status values are orchestrator state.
 
-| #   | Phase name                              | Goal (one line)                                                                                      | Risks covered     | Test types                               | Status        | Change folder                                   |
-| --- | --------------------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------- | ---------------------------------------- | ------------- | ----------------------------------------------- |
-| 1   | High-signal UI contracts                | Establish trustworthy rendered behavior coverage for filters, cards, and shared interaction patterns | #3, #5            | test audit, component integration        | complete      | testing-high-signal-ui-contracts                |
-| 2   | Responsive navigation and user journeys | Protect critical flows, navigation state, responsive layouts, drawers, and dialogs                   | #1, #2, #5        | focused e2e, deterministic visual checks | complete      | testing-responsive-navigation-and-user-journeys |
-| 3   | AI response and draft safety            | Prove invalid provider output and failures cannot create unsafe workouts or destroy user work        | #4, #6            | contract, integration, targeted e2e      | complete      | testing-ai-response-and-draft-safety            |
-| 4   | Quality gates and cookbook              | Wire the high-signal suites into CI and preserve canonical UI-testing patterns                       | #3, cross-cutting | CI gates, cookbook                       | complete      | testing-quality-gates-and-cookbook              |
+| #   | Phase name                              | Goal (one line)                                                                                      | Risks covered     | Test types                              | Status   | Change folder                                   |
+| --- | --------------------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------- | --------------------------------------- | -------- | ----------------------------------------------- |
+| 1   | High-signal UI contracts                | Establish trustworthy rendered behavior coverage for filters, cards, and shared interaction patterns | #3, #5            | test audit, component integration       | complete | testing-high-signal-ui-contracts                |
+| 2   | Responsive navigation and user journeys | Protect critical flows, navigation state, responsive layouts, drawers, and dialogs                   | #1, #2, #5        | focused e2e, responsive geometry checks | complete | testing-responsive-navigation-and-user-journeys |
+| 3   | AI response and draft safety            | Prove invalid provider output and failures cannot create unsafe workouts or destroy user work        | #4, #6            | contract, integration, targeted e2e     | complete | testing-ai-response-and-draft-safety            |
+| 4   | Quality gates and cookbook              | Wire the high-signal suites into CI and preserve canonical UI-testing patterns                       | #3, cross-cutting | CI gates, cookbook                      | complete | testing-quality-gates-and-cookbook              |
 
 ## 4. Stack
 
-| Layer                | Tool                   | Version         | Notes                                                                                                                                       |
-| -------------------- | ---------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Node contracts       | Node test runner       | 22.14.0         | `pnpm test:node` discovers direct `src/lib/*.test.ts`; focused `test:*` Node scripts remain diagnostic subsets.                             |
-| database contracts   | Supabase CLI / pgTAP   | 2.117.0         | Start and reset local Supabase, then run `pnpm exec supabase test db --local supabase/tests/database` and the explicit concurrency scripts. |
-| rendered components  | Vitest / jsdom         | 4.1.11 / 28.1.0 | `pnpm test:ui` runs only `src/**/*.test.tsx` with the shared UI setup.                                                                      |
-| browser journeys     | Playwright / Chromium  | 1.63.0          | `pnpm test:e2e` automatically discovers `e2e/`; it requires local Supabase and `pnpm exec playwright install chromium`.                     |
-| deterministic visual | Playwright screenshots | 1.63.0          | Keep screenshots limited to stable, high-risk responsive surfaces; retain failure evidence in CI.                                           |
+| Layer               | Tool                  | Version         | Notes                                                                                                                                       |
+| ------------------- | --------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Node contracts      | Node test runner      | 22.14.0         | `pnpm test:node` discovers direct `src/lib/*.test.ts`; focused `test:*` Node scripts remain diagnostic subsets.                             |
+| database contracts  | Supabase CLI / pgTAP  | 2.117.0         | Start and reset local Supabase, then run `pnpm exec supabase test db --local supabase/tests/database` and the explicit concurrency scripts. |
+| rendered components | Vitest / jsdom        | 4.1.11 / 28.1.0 | `pnpm test:ui` runs only `src/**/*.test.tsx` with the shared UI setup.                                                                      |
+| browser journeys    | Playwright / Chromium | 1.63.0          | `pnpm test:e2e` automatically discovers `e2e/`; it requires local Supabase and `pnpm exec playwright install chromium`.                     |
 
 Test-base profile: **meaningful** — 23 direct Node contract files, four rendered-component files, five browser specs, and
 database/explicit concurrency checks. The layers deliberately cover domain boundaries, controlled rendering, browser
@@ -87,13 +86,13 @@ lifecycle, and persistence without overlapping runner ownership.
 
 ## 5. Quality Gates
 
-| Gate                                   | Local command or prerequisite                                                                                                      | CI ownership                     | Catches                                                                                    |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------ |
-| database contracts                     | Running local Supabase; `pnpm exec supabase db reset --local`; database test directory plus the three explicit concurrency scripts | required                         | schema, pgTAP, ownership, and concurrency regressions                                      |
-| Node contracts                         | `pnpm test:node` → `src/lib/*.test.ts`                                                                                             | required                         | pure domain, request, provider-edge, and client-contract regressions                       |
-| rendered UI behavior                   | `pnpm test:ui` → `src/**/*.test.tsx` in jsdom                                                                                      | required                         | filter, card, dialog, and controlled interaction regressions                               |
-| browser journeys and selective visuals | Running local Supabase; `pnpm exec playwright install chromium`; `pnpm test:e2e` → automatic `e2e/` discovery                      | required; failure-only artifacts | navigation, responsive, lifecycle, state-boundary, and stable high-risk visual regressions |
-| type, style, and Worker build          | `pnpm astro sync`, `pnpm lint`, `pnpm build`                                                                                       | required                         | generated-type, syntax, type, SSR, lint, and build drift                                   |
+| Gate                                   | Local command or prerequisite                                                                                                      | CI ownership                     | Catches                                                                    |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------------------- |
+| database contracts                     | Running local Supabase; `pnpm exec supabase db reset --local`; database test directory plus the three explicit concurrency scripts | required                         | schema, pgTAP, ownership, and concurrency regressions                      |
+| Node contracts                         | `pnpm test:node` → `src/lib/*.test.ts`                                                                                             | required                         | pure domain, request, provider-edge, and client-contract regressions       |
+| rendered UI behavior                   | `pnpm test:ui` → `src/**/*.test.tsx` in jsdom                                                                                      | required                         | filter, card, dialog, and controlled interaction regressions               |
+| browser journeys and responsive layout | Running local Supabase; `pnpm exec playwright install chromium`; `pnpm test:e2e` → automatic `e2e/` discovery                      | required; failure-only artifacts | navigation, responsive geometry, lifecycle, and state-boundary regressions |
+| type, style, and Worker build          | `pnpm astro sync`, `pnpm lint`, `pnpm build`                                                                                       | required                         | generated-type, syntax, type, SSR, lint, and build drift                   |
 
 ## 6. Cookbook Patterns
 
@@ -118,8 +117,9 @@ hydration behavior belong in Playwright, not Vitest. A general automated accessi
 Use Playwright for SSR/hydration, navigation, responsive layout, focus, scroll lock, durable state, and browser-only
 recovery seams. Start local Supabase, run `pnpm exec playwright install chromium`, then run `pnpm test:e2e`; Playwright
 automatically discovers specs under `e2e/`. Create isolated local users through the harness. Use role- or label-based
-locators and wait for observable URLs, responses, or web-first assertions instead of sleeps. Keep visual assertions to
-stable high-risk responsive surfaces; do not create a broad visual-snapshot suite.
+locators and wait for observable URLs, responses, hydration, or web-first assertions instead of sleeps. Prove responsive
+layout with viewport intersection, geometry, and overflow checks. Retain screenshots and traces as failure evidence; do
+not use cross-host pixel baselines unless local and CI rendering environments are identical and version-pinned.
 
 ### 6.4 Testing an AI response or provider failure
 
@@ -143,8 +143,8 @@ Choose one cheapest independent layer for each regression:
 - **Ownership, rollback, schema, or concurrency behavior:** use local Supabase and the explicit
   `supabase/tests/database` pgTAP command or relevant concurrency script.
 
-Keep the AI-safety boundary in §6.4: no real-provider calls. Do not add browser emulation to Vitest, broad visual
-suites, general accessibility scans, aggregate local orchestration, or duplicate database ownership tests in browser
+Keep the AI-safety boundary in §6.4: no real-provider calls. Do not add browser emulation to Vitest, cross-host pixel
+snapshots, general accessibility scans, aggregate local orchestration, or duplicate database ownership tests in browser
 flows.
 
 ## 7. What We Deliberately Don't Test

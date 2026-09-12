@@ -9,6 +9,9 @@ import cloudflare from "@astrojs/cloudflare";
 // https://astro.build/config
 export default defineConfig({
   output: "server",
+  devToolbar: {
+    enabled: process.env.PLAYWRIGHT_TEST !== "1",
+  },
   integrations: [react(), sitemap()],
   vite: {
     plugins: [tailwindcss()],

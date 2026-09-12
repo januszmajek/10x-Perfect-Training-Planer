@@ -19,8 +19,10 @@ test("keeps all-selected catalogue and History filters in canonical URLs across 
   await page.locator("summary").filter({ hasText: "Main muscles" }).click();
   await page.locator("details").filter({ hasText: "Main muscles" }).getByLabel("Chest").check();
   await expect(page).toHaveURL(/\/workouts\/new\?muscle=chest/u);
-  await page.locator("summary").filter({ hasText: "Equipment" }).click({ force: true });
-  await page.locator("details").filter({ hasText: "Equipment" }).getByLabel("Barbell").check();
+  const workoutEquipment = page.locator("details").filter({ hasText: "Equipment" });
+  await workoutEquipment.locator("summary").click();
+  await expect(workoutEquipment).toHaveAttribute("open", "");
+  await workoutEquipment.getByLabel("Barbell").check();
   await expect(page).toHaveURL(/\/workouts\/new\?muscle=chest&equipment=barbell/u);
   await expect(page.getByRole("button", { name: `Add ${fixtureExercise.name}` })).toBeVisible();
   await page.reload();
@@ -34,8 +36,10 @@ test("keeps all-selected catalogue and History filters in canonical URLs across 
   await page.locator("summary").filter({ hasText: "Main muscles" }).click();
   await page.locator("details").filter({ hasText: "Main muscles" }).getByLabel("Chest").check();
   await expect(page).toHaveURL(/\/history\?muscle=chest/u);
-  await page.locator("summary").filter({ hasText: "Equipment" }).click({ force: true });
-  await page.locator("details").filter({ hasText: "Equipment" }).getByLabel("Barbell").check();
+  const historyEquipment = page.locator("details").filter({ hasText: "Equipment" });
+  await historyEquipment.locator("summary").click();
+  await expect(historyEquipment).toHaveAttribute("open", "");
+  await historyEquipment.getByLabel("Barbell").check();
   await expect(page).toHaveURL(/\/history\?muscle=chest&equipment=barbell/u);
   const historyFilters = page.locator("aside").filter({ has: page.getByRole("heading", { name: "Filters" }) });
   await historyFilters.getByRole("button", { name: "Close filters" }).click();

@@ -30,6 +30,7 @@ const local = args.includes("--list") ? null : readLocalSupabaseEnv();
 const env = local
   ? {
       ...process.env,
+      PLAYWRIGHT_TEST: "1",
       SUPABASE_URL: local.API_URL,
       SUPABASE_KEY: local.ANON_KEY,
       SUPABASE_SERVICE_ROLE_KEY: Object.hasOwn(local, "SECRET_KEY") ? local.SECRET_KEY : local.SERVICE_ROLE_KEY,
