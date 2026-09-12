@@ -1,4 +1,4 @@
-import { ArrowLeft, RotateCcw, Search } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import type { EquipmentType } from "@/lib/manual-workout-builder";
 
 interface Props {
@@ -7,8 +7,7 @@ interface Props {
   search: string;
   selectedMuscles: string[];
   selectedEquipment: EquipmentType[];
-  primaryMuscles: [string, string][];
-  secondaryMuscles: [string, string][];
+  muscles: [string, string][];
   equipment: EquipmentType[];
   onClose: () => void;
   onReset: () => void;
@@ -66,8 +65,7 @@ export default function WorkoutCatalogueFilters({
   search,
   selectedMuscles,
   selectedEquipment,
-  primaryMuscles,
-  secondaryMuscles,
+  muscles,
   equipment,
   onClose,
   onReset,
@@ -97,15 +95,14 @@ export default function WorkoutCatalogueFilters({
               <h2 className="text-2xl font-bold text-white">Filters</h2>
             </div>
           </div>
-          {active && (
-            <button
-              type="button"
-              onClick={onReset}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-blue-50 hover:bg-white/10"
-            >
-              <RotateCcw aria-hidden="true" className="size-4" /> Reset filters
-            </button>
-          )}
+          <button
+            type="button"
+            disabled={!active}
+            onClick={onReset}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-medium text-blue-50 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            Reset filters
+          </button>
         </div>
         <label htmlFor="exercise-search" className="mt-5 block text-sm font-medium text-blue-50">
           Search by name
@@ -128,14 +125,8 @@ export default function WorkoutCatalogueFilters({
         </div>
         <div className="mt-4 grid gap-4">
           <OptionGroup
-            label="Main muscles"
-            options={primaryMuscles}
-            selected={selectedMuscles}
-            onToggle={onToggleMuscle}
-          />
-          <OptionGroup
-            label="Secondary muscles"
-            options={secondaryMuscles}
+            label="Muscles"
+            options={muscles}
             selected={selectedMuscles}
             onToggle={onToggleMuscle}
           />

@@ -74,24 +74,6 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
     return [...options].sort(([, left], [, right]) => left.localeCompare(right));
   }, [catalogue]);
   const equipmentOptions = useMemo(() => [...new Set(catalogue.map(({ equipment }) => equipment))].sort(), [catalogue]);
-  const primaryMuscleOptions = useMemo(
-    () =>
-      muscleOptions.filter(([code]) =>
-        catalogue.some((exercise) =>
-          exercise.muscles.some((muscle) => muscle.code === code && muscle.role === "primary"),
-        ),
-      ),
-    [catalogue, muscleOptions],
-  );
-  const secondaryMuscleOptions = useMemo(
-    () =>
-      muscleOptions.filter(([code]) =>
-        catalogue.some((exercise) =>
-          exercise.muscles.some((muscle) => muscle.code === code && muscle.role === "secondary"),
-        ),
-      ),
-    [catalogue, muscleOptions],
-  );
   const draftValid = validateDraftItems(draft, knownExerciseIds);
   const filtersActive =
     catalogueNavigation.search !== "" ||
@@ -175,8 +157,7 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
           search={catalogueNavigation.search}
           selectedMuscles={catalogueNavigation.muscles}
           selectedEquipment={catalogueNavigation.equipment}
-          primaryMuscles={primaryMuscleOptions}
-          secondaryMuscles={secondaryMuscleOptions}
+          muscles={muscleOptions}
           equipment={equipmentOptions}
           onClose={() => {
             setFiltersOpen(false);

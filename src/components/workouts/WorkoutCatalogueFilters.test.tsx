@@ -20,8 +20,10 @@ function renderFilters(active = true) {
         search={search}
         selectedMuscles={selectedMuscles}
         selectedEquipment={selectedEquipment}
-        primaryMuscles={[["chest", "Chest"]]}
-        secondaryMuscles={[["triceps", "Triceps"]]}
+        muscles={[
+          ["chest", "Chest"],
+          ["triceps", "Triceps"],
+        ]}
         equipment={["barbell", "cable"]}
         onClose={callbacks.onClose}
         onReset={() => {
@@ -72,11 +74,11 @@ test("reflects controlled filters and sends visible interactions to their callba
   expect(search.value).toBe("");
 });
 
-test("shows Reset only for active filters and exposes both visible close controls", async () => {
+test("keeps Reset visible but disabled without active filters and exposes both visible close controls", async () => {
   const user = userEvent.setup();
   const callbacks = renderFilters(false);
 
-  expect(screen.queryByRole("button", { name: "Reset filters" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Reset filters" }).disabled).toBe(true);
   expect(screen.getAllByRole("button", { name: "Close filters" })).toHaveLength(2);
 
   for (const control of screen.getAllByRole("button", { name: "Close filters" })) {
