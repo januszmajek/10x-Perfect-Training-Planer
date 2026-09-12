@@ -1,316 +1,168 @@
-# 10x Astro Starter
+# Perfect Training Planner
 
-![](./public/template.png)
+[![CI](https://github.com/januszmajek/10x-Perfect-Training-Planer/actions/workflows/ci.yml/badge.svg)](https://github.com/januszmajek/10x-Perfect-Training-Planer/actions/workflows/ci.yml)
 
-A modern, opinionated starter template for building fast, accessible web applications.
+**[Open the app](https://perfect-training-planner.januszmajekjm.workers.dev)**
 
-## Tech Stack
+Perfect Training Planner is a web app for recreational solo lifters who want to plan their next gym session without
+guesswork. It is a public certification project for the third edition of 10xDevs and a hobby project.
 
-- [Astro](https://astro.build/) v6 - Modern web framework with server-first rendering
-- [React](https://react.dev/) v19 - UI library for interactive components
-- [TypeScript](https://www.typescriptlang.org/) v5 - Type-safe JavaScript
-- [Tailwind CSS](https://tailwindcss.com/) v4 - Utility-first CSS framework
-- [Supabase](https://supabase.com/) - Authentication and backend-as-a-service
-- [Cloudflare Workers](https://workers.cloudflare.com/) - Edge deployment runtime
+After creating an account, a user can build a workout manually from the exercise catalogue or ask the AI proposer for
+a recovery-aware plan. A planned workout stays editable until it is marked done; completed workouts become history and
+inform later recommendations.
 
-## Prerequisites
+## What it does
 
-- Node.js v22.14.0 (as specified in `.nvmrc`)
-- Corepack (comes with Node.js)
-- pnpm v10 (managed by Corepack from `package.json`)
-- Docker with approximately 7 GB of memory available for the local Supabase stack
+- Creates workouts manually with catalogue search, muscle-group and equipment filters, and recovery-aware suggestions.
+- Generates editable AI workout proposals from completed workout history, recovery windows, and exercise preferences.
+- Keeps planned workouts separate from completed history, with editing, completion, and history filtering.
+- Uses email/password authentication and isolates each user's workouts, preferences, and encrypted AI provider key.
+- Uses a bring-your-own-key (BYOK) OpenRouter flow: the app does not provide or pay for a user's AI API key.
 
-Use the same dependency flow on Windows and Linux/Omarchy. Install the Node.js version from `.nvmrc`, then enable Corepack once per machine or Node.js installation:
+## Project documentation
+
+- [Product requirements](./context/foundation/prd.md) — user flows, recovery rules, privacy boundaries, and non-goals.
+- [Technical stack](./context/foundation/tech-stack.md) — framework and platform decisions.
+- [Infrastructure](./context/foundation/infrastructure.md) — Cloudflare Workers rationale and operational risks.
+- [Test plan](./context/foundation/test-plan.md) — test layers, commands, and when to use them.
+- [Roadmap](./context/foundation/roadmap.md) — delivered slices and remaining work.
+- [Repository guidelines](./AGENTS.md) — conventions, safety rules, and required verification for contributors.
+
+## Run locally
+
+The supported local environments are Omarchy (or another Linux distribution) and Windows through WSL2. Use a Linux
+terminal for every command below. Native PowerShell is not a supported development path.
+
+### Prerequisites
+
+- Git
+- Node.js 22.14.0 (see [`.nvmrc`](./.nvmrc)) with Corepack enabled
+- Docker Engine running and available to the current Linux user
+- At least 7 GB available to Docker for the local Supabase services
+
+On Windows, install WSL2 and a Linux distribution, then install Docker Engine **inside that distribution**. Do not
+share `node_modules` between Windows and WSL2; install dependencies from the Linux checkout. On Omarchy, use the
+normal Linux Docker Engine and terminal setup.
+
+Confirm the prerequisites before continuing:
 
 ```bash
+node --version
+docker version
 corepack enable
 corepack prepare pnpm@10.24.0 --activate
-pnpm -v
+pnpm --version
 ```
 
-After that, normal project work only needs `pnpm install`, `pnpm dev`, and the other scripts below. Run `pnpm install` separately on each OS. Do not copy or share `node_modules` between Windows and Linux because several dependencies install OS-specific binaries.
-
-## Getting Started
-
-1. Clone the repository:
+### First-time setup
 
 ```bash
-git clone https://github.com/przeprogramowani/10x-astro-starter.git
-cd 10x-astro-starter
+git clone https://github.com/januszmajek/10x-Perfect-Training-Planer.git
+cd 10x-Perfect-Training-Planer
+pnpm install --frozen-lockfile
+pnpm exec supabase start
+pnpm exec supabase db reset --local
 ```
 
-2. Install dependencies:
+The first `supabase start` downloads local service images. The committed migrations and seed data set up the exercise
+catalogue and application schema; do not run `supabase init`.
 
-```bash
-pnpm install
+Create ignored `.env` and `.dev.vars` files with the same local values. Get the local URL and publishable/anon key
+from `pnpm exec supabase status`.
+
+```dotenv
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_KEY=<local-publishable-or-anon-key>
+AI_KEY_ENCRYPTION_KEY_V1=<32-random-bytes-as-unpadded-base64url>
+OPENROUTER_MODEL=<model-that-supports-strict-structured-json-output>
+AI_CONFIRMATION_SIGNING_SECRET=<independent-high-entropy-secret>
 ```
 
-3. Set up Supabase and configure environment variables — see [Supabase Configuration](#supabase-configuration) below.
+`SUPABASE_URL` and `SUPABASE_KEY` are required for authentication and workout persistence. The three `AI_*` /
+`OPENROUTER_*` values are required to save a user provider key and generate AI workouts; manual planning still works
+without them. Use distinct high-entropy values for the encryption and confirmation secrets. Never commit, log, or put
+real values in documentation.
+
+`SUPABASE_KEY` must be a Supabase publishable key or legacy `anon` key—never a `service_role` or `sb_secret_...` key.
+Each end user supplies their own OpenRouter key in **Account** after signing in. That user key is encrypted before
+storage and must never be placed in `.env`, `.dev.vars`, or a Cloudflare Worker secret.
+
+Start the app:
 
 ```bash
 pnpm dev
 ```
 
-## Project Structure
-
-```md
-.
-├── src/
-│ ├── layouts/ # Astro layouts
-│ ├── pages/ # Astro pages
-│ │ └── api/ # API endpoints
-│ ├── components/ # UI components (Astro & React)
-│ └── assets/ # Static assets
-├── public/ # Public assets
-├── wrangler.jsonc # Cloudflare Workers config
-```
-
-## Supabase Configuration
-
-This project uses [Supabase](https://supabase.com/) for authentication, the exercise catalogue, and private workout
-storage. Environment variables are declared via Astro's `astro:env` schema and are treated as **server-only
-secrets** — they are never exposed to the client.
-
-### First-time setup (local, no cloud project needed)
-
-The committed `supabase/config.toml` and migrations are sufficient; do not run `supabase init`.
-
-1. Start the local stack. The first run downloads its Docker images:
+Open the local URL printed by Astro. Supabase Studio is available at <http://localhost:54323>. Stop the local stack
+when you are finished:
 
 ```bash
-pnpm exec supabase start
+pnpm exec supabase stop
 ```
 
-2. Rebuild the database from the committed migrations and local seed entry point:
+### Daily workflow
+
+```bash
+pnpm dev                         # run the app
+pnpm lint                        # lint the repository
+pnpm build                       # build the Cloudflare Worker
+pnpm test:node                   # domain and API-contract tests
+pnpm test:ui                     # React UI tests
+pnpm exec playwright install chromium
+pnpm test:e2e                    # browser journeys; requires local Supabase
+```
+
+Before a database migration is committed, reset the local database, check it, regenerate types, and format the
+generated file:
 
 ```bash
 pnpm exec supabase db reset --local
-```
-
-The ordered migrations create the production exercise catalogue and private workout lifecycle. `supabase/seed.sql`
-is reserved for non-sensitive local-only fixtures; production catalogue records belong in versioned migrations and
-must not be duplicated there.
-
-3. Create `.env` and `.dev.vars` locally, then add the URL and publishable or anon key printed by
-   `pnpm exec supabase status`:
-
-```bash
-SUPABASE_URL=http://127.0.0.1:54321
-SUPABASE_KEY=<local publishable or anon key>
-AI_KEY_ENCRYPTION_KEY_V1=<unpadded-base64url-encoding-of-32-random-bytes>
-OPENROUTER_MODEL=<fixed-openrouter-model-with-strict-structured-output-support>
-AI_CONFIRMATION_SIGNING_SECRET=<independent-random-secret>
-```
-
-Never use a `service_role` or `sb_secret_...` key in the application. Both local environment files are ignored by
-git.
-
-`AI_KEY_ENCRYPTION_KEY_V1` is optional for builds and read-only pages, but AI-key save and replacement operations
-fail closed when it is missing or malformed. Its value must be the unpadded base64url encoding of exactly 32 random
-bytes. To generate it directly into the ignored `.dev.vars` file without printing it, run this once:
-
-```bash
-node -e 'const { randomBytes } = require("node:crypto"); const { appendFileSync } = require("node:fs"); appendFileSync(".dev.vars", `\nAI_KEY_ENCRYPTION_KEY_V1=${randomBytes(32).toString("base64url")}\n`, { mode: 0o600 })'
-```
-
-Use only placeholder text in committed examples. Never print, log, or commit the generated value. Losing the V1
-secret makes existing encrypted provider keys unrecoverable, so production backup and future rotation require an
-explicit operational procedure.
-
-`OPENROUTER_MODEL` is a server-only fixed model identifier used only by the AI workout-generation route. Pick an
-OpenRouter model that supports strict structured JSON output; users cannot provide or override it from the browser.
-The model setting is not an OpenRouter API key. Each user supplies their own disposable or personal OpenRouter key in
-the Account page. Before encryption or storage, the Worker sends that key through one fixed-model completion limited to
-one output token and discards the response body. This validates the capability the app actually needs and can consume a
-small amount of the user's OpenRouter credit. An unsuccessful validation never replaces an existing encrypted key.
-
-`AI_CONFIRMATION_SIGNING_SECRET` is a separate Worker-only HMAC secret used to sign the short-lived, owner-bound
-confirmation required for a reduced three- or four-exercise history-aware proposal. It must be unrelated to
-`AI_KEY_ENCRYPTION_KEY_V1`, OpenRouter keys, and Supabase credentials. Generate and store a high-entropy value without
-printing it, for example with the same ignored-file pattern used for the encryption root. Rotating this secret
-invalidates outstanding reduced-generation confirmations; users can safely start generation again, and a stored nonce
-cannot authorize a request without a valid signature.
-
-4. Verify the database contract:
-
-```bash
 pnpm exec supabase db lint --local --schema public --fail-on error
-pnpm exec supabase test db --local supabase/tests/database
-bash supabase/tests/database/workout_lifecycle_concurrency.test.sh
-```
-
-5. Regenerate and normalize TypeScript database types after any schema change:
-
-```bash
 pnpm exec supabase gen types typescript --local --schema public > src/types/database.types.ts
 pnpm exec prettier --config .prettierrc.json --write src/types/database.types.ts
 ```
 
-Commit the regenerated file. CI repeats this pipeline and fails if the committed types drift from a clean local
-schema.
+## Project layout
 
-### AI recommendation retention job
-
-The migration-managed `purge-expired-ai-recommendation-data` job runs daily and removes only expired proposal/event
-telemetry, independent post-save completion telemetry, plus expired or consumed reduced-generation confirmations.
-Verify its installation and recent status with:
-
-```sql
-select schedule, jobname, command from cron.job where jobname = 'purge-expired-ai-recommendation-data';
-select * from cron.job_run_details
-where jobid = (select jobid from cron.job where jobname = 'purge-expired-ai-recommendation-data')
-order by start_time desc limit 10;
+```text
+src/
+  pages/          Astro routes and API endpoints
+  components/     Astro UI and interactive React components
+  lib/            domain logic, Supabase access, and shared helpers
+  middleware.ts   session lookup and protected-route handling
+supabase/
+  migrations/     versioned schema and catalogue changes
+  tests/          database contracts and concurrency checks
+context/
+  foundation/     product, architecture, roadmap, and test contracts
+  deployment/     deployment plan and deployment history
 ```
-
-For a deliberate rollback/replacement, use a reviewed forward migration containing
-`select cron.unschedule('purge-expired-ai-recommendation-data');`; do not disable retention merely because application
-code is rolled back. The job does not remove durable explicit preferences or workout history. Saved history-aware
-workouts retain only an opaque proposal-lineage UUID, so deleting the raw proposal cannot prevent a later completion
-event from being recorded with its own 90-day expiry.
-
-History-aware save and completion support is additive. An application rollback may continue calling the legacy
-`save_ai_planned_workout` RPC; do not drop the distinct history-aware RPC, opaque workout lineage column, completion
-telemetry table, or cleanup behavior until a reviewed forward migration proves no active client depends on them.
-
-6. Start the application or stop the database stack when finished:
-
-```bash
-pnpm dev
-pnpm exec supabase stop
-```
-
-The local Studio UI is available at `http://localhost:54323`.
-
-### Hosted Supabase configuration
-
-Using a hosted project is optional for ordinary development. Its application configuration uses the same variables:
-
-| Variable       | Description                                                               |
-| -------------- | ------------------------------------------------------------------------- |
-| `SUPABASE_URL` | Project URL from Supabase dashboard → Settings → API                      |
-| `SUPABASE_KEY` | Publishable or legacy `anon` key from Supabase dashboard → Settings → API |
-
-```
-SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_KEY=<publishable-or-anon-key>
-```
-
-Applying migrations to a hosted database is a separate operational action. A human must first review
-`pnpm exec supabase db push --dry-run`, verify the linked target, and explicitly approve the real
-`pnpm exec supabase db push`. Never use `db reset --linked` for this project.
-
-### Email confirmation and immediate signup
-
-Local email confirmation is disabled in `supabase/config.toml`, so email/password signups establish a session and
-redirect immediately to the dashboard. Before deploying, disable **Email Confirmations** in the hosted project's
-Supabase dashboard too; local configuration does not mutate the hosted project. This app has no confirmation callback
-or replacement signup email.
-
-### Auth routes
-
-| Route          | Description                                                             |
-| -------------- | ----------------------------------------------------------------------- |
-| `/auth/signin` | Email/password sign-in form                                             |
-| `/auth/signup` | Email/password sign-up form                                             |
-| `/dashboard`   | Example protected page (redirects to `/auth/signin` if unauthenticated) |
-
-Route protection is handled in `src/middleware.ts`. Add paths to the `PROTECTED_ROUTES` array there to require authentication.
-
-### Deliberate user-data reset
-
-Resetting users is destructive and must be performed only after recording a backup and confirming the exact target.
-Foreign-key cascades delete the user's private application data, including encrypted provider keys and workouts.
-Refresh sessions are invalidated, but an already-issued JWT can remain accepted until it expires.
-
-For local development only, run `pnpm exec supabase db reset --local`; never add `--linked`. This rebuilds the local
-database from the committed migrations and removes local Auth/application rows.
-
-For a hosted project, an authorized operator must first confirm its project ref, capture any required backup, and
-check whether Storage contains user-owned objects. Remove those objects through the dashboard if present, then
-hard-delete every Auth user through the confirmed project's Supabase dashboard (or a separately secured Admin API
-operation). Apply the migration only after `pnpm exec supabase db push --dry-run` has been reviewed and the operator
-has explicitly approved the confirmed target. Do not put a service-role credential in this app, its environment files,
-or shell history.
 
 ## Deployment
 
-This project deploys to [Cloudflare Workers](https://workers.cloudflare.com/).
-
-1. Build the project:
+The app deploys as a Cloudflare Worker, not Cloudflare Pages. A deployment requires a Cloudflare account, Wrangler
+authentication, a hosted Supabase project, and all server-side values configured as Worker secrets.
 
 ```bash
+pnpm exec wrangler login
+pnpm install --frozen-lockfile
+pnpm lint
 pnpm build
-```
-
-2. Deploy with Wrangler:
-
-```bash
-pnpm exec wrangler deploy
-```
-
-Set `SUPABASE_URL` and `SUPABASE_KEY` as secrets in your Cloudflare dashboard or via `pnpm exec wrangler secret put`.
-After explicit approval for hosted setup, configure the credential-encryption secret separately:
-
-```bash
+pnpm exec wrangler secret put SUPABASE_URL
+pnpm exec wrangler secret put SUPABASE_KEY
 pnpm exec wrangler secret put AI_KEY_ENCRYPTION_KEY_V1
 pnpm exec wrangler secret put OPENROUTER_MODEL
 pnpm exec wrangler secret put AI_CONFIRMATION_SIGNING_SECRET
+pnpm exec wrangler deploy
 ```
 
-Paste each secret only into Wrangler's hidden prompt. Do not pass secret values as command-line arguments or store
-them in `wrangler.jsonc`. Set `OPENROUTER_MODEL` to the fixed OpenRouter model identifier through its own hidden
-prompt; it must never be accepted from a browser request. `AI_CONFIRMATION_SIGNING_SECRET` must be independently
-generated and rotated as a separate secret; rotation invalidates only outstanding short-lived reduced confirmations.
-The Worker encryption root is distinct from user-owned OpenRouter credentials: do not place any user API key in a
-Worker secret, `.dev.vars`, or `.env.production`.
+Enter values only at Wrangler's hidden prompts. Do not put secrets in `wrangler.jsonc` or command-line arguments.
+Database migrations are a separate, reviewed operation: inspect the plan and run a dry run before any hosted change.
+For the exact rollout, smoke checks, rollback notes, and Supabase Auth configuration, use the
+[deployment plan](./context/deployment/deployment-plan.md).
 
-### AI workout smoke check
+## Contributing
 
-After deploying the Worker, use disposable accounts and keys only. First use an account with no completed workouts:
-add its key through `/account`, generate a five-to-seven-exercise proposal at `/workouts/new`, edit it, save it, and
-complete it. Confirm this cold-start path remains available. Preference controls may appear in the shared catalogue;
-they affect only subsequent history-aware proposals and never alter the current draft.
-
-Then prepare separate history-aware fixtures for at least five ready candidates, exactly three or four ready
-candidates, and fewer than three. Verify five-plus produces only the normal proposal; three or four displays the exact
-count and makes no provider call until confirmation; and fewer than three leaves manual planning available without a
-provider call. Like one eligible exercise and mark another **Don't suggest**; after a later generation, confirm the
-states persist, remain mutually exclusive, and affect only the later proposal. Save and complete a history-aware
-proposal, then confirm its owner-scoped lifecycle evidence without exposing proposal contents.
-
-Inspect the retention job with the safe SQL queries above, including a recent successful run. When testing expired
-fixtures, confirm cleanup preserves durable preferences and workout history. Remove every disposable key when finished.
-
-Use only sanitized operational diagnostics while testing:
-
-```bash
-pnpm exec wrangler tail
-```
-
-Logs and browser payloads must never contain an OpenRouter credential, confirmation token, prompt, raw provider
-response, generated prescription, proposal/event content, or user identifier.
-
-## CI
-
-GitHub Actions runs on every push and pull request to `master`. Its single ordered job uses an isolated local Supabase
-stack and locked dependencies, then performs these gates:
-
-1. Start and reset local Supabase; lint the public schema; run pgTAP in `supabase/tests/database`; and run the workout
-   lifecycle, manual-mutation, and planned-mutation concurrency scripts.
-2. Generate local database types and fail on drift from `src/types/database.types.ts`.
-3. Run every direct Node contract under `src/lib/*.test.ts` through `pnpm test:node`, followed by rendered UI contracts
-   through `pnpm test:ui`.
-4. Install Chromium, run `pnpm test:e2e`, and upload Playwright screenshots, traces, and its blob report only when a
-   browser gate fails.
-5. Run `pnpm astro sync`, `pnpm lint`, and the Cloudflare Worker build; stop local Supabase even if an earlier gate
-   fails.
-
-For the browser harness locally, start local Supabase, install the browser once with
-`pnpm exec playwright install chromium`, then run `pnpm test:e2e`. The harness creates isolated local test users and
-test-only runtime values; it does not call a real OpenRouter provider or use production credentials. CI’s Worker build
-uses `SUPABASE_URL` and `SUPABASE_KEY` repository secrets only; `SUPABASE_KEY` must be a publishable or anon key, never
-a service-role key.
-
-## License
-
-MIT
+Use pnpm, keep changes focused, and run the checks relevant to the modified area. Before handing off application code,
+run at least `pnpm lint` and `pnpm build`. CI runs the full local Supabase, database, Node, UI, browser, lint, and build
+pipeline for pushes and pull requests to `master`.
