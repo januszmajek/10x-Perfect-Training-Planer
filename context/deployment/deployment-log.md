@@ -67,11 +67,37 @@ This log summarizes the deployment-related actions completed in this chat for th
     - Explained how to find `SUPABASE_KEY`
     - Explained how to identify the Supabase project ref from the dashboard URL and project URL
 
-## Remaining Manual Items
+## Status Reconciliation (2026-09-13)
 
-- Confirm Supabase Auth Site URL and exact redirect URLs if email confirmation, magic links, OAuth, or password-reset flows are enabled
-- Test signup, signin, signout, and any email-confirmation behavior with a disposable user
-- Add CI deployment secrets only after the manual deploy path is considered stable
+The earlier "Remaining Manual Items" list reflected the state on 2026-06-09. Newer deployment records confirm that
+the Supabase Auth redirect decision and disposable-user signup, signin, dashboard, and signout checks are complete.
+
+The three AI Worker secrets were updated from the untracked `.dev.vars` file on 2026-09-13 without printing their
+values. Wrangler confirmed that all three binding names are present. Public production checks still pass.
+
+## Current Active Item
+
+- None. The S-08 production smoke test was accepted as complete on 2026-09-13.
+
+## S-08 Production Evidence (2026-09-13)
+
+- Passed cold-start generation, editable six-exercise proposal, AI-origin save, completion, and private history.
+- Passed persistent and mutually exclusive Like/**Don't suggest** behavior; the preference affected a later proposal
+  without mutating the current draft.
+- Passed recovery-aware generation at all three thresholds: normal five-exercise generation, explicit confirmation
+  before a four-exercise generation, and manual fallback below three.
+- Confirmed the active retention job's latest run succeeded and that its implementation preserves workouts and
+  durable preferences.
+- Captured one sanitized successful `/history` request through Wrangler tail with no exceptions, application logs,
+  or credential-pattern matches.
+- Passed all 14 AI workout contract suites with `pnpm test:ai-workout`.
+- Confirmed the disposable OpenRouter key was removed and the account returned to **Not configured**.
+
+## Deferred Items
+
+- Add the CI deployment token and GitHub Actions secrets after the manual deployment path and S-08 smoke test are
+  accepted as stable.
+- Configure the custom domain and DNS after the `workers.dev` deployment passes the S-08 smoke test.
 
 ## Notes
 

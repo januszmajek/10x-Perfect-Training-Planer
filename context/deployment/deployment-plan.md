@@ -43,7 +43,8 @@ SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_KEY=<publishable-or-anon-key>
 ```
 
-3.6. `[ ]` Link the repo to the Supabase project only if database migrations, type generation, or config pushes are needed:
+3.6. Optional procedure — no current action required. Link the repo to the Supabase project only if database
+migrations, type generation, or config pushes are needed:
 
 ```powershell
 pnpm exec supabase link --project-ref <project-ref>
@@ -92,7 +93,7 @@ Pre-deploy checks completed on 2026-06-08:
 - `pnpm exec wrangler deploy --dry-run --outdir .wrangler\deploy-dry-run` passed.
 - `pnpm exec wrangler deploy --secrets-file .env.production` passed.
 
-  4.4. `[ ]` Configure AI workout generation separately from Supabase deployment secrets:
+  4.4. `[x]` Configure AI workout generation separately from Supabase deployment secrets:
 
 ```powershell
 pnpm exec wrangler secret put AI_KEY_ENCRYPTION_KEY_V1
@@ -110,6 +111,14 @@ deployment output.
 generation confirmation. Enter it only through Wrangler's hidden prompt. Do not reuse the credential-encryption root
 or a provider key. Rotation invalidates outstanding confirmations, which users can replace by starting generation
 again; a database nonce alone cannot authorize a reduced request.
+
+Configuration result on 2026-09-13:
+
+- Updated `AI_KEY_ENCRYPTION_KEY_V1`, `OPENROUTER_MODEL`, and `AI_CONFIRMATION_SIGNING_SECRET` from the untracked
+  `.dev.vars` file through Wrangler stdin without printing their values.
+- Confirmed all three names are present in the deployed Worker's secret binding list.
+- Re-ran unauthenticated production checks: `/`, `/auth/signin`, and `/auth/signup` returned `200`; `/dashboard`
+  returned `302` to `/auth/signin`.
 
 ## 5. Supabase Auth Redirects
 
@@ -142,7 +151,7 @@ Smoke result on 2026-06-08:
 - `GET /dashboard`: `302 Found`, `Location: /auth/signin`
 - Missing Supabase fallback: not present on the deployed homepage
 
-  6.7. `[ ]` Perform the S-08 AI workout smoke test with disposable users and keys only after 4.4 is complete:
+  6.7. `[x]` Perform the S-08 AI workout smoke test with disposable users and keys only after 4.4 is complete:
 
 - use a new account with no completed workouts, configure the disposable key at `/account`, and generate from the
   AI workout proposal card at `/workouts/new`;
@@ -158,15 +167,43 @@ Smoke result on 2026-06-08:
   workouts and durable preferences;
 - inspect only sanitized `pnpm exec wrangler tail` output, then remove every disposable key.
 
+S-08 execution record on 2026-09-13:
+
+- Created one disposable account and confirmed the invalid-key path returns a sanitized error. A disposable valid
+  BYOK credential then saved successfully without exposing its value.
+- Generated a six-exercise cold-start proposal, edited Back Squat from three to four sets, verified Like and
+  **Don't suggest** are mutually exclusive, saved the AI-origin workout, completed it, and found it in private
+  history.
+- Verified the Back Squat **Don't suggest** preference persisted and did not alter the already-open draft. The next
+  history-aware proposal contained five recovery-compatible exercises and excluded Back Squat; it saved, completed,
+  and appeared in the same signed-in account's history.
+- After completing that workout, generation stopped at an explicit four-exercise confirmation. No proposal was
+  produced until confirmation; the confirmed proposal contained exactly four exercises and completed normally.
+- After completing the four-exercise workout, generation returned a sanitized fewer-than-three message, left the
+  manual builder available, and made no provider proposal.
+- The production retention job is active on `17 3 * * *`; its latest run at `2026-09-13 03:17 UTC` succeeded. The
+  deployed function deletes expired recommendation telemetry and confirmations only, while database tests verify
+  that workout history and durable preferences remain.
+- A sanitized Wrangler tail captured one `GET /history` event with outcome `ok`, zero exceptions, zero application
+  logs, and no credential-pattern matches.
+- `pnpm test:ai-workout` passed all 14 suites covering the provider/retry and proposal-preservation contracts.
+- Confirmed the disposable user's OpenRouter key was removed: the account returned `status=removed` and displayed
+  the provider as **Not configured**.
+
+6.7 was accepted as complete on 2026-09-13. The unavailable-provider scenario remains covered by the passing
+contract suite; it was not induced by changing the shared production Worker configuration.
+
 ## 7. Rollback And Troubleshooting
 
-7.1. `[ ]` If secrets are wrong or missing, fix `.env.production` locally and redeploy with `pnpm exec wrangler deploy --secrets-file .env.production`.
+7.1. If secrets are wrong or missing, fix the appropriate untracked local secret file and upload the corrected
+binding with Wrangler. Redeploy with `pnpm exec wrangler deploy --secrets-file <untracked-file>` only when Worker code
+must also be deployed.
 
-7.2. `[ ]` If auth redirects to localhost, fix Supabase Auth Site URL and redirect URLs, then retest signup/signin.
+7.2. If auth redirects to localhost, fix Supabase Auth Site URL and redirect URLs, then retest signup/signin.
 
-7.3. `[ ]` If runtime fails under `workerd`, inspect `wrangler tail`, keep `nodejs_compat`, and isolate Node-only dependencies.
+7.3. If runtime fails under `workerd`, inspect `wrangler tail`, keep `nodejs_compat`, and isolate Node-only dependencies.
 
-7.4. `[ ]` If rollback is needed, use:
+7.4. If rollback is needed, use:
 
 ```powershell
 pnpm exec wrangler deployments list --json
@@ -175,12 +212,15 @@ pnpm exec wrangler rollback <VERSION_ID>
 
 Supabase schema/data changes do not roll back with Worker code.
 
-7.5. `[ ]` If Supabase signup or signin fails, check Supabase Auth logs and Row Level Security policies before changing keys.
+7.5. If Supabase signup or signin fails, check Supabase Auth logs and Row Level Security policies before changing keys.
 
 ## 8. Deferred Work
 
-8.1. `[ ]` CI deployment token and GitHub Actions secrets are deferred until the manual CLI deploy is stable.
+8.1. **Deferred:** CI deployment token and GitHub Actions secrets. Activate after the manual CLI deploy and S-08
+production smoke test are accepted as stable.
 
-8.2. `[ ]` Custom domain and DNS changes are deferred until the `workers.dev` deployment passes smoke tests.
+8.2. **Deferred:** Custom domain and DNS changes. Activate after the `workers.dev` deployment passes the S-08
+production smoke test.
 
-8.3. `[ ]` BYOK AI provider keys stay out of Cloudflare secrets; those belong in encrypted per-user Supabase storage when implemented.
+8.3. **Policy:** BYOK AI provider keys stay out of Cloudflare secrets; they belong in encrypted per-user Supabase
+storage.

@@ -1,7 +1,7 @@
 ---
 project: "Perfect Training Planner"
 version: 2
-status: draft
+status: locked
 created: 2026-05-30
 context_type: greenfield
 product_type: web_app
@@ -205,6 +205,13 @@ History-aware AI proposals normally contain 5–7 exercises. A reduced 3–4 exe
 
 ## Open Questions
 
-1. **FR-013 (delete history entry) — include in MVP or defer?** — User noted risk: deleting history corrupts AI reasoning for future proposals. Owner: user. Block: no (nice-to-have; MVP works without it).
-2. **FR-014 (do again from history) — include in MVP or defer?** — User noted risk: if heavily used, competes with the AI proposer and threatens the ≥ 75%-via-AI secondary metric. Owner: user. Block: no (nice-to-have; MVP works without it).
-3. **Recovery window defaults — should they become user-tunable?** — Currently hard-coded (48h general, 72h legs/back). Noted as "may become user-tunable later." Owner: user. Block: no (defaults are sufficient for MVP).
+### Post-MVP Product Decisions
+
+These decisions are explicitly non-blocking for the completed MVP and belong to future milestone selection.
+
+1. **FR-013 (delete history entry) — include in a post-MVP milestone?** — Deleting history can weaken future AI
+   reasoning. Owner: user. The completed MVP works without it.
+2. **FR-014 (do again from history) — include in a post-MVP milestone?** — Heavy use could compete with the AI
+   proposer and its ≥ 75%-via-AI secondary metric. Owner: user. The completed MVP works without it.
+3. **Recovery window defaults — should they become user-tunable?** — Defaults remain 48h generally and 72h for legs
+   and back. Owner: user. Fixed defaults are sufficient for the completed MVP.

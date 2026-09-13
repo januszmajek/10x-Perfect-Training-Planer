@@ -1,12 +1,15 @@
 ---
 project: Perfect Training Planner
-version: 4
-status: draft
+version: 5
+status: locked
 created: 2026-06-13
-updated: 2026-09-09
+updated: 2026-09-13
 prd_version: 2
 main_goal: speed
 top_blocker: time
+milestone_id: mvp-workout-planning-loop
+milestone_seq: 1
+milestone_status: done
 ---
 
 # Roadmap: Perfect Training Planner
@@ -15,6 +18,16 @@ top_blocker: time
 > `context/changes/manual-first-workout-sequencing/frame.md`.
 > Edit in place; archive only when fully superseded.
 > Slices below are listed in dependency order. The "At a glance" table is the index.
+
+## Milestone
+
+**M-01: MVP workout planning loop** — Status: done
+
+- **Intent:** Deliver the complete private manual and AI-assisted workout planning loop described by the MVP PRD.
+- **Source materials:** `context/foundation/prd.md` (v2) and
+  `context/changes/manual-first-workout-sequencing/frame.md`.
+- **Done when:** every F-01/S-01 through S-08 item below is `done`.
+- **Scope anchors:** US-01 through US-04 and FR-001 through FR-018.
 
 ## Vision recap
 
@@ -200,24 +213,31 @@ sequencing frame). Foundations below assume these capabilities are present and d
 
 | Roadmap ID | Change ID                      | Suggested issue title                                   | Ready for `/10x-plan` | Notes                                                        |
 | ---------- | ------------------------------ | ------------------------------------------------------- | --------------------- | ------------------------------------------------------------ |
-| F-01       | domain-data-and-seed-catalogue | Establish domain data contracts and seed catalogue      | no                    | Already done and archived.                                   |
-| S-01       | private-account-and-ai-key     | Add private planner account surface and BYOK settings   | no                    | Already done and archived.                                   |
-| S-02       | manual-workout-create-and-save | Build and save the first manual planned workout         | yes                   | Run `/10x-plan manual-workout-create-and-save`.              |
-| S-03       | planned-workout-editing        | Edit and delete planned workouts                        | no                    | Wait for S-02.                                               |
-| S-04       | mark-planned-workout-done      | Mark planned workouts done into completed history       | no                    | Wait for S-02.                                               |
-| S-05       | history-list-and-filters       | View completed workout history with filters             | no                    | Wait for S-04.                                               |
-| S-06       | recovery-aware-manual-builder  | Add recovery-aware filtering to manual workout planning | no                    | Wait for S-04.                                               |
-| S-07       | cold-start-ai-planned-workout  | Generate, edit, and save a cold-start AI workout        | no                    | Requires S-03 and S-06; sequence after S-05.                 |
-| S-08       | history-aware-ai-proposal      | Generate and preference-tune a history-aware AI workout | yes                   | S-07 is complete; run `/10x-plan history-aware-ai-proposal`. |
+| F-01       | domain-data-and-seed-catalogue | Establish domain data contracts and seed catalogue      | no                    | Done and archived.                                           |
+| S-01       | private-account-and-ai-key     | Add private planner account surface and BYOK settings   | no                    | Done and archived.                                           |
+| S-02       | manual-workout-create-and-save | Build and save the first manual planned workout         | no                    | Done and archived.                                           |
+| S-03       | planned-workout-editing        | Edit and delete planned workouts                        | no                    | Done and archived.                                           |
+| S-04       | mark-planned-workout-done      | Mark planned workouts done into completed history       | no                    | Done and archived.                                           |
+| S-05       | history-list-and-filters       | View completed workout history with filters             | no                    | Done and archived.                                           |
+| S-06       | recovery-aware-manual-builder  | Add recovery-aware filtering to manual workout planning | no                    | Done and archived.                                           |
+| S-07       | cold-start-ai-planned-workout  | Generate, edit, and save a cold-start AI workout        | no                    | Done and archived.                                           |
+| S-08       | history-aware-ai-proposal      | Generate and preference-tune a history-aware AI workout | no                    | Done and archived; production verification is tracked separately. |
+
+No item in this closed milestone is ready for `/10x-plan`. Production verification and deferred deployment work are
+tracked in `context/deployment/deployment-plan.md`.
 
 ## Open Roadmap Questions
 
-1. **FR-013 (delete history entry) — include in MVP or defer?** — Owner: user. Block: no; nice-to-have and MVP works
-   without it.
-2. **FR-014 (do again from history) — include in MVP or defer?** — Owner: user. Block: no; nice-to-have and MVP works
-   without it.
-3. **Recovery window defaults — should they become user-tunable?** — Owner: user. Block: no; fixed defaults are
-   sufficient for MVP.
+None. Every question that could block the completed milestone is resolved.
+
+### Post-MVP Product Decisions
+
+1. **FR-013 (delete history entry) — include in a post-MVP milestone?** — Owner: user. Non-blocking; the completed MVP
+   works without it.
+2. **FR-014 (do again from history) — include in a post-MVP milestone?** — Owner: user. Non-blocking; the completed
+   MVP works without it.
+3. **Recovery window defaults — should they become user-tunable?** — Owner: user. Non-blocking; fixed defaults are
+   sufficient for the completed MVP.
 
 ## Parked
 
@@ -236,6 +256,11 @@ sequencing frame). Foundations below assume these capabilities are present and d
 - **CSV export** — Why parked: PRD Non-Goals; deferred to v1.1.
 - **FR-013 delete history entry** — Why parked: nice-to-have with data-quality risk for AI reasoning.
 - **FR-014 do again from history** — Why parked: nice-to-have that may compete with the AI proposer success metric.
+
+## Milestone History
+
+- **M-01: MVP workout planning loop** (`mvp-workout-planning-loop`) — closed 2026-09-13. F-01 and S-01 through S-08
+  are implemented and archived; production verification remains independently tracked in the deployment plan.
 
 ## Done
 
