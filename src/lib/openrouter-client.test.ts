@@ -6,6 +6,7 @@ import {
   MAX_OPENROUTER_RESPONSE_BYTES,
   OPENROUTER_CHAT_COMPLETIONS_URL,
   requestOpenRouterWorkout,
+  validateOpenRouterKey,
   type OpenRouterFetch,
 } from "./openrouter-client.ts";
 import type { CatalogueExercise } from "./manual-workout-builder.ts";
@@ -20,7 +21,7 @@ const catalogue: CatalogueExercise[] = [
   },
 ];
 
-function request(fetchImpl: OpenRouterFetch) {
+function request(fetchImpl: OpenRouterFetch, timeoutMs?: number) {
   const prompt = buildColdStartWorkoutPrompt(catalogue);
   assert.equal(prompt.ok, true);
   return requestOpenRouterWorkout(
@@ -32,6 +33,7 @@ function request(fetchImpl: OpenRouterFetch) {
       requestedExerciseCount: { min: 3, max: 4 },
     },
     fetchImpl,
+    timeoutMs,
   );
 }
 
@@ -55,8 +57,8 @@ void test("posts fixed-model non-streaming strict JSON-schema requests and retur
   const captured = calls[0];
   assert.equal(captured.input, OPENROUTER_CHAT_COMPLETIONS_URL);
   assert.equal(new Headers(captured.init?.headers).get("Authorization"), "Bearer test-key");
-  assert.equal(captured.init?.signal, undefined);
-  const requestBody = captured.init?.body;
+  assert.ok(captured.init?.signal instanceof AbortSignal);
+  const requestBody = captured.init.body;
   if (typeof requestBody !== "string") throw new Error("expected JSON request body");
   const body = JSON.parse(requestBody) as {
     model?: unknown;
@@ -101,6 +103,32 @@ void test("maps provider status and safe transport failures without exposing pro
     ok: false,
     code: "timeout",
   });
+});
+
+void test("times out an OpenRouter request that never settles", async () => {
+  const result = await request(
+    (_input, init) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          reject(Object.assign(new Error("aborted"), { name: "AbortError" }));
+        });
+      }),
+    1,
+  );
+
+  assert.deepEqual(result, { ok: false, code: "timeout" });
+});
+
+void test("only treats an OpenRouter 401 as a conclusively rejected key", async () => {
+  const rejected = await validateOpenRouterKey("test-key", "test/model", () =>
+    Promise.resolve(new Response(null, { status: 401 })),
+  );
+  const unavailable = await validateOpenRouterKey("test-key", "test/model", () =>
+    Promise.resolve(new Response(null, { status: 403 })),
+  );
+
+  assert.deepEqual(rejected, { ok: false, code: "rejected" });
+  assert.deepEqual(unavailable, { ok: false, code: "retry" });
 });
 
 void test("rejects oversized, malformed, and structurally invalid provider completions", async () => {

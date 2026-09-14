@@ -4,6 +4,7 @@ import type { AiWorkoutPrompt } from "./ai-workout-prompt.ts";
 export const OPENROUTER_CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions";
 export const MAX_OPENROUTER_RESPONSE_BYTES = 128 * 1024;
 const OPENROUTER_KEY_VALIDATION_TIMEOUT_MS = 5_000;
+export const OPENROUTER_WORKOUT_TIMEOUT_MS = 45_000;
 
 export type OpenRouterFailureCode =
   | "invalid_credential"
@@ -53,7 +54,9 @@ export async function validateOpenRouterKey(
     });
 
     if (response.ok) return { ok: true };
-    if (response.status === 401 || response.status === 403) return { ok: false, code: "rejected" };
+    // OpenRouter uses 403 for account, workspace, model, and policy restrictions as
+    // well as authorization failures. Only 401 conclusively identifies a bad key.
+    if (response.status === 401) return { ok: false, code: "rejected" };
     return { ok: false, code: "retry" };
   } catch {
     return { ok: false, code: "retry" };
@@ -96,7 +99,13 @@ async function readBoundedResponse(response: Response): Promise<{ ok: true; data
 export async function requestOpenRouterWorkout(
   request: OpenRouterRequest,
   fetchImpl: OpenRouterFetch = fetch,
+  timeoutMs = OPENROUTER_WORKOUT_TIMEOUT_MS,
 ): Promise<OpenRouterResult> {
+  const abortController = new AbortController();
+  const timeout = setTimeout(() => {
+    abortController.abort();
+  }, timeoutMs);
+
   try {
     const responseSchema = buildAiWorkoutResponseSchema(request.allowedExerciseIds, request.requestedExerciseCount);
     const response = await fetchImpl(OPENROUTER_CHAT_COMPLETIONS_URL, {
@@ -115,6 +124,7 @@ export async function requestOpenRouterWorkout(
         },
         provider: { require_parameters: true },
       }),
+      signal: abortController.signal,
     });
 
     if (!response.ok) return { ok: false, code: mapStatus(response.status) };
@@ -134,5 +144,7 @@ export async function requestOpenRouterWorkout(
       return { ok: false, code: "timeout" };
     }
     return { ok: false, code: "network_failure" };
+  } finally {
+    clearTimeout(timeout);
   }
 }
