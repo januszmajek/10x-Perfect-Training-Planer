@@ -1,6 +1,6 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import WorkoutHistory from "@/components/workouts/WorkoutHistory";
 import type { WorkoutHistoryPage } from "@/lib/workout-history-client";
 
@@ -89,6 +89,8 @@ test("shows completed workout summaries and toggles each complete saved prescrip
   const manualCard = workoutCard(completedWorkouts, "Manual workout");
   const aiCard = workoutCard(completedWorkouts, "AI workout");
 
+  expect(within(manualCard).getByText("Completed Sep 9, 2026, 10:30")).toBeTruthy();
+  expect(within(aiCard).getByText("Completed Sep 8, 2026, 10:30")).toBeTruthy();
   expect(within(manualCard).getByText("2 exercises")).toBeTruthy();
   expect(within(manualCard).getByText("Chest")).toBeTruthy();
   expect(within(manualCard).getByText("Upper Back")).toBeTruthy();
@@ -119,4 +121,45 @@ test("shows completed workout summaries and toggles each complete saved prescrip
   await user.click(within(manualCard).getByRole("button", { name: "Hide details" }));
   expect(screen.queryByRole("list", { name: "Manual workout prescription" })).toBeNull();
   expect(screen.getByRole("list", { name: "AI workout prescription" })).toBe(aiPrescription);
+});
+
+test("removes stale workouts as soon as a single-day filter is selected", () => {
+  render(
+    <WorkoutHistory initialFilters={{ muscles: [], equipment: [] }} initialPage={historyPage} muscleOptions={[]} />,
+  );
+
+  fireEvent.change(screen.getByLabelText("Start date"), { target: { value: "2026-09-14" } });
+
+  expect(screen.queryAllByText("Manual workout")).toHaveLength(0);
+  expect(screen.queryByText("AI workout")).toBeNull();
+  expect(screen.getByText("Updating history…")).toBeTruthy();
+});
+
+test("opens the native picker from both the date input and its visible calendar button", () => {
+  render(
+    <WorkoutHistory initialFilters={{ muscles: [], equipment: [] }} initialPage={historyPage} muscleOptions={[]} />,
+  );
+  const startDate = screen.getByLabelText("Start date");
+  const showPicker = vi.fn();
+  startDate.showPicker = showPicker;
+
+  fireEvent.click(startDate);
+  fireEvent.click(screen.getByRole("button", { name: "Open start date picker" }));
+
+  expect(showPicker).toHaveBeenCalledTimes(2);
+});
+
+test("focuses the date input when its picker cannot be opened programmatically", () => {
+  render(
+    <WorkoutHistory initialFilters={{ muscles: [], equipment: [] }} initialPage={historyPage} muscleOptions={[]} />,
+  );
+  const startDate = screen.getByLabelText("Start date");
+  startDate.showPicker = vi.fn(() => {
+    throw new DOMException("Picker unavailable", "NotSupportedError");
+  });
+  const focus = vi.spyOn(startDate, "focus");
+
+  fireEvent.click(screen.getByRole("button", { name: "Open start date picker" }));
+
+  expect(focus).toHaveBeenCalledTimes(1);
 });

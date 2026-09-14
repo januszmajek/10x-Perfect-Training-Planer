@@ -55,19 +55,61 @@ void test("builds 7, 30, and 90-day local presets without changing the local cal
   assert.equal(historyPresetRange("all", now), null);
 });
 
-void test("converts inclusive local dates to start-inclusive, next-local-day-exclusive UTC boundaries", () => {
+void test("converts inclusive calendar dates to start-inclusive, next-day-exclusive UTC boundaries", () => {
   const filters = localDateRangeToHistoryFilters({ start: "2026-03-08", end: "2026-03-08" }, ["triceps", "chest"]);
   assert.ok(filters);
-  assert.equal(filters.completedFrom, new Date(2026, 2, 8).toISOString());
-  assert.equal(filters.completedBefore, new Date(2026, 2, 9).toISOString());
+  assert.equal(filters.completedFrom, "2026-03-08T00:00:00.000Z");
+  assert.equal(filters.completedBefore, "2026-03-09T00:00:00.000Z");
   assert.deepEqual(filters.muscles, ["chest", "triceps"]);
 });
 
-void test("keeps DST transition boundaries based on local midnight", () => {
+void test("keeps every completion on a selected one-day range", () => {
+  const filters = localDateRangeToHistoryFilters({ start: "2026-03-08", end: "2026-03-08" });
+  assert.ok(filters);
+  const lastInstant = new Date(Date.parse(filters.completedBefore) - 1).toISOString();
+  assert.equal(matchesWorkoutHistoryFilters({ ...entry, completedAt: lastInstant }, filters), true);
+});
+
+void test("keeps start-only and end-only calendar filters open-ended", () => {
+  const startOnly = localDateRangeToHistoryFilters({ start: "2026-09-14", end: "" });
+  assert.deepEqual(startOnly, {
+    completedFrom: "2026-09-14T00:00:00.000Z",
+    muscles: [],
+    equipment: [],
+  });
+  assert.ok(startOnly);
+  assert.equal(matchesWorkoutHistoryFilters({ ...entry, completedAt: "2026-09-13T23:59:59.999Z" }, startOnly), false);
+  assert.equal(matchesWorkoutHistoryFilters({ ...entry, completedAt: "2026-09-15T00:00:00.000Z" }, startOnly), true);
+  const startOnlyUrl = new URL(toWorkoutHistoryPageUrl(startOnly), "https://example.test");
+  assert.equal(startOnlyUrl.searchParams.get("completedFrom"), startOnly.completedFrom);
+  assert.equal(startOnlyUrl.searchParams.has("completedBefore"), false);
+
+  const endOnly = localDateRangeToHistoryFilters({ start: "", end: "2026-09-14" });
+  assert.deepEqual(endOnly, {
+    completedBefore: "2026-09-15T00:00:00.000Z",
+    muscles: [],
+    equipment: [],
+  });
+  assert.ok(endOnly);
+  assert.equal(matchesWorkoutHistoryFilters({ ...entry, completedAt: "2026-09-14T23:59:59.999Z" }, endOnly), true);
+  assert.equal(matchesWorkoutHistoryFilters({ ...entry, completedAt: "2026-09-15T00:00:00.000Z" }, endOnly), false);
+  const endOnlyUrl = new URL(toWorkoutHistoryPageUrl(endOnly), "https://example.test");
+  assert.equal(endOnlyUrl.searchParams.has("completedFrom"), false);
+  assert.equal(endOnlyUrl.searchParams.get("completedBefore"), endOnly.completedBefore);
+});
+
+void test("does not include a previous UTC calendar date in a single-day filter", () => {
+  const filters = localDateRangeToHistoryFilters({ start: "2026-09-14", end: "2026-09-14" });
+  assert.ok(filters);
+  assert.equal(matchesWorkoutHistoryFilters({ ...entry, completedAt: "2026-09-13T22:28:29.285Z" }, filters), false);
+  assert.equal(matchesWorkoutHistoryFilters({ ...entry, completedAt: "2026-09-14T00:00:00.000Z" }, filters), true);
+});
+
+void test("keeps UTC calendar-day boundaries stable across DST transitions", () => {
   const filters = localDateRangeToHistoryFilters({ start: "2026-03-29", end: "2026-03-29" });
   assert.ok(filters);
-  assert.equal(filters.completedFrom, new Date(2026, 2, 29).toISOString());
-  assert.equal(filters.completedBefore, new Date(2026, 2, 30).toISOString());
+  assert.equal(filters.completedFrom, "2026-03-29T00:00:00.000Z");
+  assert.equal(filters.completedBefore, "2026-03-30T00:00:00.000Z");
 });
 
 void test("rejects invalid and reversed custom ranges", () => {

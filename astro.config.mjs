@@ -10,7 +10,7 @@ import cloudflare from "@astrojs/cloudflare";
 export default defineConfig({
   output: "server",
   devToolbar: {
-    enabled: process.env.PLAYWRIGHT_TEST !== "1",
+    enabled: false,
   },
   integrations: [react(), sitemap()],
   vite: {
@@ -19,7 +19,17 @@ export default defineConfig({
       dedupe: ["react", "react-dom"],
     },
     optimizeDeps: {
-      include: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
+      include: [
+        "astro/virtual-modules/transitions.js",
+        "astro/virtual-modules/transitions-router.js",
+        "astro/virtual-modules/transitions-types.js",
+        "astro/virtual-modules/transitions-events.js",
+        "astro/virtual-modules/transitions-swap-functions.js",
+        "react",
+        "react-dom",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+      ],
     },
     ssr: {
       optimizeDeps: {

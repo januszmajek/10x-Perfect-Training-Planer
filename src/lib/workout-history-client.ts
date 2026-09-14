@@ -98,11 +98,13 @@ function toLocalDate(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-function parseLocalDate(value: string): Date | null {
+function parseUtcCalendarDate(value: string): Date | null {
   if (!LOCAL_DATE_PATTERN.test(value)) return null;
   const [year, month, day] = value.split("-").map(Number);
-  const parsed = new Date(year, month - 1, day);
-  return parsed.getFullYear() === year && parsed.getMonth() === month - 1 && parsed.getDate() === day ? parsed : null;
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day
+    ? parsed
+    : null;
 }
 
 function isCanonicalUtcInstant(value: unknown): value is string {
@@ -138,16 +140,24 @@ export function localDateRangeToHistoryFilters(
   range: HistoryDateRange,
   muscles: readonly string[] = [],
 ): WorkoutHistoryFilters | null {
-  const start = parseLocalDate(range.start);
-  const end = parseLocalDate(range.end);
+  const start = range.start ? parseUtcCalendarDate(range.start) : null;
+  const end = range.end ? parseUtcCalendarDate(range.end) : null;
   const canonical = canonicalMuscles(muscles);
-  if (!start || !end || !canonical || start.getTime() > end.getTime()) return null;
+  if (
+    !canonical ||
+    (!start && range.start) ||
+    (!end && range.end) ||
+    (!start && !end) ||
+    (start && end && start.getTime() > end.getTime())
+  ) {
+    return null;
+  }
 
-  const exclusiveEnd = new Date(end);
-  exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
+  const exclusiveEnd = end && new Date(end);
+  exclusiveEnd?.setUTCDate(exclusiveEnd.getUTCDate() + 1);
   return {
-    completedFrom: start.toISOString(),
-    completedBefore: exclusiveEnd.toISOString(),
+    ...(start ? { completedFrom: start.toISOString() } : {}),
+    ...(exclusiveEnd ? { completedBefore: exclusiveEnd.toISOString() } : {}),
     muscles: canonical,
     equipment: [],
   };
@@ -157,13 +167,18 @@ export function normalizeWorkoutHistoryFilters(value: WorkoutHistoryFilters): Wo
   const muscles = canonicalMuscles(value.muscles);
   const hasFrom = value.completedFrom !== undefined;
   const hasBefore = value.completedBefore !== undefined;
-  if (!muscles || hasFrom !== hasBefore) return null;
+  if (!muscles) return null;
   const equipment = [...new Set(value.equipment ?? [])].sort();
   if (equipment.some((item) => !HISTORY_EQUIPMENT_OPTIONS.includes(item))) return null;
-  if (!hasFrom) return { muscles, equipment };
-  if (!isCanonicalUtcInstant(value.completedFrom) || !isCanonicalUtcInstant(value.completedBefore)) return null;
-  if (value.completedFrom >= value.completedBefore) return null;
-  return { completedFrom: value.completedFrom, completedBefore: value.completedBefore, muscles, equipment };
+  if (hasFrom && !isCanonicalUtcInstant(value.completedFrom)) return null;
+  if (hasBefore && !isCanonicalUtcInstant(value.completedBefore)) return null;
+  if (value.completedFrom && value.completedBefore && value.completedFrom >= value.completedBefore) return null;
+  return {
+    ...(value.completedFrom ? { completedFrom: value.completedFrom } : {}),
+    ...(value.completedBefore ? { completedBefore: value.completedBefore } : {}),
+    muscles,
+    equipment,
+  };
 }
 
 export function encodeWorkoutHistoryCursor(cursor: WorkoutHistoryCursor): string | null {

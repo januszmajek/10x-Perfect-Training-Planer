@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, CalendarDays, SlidersHorizontal } from "lucide-react";
 import {
   HISTORY_EQUIPMENT_OPTIONS,
   historyPresetRange,
@@ -38,18 +38,29 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function localDateValue(date: Date): string {
+function utcDateValue(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
 }
 
-function localRangeFromFilters(filters: WorkoutHistoryFilters): LocalDateRange | null {
-  if (!filters.completedFrom || !filters.completedBefore) return null;
-  const start = new Date(filters.completedFrom);
-  const exclusiveEnd = new Date(filters.completedBefore);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(exclusiveEnd.getTime())) return null;
-  exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
-  return { start: localDateValue(start), end: localDateValue(exclusiveEnd) };
+function utcRangeFromFilters(filters: WorkoutHistoryFilters): LocalDateRange | null {
+  const start = filters.completedFrom ? new Date(filters.completedFrom) : null;
+  const exclusiveEnd = filters.completedBefore ? new Date(filters.completedBefore) : null;
+  if (!start && !exclusiveEnd) return null;
+  if ((start && Number.isNaN(start.getTime())) || (exclusiveEnd && Number.isNaN(exclusiveEnd.getTime()))) return null;
+  exclusiveEnd?.setUTCDate(exclusiveEnd.getUTCDate() - 1);
+  return {
+    start: start ? utcDateValue(start) : "",
+    end: exclusiveEnd ? utcDateValue(exclusiveEnd) : "",
+  };
+}
+
+function openDatePicker(input: HTMLInputElement | null): void {
+  try {
+    input?.showPicker();
+  } catch {
+    input?.focus();
+  }
 }
 
 function filtersFromControls(
@@ -59,7 +70,6 @@ function filtersFromControls(
 ): WorkoutHistoryFilters | null {
   if (!range || (!range.start && !range.end))
     return { muscles: [...new Set(muscles)].sort(), equipment: [...equipment].sort() };
-  if (!range.start || !range.end) return null;
   const filters = localDateRangeToHistoryFilters(range, muscles);
   return filters ? { ...filters, equipment: [...equipment].sort() } : null;
 }
@@ -92,7 +102,12 @@ function involvedMuscles(entry: CompletedWorkoutHistoryEntry): MuscleOption[] {
 function formatCompletion(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Completion time unavailable";
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+    hourCycle: "h23",
+  }).format(date);
 }
 
 async function readFailure(response: Response): Promise<HistoryFailure> {
@@ -135,12 +150,12 @@ function ErrorMessage({
 }
 
 export default function WorkoutHistory({ initialFilters, initialPage, muscleOptions }: Props) {
-  const [dateRange, setDateRange] = useState<LocalDateRange | null>(() => localRangeFromFilters(initialFilters));
+  const [dateRange, setDateRange] = useState<LocalDateRange | null>(() => utcRangeFromFilters(initialFilters));
   const [selectedMuscles, setSelectedMuscles] = useState<string[]>(initialFilters.muscles);
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentType[]>(initialFilters.equipment ?? []);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<"all" | "7d" | "30d" | "90d" | "custom">(() =>
-    localRangeFromFilters(initialFilters) ? "custom" : "all",
+    initialFilters.completedFrom && initialFilters.completedBefore ? "custom" : "all",
   );
   const [page, setPage] = useState<WorkoutHistoryPage>(initialPage);
   const [committedFilters, setCommittedFilters] = useState<WorkoutHistoryFilters>(initialFilters);
@@ -162,6 +177,8 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
   const mountedRef = useRef(true);
   const clearFiltersRef = useRef<HTMLButtonElement>(null);
   const filterTriggerRef = useRef<HTMLButtonElement>(null);
+  const startDateRef = useRef<HTMLInputElement>(null);
+  const endDateRef = useRef<HTMLInputElement>(null);
   const knownMuscles = useMemo(() => new Set(muscleOptions.map((option) => option.code)), [muscleOptions]);
 
   const cancelActiveWork = useCallback(() => {
@@ -215,7 +232,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
         if (!nextPage) {
           if (mountedRef.current && isCurrentHistoryRequest(generation, generationRef.current)) {
             setRefreshFailure({
-              message: "The history response was incomplete. Your current results are still available; try again.",
+              message: "The history response was incomplete. Please try again.",
               requestId: response.headers.get("X-Request-ID"),
               retryable: false,
             });
@@ -230,8 +247,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
         if (error instanceof DOMException && error.name === "AbortError") return;
         if (mountedRef.current && isCurrentHistoryRequest(generation, generationRef.current)) {
           setRefreshFailure({
-            message:
-              "The history request could not reach the server. Your current results are still available; try again.",
+            message: "The history request could not reach the server. Please try again.",
             requestId: null,
             retryable: true,
           });
@@ -248,7 +264,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      setDateRange(localRangeFromFilters(initialFilters));
+      setDateRange(utcRangeFromFilters(initialFilters));
       setSelectedEquipment(initialFilters.equipment ?? []);
     });
     return () => {
@@ -261,8 +277,9 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
     const handlePopState = () => {
       const parsed = parseWorkoutHistorySearchParams(new URLSearchParams(window.location.search), knownMuscles, false);
       if (!parsed.valid || parsed.cursor) return;
-      setDateRange(localRangeFromFilters(parsed.filters));
-      setSelectedPreset(localRangeFromFilters(parsed.filters) ? "custom" : "all");
+      const nextRange = utcRangeFromFilters(parsed.filters);
+      setDateRange(nextRange);
+      setSelectedPreset(nextRange ? "custom" : "all");
       setSelectedMuscles(parsed.filters.muscles);
       setSelectedEquipment(parsed.filters.equipment ?? []);
       void startReplacement(parsed.filters, false);
@@ -302,12 +319,15 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
     setSelectedEquipment(nextEquipment);
     const filters = filtersFromControls(nextRange, nextMuscles, nextEquipment);
     cancelActiveWork();
+    const emptyPage = { entries: [], nextCursor: null } satisfies WorkoutHistoryPage;
+    pageRef.current = emptyPage;
+    setPage(emptyPage);
     setIsReplacing(false);
     resetAppendRecovery();
     setAppendFailure(null);
     if (!filters) {
       setRefreshFailure({
-        message: "Choose a valid start and end date before filtering history.",
+        message: "Choose a valid date before filtering history.",
         requestId: null,
         retryable: false,
       });
@@ -521,30 +541,68 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
               ))}
             </fieldset>
             <div className="mt-4 grid gap-3 border-t border-white/10 pt-4">
-              <label className="text-sm font-medium text-blue-50">
-                Start date
-                <input
-                  type="date"
-                  value={dateRange?.start ?? ""}
-                  onChange={(event) => {
-                    setSelectedPreset("custom");
-                    scheduleReplacement({ start: event.target.value, end: dateRange?.end ?? "" }, selectedMuscles);
-                  }}
-                  className="mt-2 min-h-11 w-full rounded-lg border border-white/15 bg-black/20 px-3 py-2 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
-                />
-              </label>
-              <label className="text-sm font-medium text-blue-50">
-                End date
-                <input
-                  type="date"
-                  value={dateRange?.end ?? ""}
-                  onChange={(event) => {
-                    setSelectedPreset("custom");
-                    scheduleReplacement({ start: dateRange?.start ?? "", end: event.target.value }, selectedMuscles);
-                  }}
-                  className="mt-2 min-h-11 w-full rounded-lg border border-white/15 bg-black/20 px-3 py-2 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
-                />
-              </label>
+              <div>
+                <label htmlFor="history-start-date" className="text-sm font-medium text-blue-50">
+                  Start date
+                </label>
+                <div className="relative mt-2 text-white">
+                  <input
+                    ref={startDateRef}
+                    id="history-start-date"
+                    type="date"
+                    value={dateRange?.start ?? ""}
+                    onClick={(event) => {
+                      openDatePicker(event.currentTarget);
+                    }}
+                    onChange={(event) => {
+                      setSelectedPreset("custom");
+                      scheduleReplacement({ start: event.target.value, end: dateRange?.end ?? "" }, selectedMuscles);
+                    }}
+                    className="calendar-date-input min-h-11 w-full rounded-lg border border-white/15 bg-black/20 py-2 pr-10 pl-3 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
+                  />
+                  <button
+                    type="button"
+                    aria-label="Open start date picker"
+                    onClick={() => {
+                      openDatePicker(startDateRef.current);
+                    }}
+                    className="absolute top-1/2 right-1 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-md text-current focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-purple-300"
+                  >
+                    <CalendarDays aria-hidden="true" className="size-4" />
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label htmlFor="history-end-date" className="text-sm font-medium text-blue-50">
+                  End date
+                </label>
+                <div className="relative mt-2 text-white">
+                  <input
+                    ref={endDateRef}
+                    id="history-end-date"
+                    type="date"
+                    value={dateRange?.end ?? ""}
+                    onClick={(event) => {
+                      openDatePicker(event.currentTarget);
+                    }}
+                    onChange={(event) => {
+                      setSelectedPreset("custom");
+                      scheduleReplacement({ start: dateRange?.start ?? "", end: event.target.value }, selectedMuscles);
+                    }}
+                    className="calendar-date-input min-h-11 w-full rounded-lg border border-white/15 bg-black/20 py-2 pr-10 pl-3 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-300"
+                  />
+                  <button
+                    type="button"
+                    aria-label="Open end date picker"
+                    onClick={() => {
+                      openDatePicker(endDateRef.current);
+                    }}
+                    className="absolute top-1/2 right-1 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-md text-current focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-purple-300"
+                  >
+                    <CalendarDays aria-hidden="true" className="size-4" />
+                  </button>
+                </div>
+              </div>
             </div>
           </details>
 
@@ -666,11 +724,7 @@ export default function WorkoutHistory({ initialFilters, initialPage, muscleOpti
                         <p className="font-semibold break-words text-white">
                           {entry.origin === "ai" ? "AI workout" : "Manual workout"}
                         </p>
-                        <time
-                          suppressHydrationWarning
-                          className="mt-1 block text-sm text-blue-100/65"
-                          dateTime={entry.completedAt}
-                        >
+                        <time className="mt-1 block text-sm text-blue-100/65" dateTime={entry.completedAt}>
                           Completed {formatCompletion(entry.completedAt)}
                         </time>
                         <p className="mt-2 text-sm text-blue-100/70">

@@ -44,7 +44,7 @@ export default function WorkoutDraftPanel({
 }: Props) {
   return (
     <section className="min-w-0 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl sm:p-6">
-      <h2 className="text-2xl font-bold text-white">Your exercise order</h2>
+      <h2 className="text-2xl font-bold text-white">Your Exercise Order</h2>
       {replacingIndex !== null && (
         <div className="mt-4 flex flex-col gap-3 rounded-xl border border-amber-300/30 bg-amber-400/10 p-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-amber-100" role="status">
@@ -117,52 +117,60 @@ export default function WorkoutDraftPanel({
                   </label>
                 </div>
                 {!valid && <p className="mt-2 text-xs text-red-200">Use whole values: sets 1–99 and reps 1–999.</p>}
-                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() => {
-                      onToggleReplace(index);
-                    }}
-                    className="inline-flex min-h-11 items-center justify-center gap-1 rounded-lg border border-amber-300/25 px-2 py-2 text-xs text-amber-100 disabled:opacity-35"
-                    aria-label={`Replace ${exercise?.name ?? "exercise"}`}
-                  >
-                    <Replace aria-hidden="true" className="size-4" />{" "}
-                    {replacingIndex === index ? "Replacing" : "Replace"}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={index === 0 || pending}
-                    onClick={() => {
-                      onMoveItem(index, "up");
-                    }}
-                    className="inline-flex min-h-11 items-center justify-center gap-1 rounded-lg border border-white/15 px-2 py-2 text-xs text-blue-50 disabled:opacity-35"
-                    aria-label={`Move ${exercise?.name ?? "exercise"} up`}
-                  >
-                    <ArrowUp aria-hidden="true" className="size-4" /> Up
-                  </button>
-                  <button
-                    type="button"
-                    disabled={index === draft.length - 1 || pending}
-                    onClick={() => {
-                      onMoveItem(index, "down");
-                    }}
-                    className="inline-flex min-h-11 items-center justify-center gap-1 rounded-lg border border-white/15 px-2 py-2 text-xs text-blue-50 disabled:opacity-35"
-                    aria-label={`Move ${exercise?.name ?? "exercise"} down`}
-                  >
-                    <ArrowDown aria-hidden="true" className="size-4" /> Down
-                  </button>
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() => {
-                      onRemoveItem(index, item.exerciseId);
-                    }}
-                    className="inline-flex min-h-11 items-center justify-center gap-1 rounded-lg border border-red-300/25 px-2 py-2 text-xs text-red-200 disabled:opacity-35"
-                    aria-label={`Remove ${exercise?.name ?? "exercise"}`}
-                  >
-                    <Trash2 aria-hidden="true" className="size-4" /> Remove
-                  </button>
+                <div className="mt-4 flex w-full items-center justify-between gap-4">
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={index === 0 || pending}
+                      onClick={() => {
+                        onMoveItem(index, "up");
+                      }}
+                      className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-white/20 text-white disabled:cursor-not-allowed disabled:opacity-35"
+                      aria-label={`Move ${exercise?.name ?? "exercise"} up`}
+                      title="Move up"
+                    >
+                      <ArrowUp aria-hidden="true" className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === draft.length - 1 || pending}
+                      onClick={() => {
+                        onMoveItem(index, "down");
+                      }}
+                      className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-white/20 text-white disabled:cursor-not-allowed disabled:opacity-35"
+                      aria-label={`Move ${exercise?.name ?? "exercise"} down`}
+                      title="Move down"
+                    >
+                      <ArrowDown aria-hidden="true" className="size-4" />
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => {
+                        onToggleReplace(index);
+                      }}
+                      className={`inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-white/20 text-white disabled:cursor-not-allowed disabled:opacity-35 ${replacingIndex === index ? "bg-white/10" : ""}`}
+                      aria-label={`Replace ${exercise?.name ?? "exercise"}`}
+                      aria-pressed={replacingIndex === index}
+                      title={replacingIndex === index ? "Cancel replacement" : "Replace"}
+                    >
+                      <Replace aria-hidden="true" className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => {
+                        onRemoveItem(index, item.exerciseId);
+                      }}
+                      className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-white/20 text-white disabled:cursor-not-allowed disabled:opacity-35"
+                      aria-label={`Remove ${exercise?.name ?? "exercise"}`}
+                      title="Remove"
+                    >
+                      <Trash2 aria-hidden="true" className="size-4" />
+                    </button>
+                  </div>
                 </div>
               </li>
             );
