@@ -54,7 +54,7 @@ export default function AiKeyForm({ configured, provider, updatedAt, encryptionA
   return (
     <div>
       <div
-        className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${
+        className={`flex flex-col gap-3 min-[540px]:flex-row min-[540px]:items-center min-[540px]:justify-between ${
           !configured ? "border-b border-white/10 pb-5" : ""
         }`}
       >
@@ -64,8 +64,8 @@ export default function AiKeyForm({ configured, provider, updatedAt, encryptionA
         </div>
 
         {configured ? (
-          <div className="mt-1 flex items-start gap-3 sm:mt-0">
-            <div className="text-right">
+          <div className="mt-1 flex items-start gap-3 min-[540px]:mt-0">
+            <div className="min-w-0 text-left min-[540px]:text-right">
               <p className="text-sm font-semibold text-emerald-100">Configured</p>
               {formattedUpdatedAt && <p className="mt-1 text-xs text-blue-100/50">Updated {formattedUpdatedAt}</p>}
             </div>
