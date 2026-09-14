@@ -12,6 +12,7 @@ import { resolvePlannedWorkoutConflict } from "@/lib/planned-workout-conflict";
 import { PLANNED_WORKOUT_MUTATION_VERSION } from "@/lib/planned-workout-mutation";
 import type { CurrentPlannedWorkout, WorkoutErrorCode } from "@/lib/planned-workouts";
 import type { WorkoutCatalogueNavigationState } from "@/lib/workout-catalogue-navigation";
+import { setClientToastStatus } from "@/lib/toast-notifications";
 
 interface Props {
   catalogue: CatalogueExercise[];
@@ -118,7 +119,8 @@ export default function PlannedWorkoutEditor({ catalogue, initialPlan, initialCa
 
   function returnToDashboard(status?: "workout-changed" | "workout-updated") {
     skipBeforeUnloadPromptRef.current = true;
-    window.location.assign(status ? `/dashboard?status=${status}` : "/dashboard");
+    if (status) setClientToastStatus(status);
+    window.location.assign("/dashboard");
   }
 
   async function handleStaleSave() {

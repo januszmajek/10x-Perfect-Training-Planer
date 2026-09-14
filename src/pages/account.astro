@@ -2,6 +2,7 @@
 import AiKeyForm from "@/components/account/AiKeyForm";
 import AuthenticatedLayout from "@/layouts/AuthenticatedLayout.astro";
 import { getMaskedAiProviderKey, isAiProviderKeyEncryptionAvailable } from "@/lib/ai-provider-keys";
+import { consumeToastStatus, getToastNotification } from "@/lib/toast-notifications";
 
 const { user, supabase } = Astro.locals;
 
@@ -14,41 +15,16 @@ const credential = credentialResult.ok ? credentialResult.data : null;
 const encryptionAvailable = isAiProviderKeyEncryptionAvailable();
 const accountEmail = user.email?.trim() || "Email unavailable";
 
-const statusMessages = {
-  saved: { kind: "success", text: "Your OpenRouter key was saved." },
-  removed: { kind: "success", text: "Your OpenRouter key was removed." },
-  invalid: { kind: "error", text: "Enter an API key and try again." },
-  rejected: { kind: "error", text: "The key could not be verified. Check it and try again." },
-  retry: { kind: "error", text: "Key verification is temporarily unavailable. Your existing key was not changed." },
-  unavailable: { kind: "error", text: "Key encryption is unavailable. Your existing key was not changed." },
-  error: { kind: "error", text: "The account update could not be completed. Please try again." },
-} as const;
-
-const status = Astro.url.searchParams.get("status");
-const statusMessage = status && status in statusMessages ? statusMessages[status as keyof typeof statusMessages] : null;
+const toastStatus = consumeToastStatus(Astro.cookies);
+const accountStatuses = new Set(["saved", "removed", "invalid", "rejected", "retry", "unavailable", "error"]);
+const notification = toastStatus && accountStatuses.has(toastStatus) ? getToastNotification(toastStatus) : null;
 ---
 
-<AuthenticatedLayout title="Account | Perfect Training Planner">
+<AuthenticatedLayout title="Account | Perfect Training Planner" notification={notification}>
   <div>
     <div class="mb-8">
       <h1 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">Account settings</h1>
     </div>
-
-    {
-      statusMessage && (
-        <p
-          role={statusMessage.kind === "error" ? "alert" : "status"}
-          class:list={[
-            "mb-4 rounded-xl border px-4 py-3 text-sm",
-            statusMessage.kind === "success"
-              ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-100"
-              : "border-red-400/30 bg-red-500/10 text-red-100",
-          ]}
-        >
-          {statusMessage.text}
-        </p>
-      )
-    }
 
     {
       !credentialResult.ok && (

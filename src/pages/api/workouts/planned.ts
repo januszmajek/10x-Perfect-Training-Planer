@@ -19,6 +19,7 @@ import {
   requireSameOrigin,
   successJson,
 } from "@/lib/workout-api";
+import { setToastStatus } from "@/lib/toast-notifications";
 
 export const GET: APIRoute = async (context) => {
   const requestId = crypto.randomUUID();
@@ -82,6 +83,7 @@ export const PUT: APIRoute = async (context) => {
   if (!result.ok) {
     return failureResponse(requestId, operation, result.code, result.internal.layer, result.internal.technicalCode);
   }
+  setToastStatus(context.cookies, "workout-updated", context.url.protocol === "https:");
   return successJson(requestId, result.data);
 };
 
@@ -105,6 +107,7 @@ export const DELETE: APIRoute = async (context) => {
   if (!result.ok) {
     return failureResponse(requestId, operation, result.code, result.internal.layer, result.internal.technicalCode);
   }
+  setToastStatus(context.cookies, "workout-deleted", context.url.protocol === "https:");
   return new Response(null, { status: 204, headers: { "X-Request-ID": requestId } });
 };
 
@@ -128,5 +131,6 @@ export const PATCH: APIRoute = async (context) => {
   if (!result.ok) {
     return failureResponse(requestId, operation, result.code, result.internal.layer, result.internal.technicalCode);
   }
+  setToastStatus(context.cookies, "workout-completed", context.url.protocol === "https:");
   return new Response(null, { status: 204, headers: { "X-Request-ID": requestId } });
 };

@@ -1,7 +1,14 @@
 import type { APIRoute } from "astro";
 import { parseManualWorkoutRequest } from "@/lib/manual-workout-builder";
 import { saveManualPlannedWorkout } from "@/lib/manual-workouts";
-import { failureResponse, parseJsonBody, requireAuthenticatedLocals, requireSameOrigin } from "@/lib/workout-api";
+import {
+  failureResponse,
+  parseJsonBody,
+  requireAuthenticatedLocals,
+  requireSameOrigin,
+  successJson,
+} from "@/lib/workout-api";
+import { setToastStatus } from "@/lib/toast-notifications";
 
 export const POST: APIRoute = async (context) => {
   const requestId = crypto.randomUUID();
@@ -26,8 +33,6 @@ export const POST: APIRoute = async (context) => {
     return failureResponse(requestId, operation, result.code, result.internal.layer, result.internal.technicalCode);
   }
 
-  return new Response(null, {
-    status: 303,
-    headers: { Location: "/dashboard?status=workout-saved", "X-Request-ID": requestId },
-  });
+  setToastStatus(context.cookies, "workout-saved", context.url.protocol === "https:");
+  return successJson(requestId, { saved: true }, 201);
 };

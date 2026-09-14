@@ -231,8 +231,8 @@ export default function WorkoutBuilder({
         headers: { Accept: "application/json", "Content-Type": "application/json" },
         body: JSON.stringify(request),
       });
-      if (response.ok && response.redirected) {
-        window.location.assign(response.url);
+      if (response.ok) {
+        window.location.assign("/dashboard");
         return;
       }
       let parsed: AiWorkoutGenerationResponse | null = null;

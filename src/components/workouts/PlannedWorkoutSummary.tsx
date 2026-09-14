@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, LoaderCircle, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import {
+  COMPLETION_GRACE_PERIOD_MS,
   IDLE_COMPLETION_STATE,
   reduceCompletionState,
   type CompletionEvent,
@@ -13,6 +15,7 @@ import {
 } from "@/lib/planned-workout-client";
 import { PLANNED_WORKOUT_MUTATION_VERSION } from "@/lib/planned-workout-mutation";
 import type { CurrentPlannedWorkout, WorkoutErrorCode } from "@/lib/planned-workouts";
+import { setClientToastStatus } from "@/lib/toast-notifications";
 
 interface Props {
   plan: CurrentPlannedWorkout;
@@ -41,6 +44,8 @@ const DELETE_ERROR_MESSAGES: Record<WorkoutErrorCode, string> = {
   origin_rejected: "The deletion request was rejected by the security check. Reload the dashboard before trying again.",
   persistence_failed: "The workout could not be deleted. Your planned workout is unchanged; try again.",
 };
+
+const COMPLETION_TOAST_ID = "workout-completion";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -80,7 +85,6 @@ export default function PlannedWorkoutSummary({ plan }: Props) {
   const completionStateRef = useRef<CompletionState>(IDLE_COMPLETION_STATE);
   const timerRef = useRef<number | null>(null);
   const markDoneRef = useRef<HTMLButtonElement>(null);
-  const undoRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const mutationsLocked = completionState.kind !== "idle" || deleting;
   const originLabel = plan.origin === "manual" ? "Manual plan" : "AI-generated plan";
@@ -92,11 +96,13 @@ export default function PlannedWorkoutSummary({ plan }: Props) {
 
   function restoreCard() {
     clearCompletionTimer();
+    toast.dismiss(COMPLETION_TOAST_ID);
     window.requestAnimationFrame(() => markDoneRef.current?.focus());
   }
 
   function resetCompletion(errorMessage?: string, nextRequestId?: string | null) {
     clearCompletionTimer();
+    toast.dismiss(COMPLETION_TOAST_ID);
     completionStateRef.current = IDLE_COMPLETION_STATE;
     setCompletionState(IDLE_COMPLETION_STATE);
     if (errorMessage) {
@@ -123,10 +129,40 @@ export default function PlannedWorkoutSummary({ plan }: Props) {
 
     if (transition.effect.type === "schedule" && "now" in event) {
       scheduleDeadline(transition.effect.deadline, event.now);
+      if (event.type === "start") {
+        toast(
+          <span>
+            Workout will be marked done in five seconds.
+            <span aria-hidden="true" className="completion-action-toast-progress" />
+          </span>,
+          {
+            id: COMPLETION_TOAST_ID,
+            className: "completion-action-toast",
+            closeButton: true,
+            duration: COMPLETION_GRACE_PERIOD_MS,
+            action: {
+              label: "Undo",
+              onClick: (clickEvent) => {
+                clickEvent.preventDefault();
+                dispatchCompletion({ type: "undo", now: Date.now() });
+              },
+            },
+          },
+        );
+        window.requestAnimationFrame(() => {
+          document.querySelector<HTMLElement>(".completion-action-toast [data-action]")?.focus();
+        });
+      }
     }
     if (transition.effect.type === "restore") restoreCard();
     if (transition.effect.type === "submit") {
       clearCompletionTimer();
+      toast("Marking workout done…", {
+        id: COMPLETION_TOAST_ID,
+        closeButton: true,
+        duration: Infinity,
+        icon: <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />,
+      });
       void submitCompletion();
     }
   }
@@ -139,12 +175,9 @@ export default function PlannedWorkoutSummary({ plan }: Props) {
   }, [confirmingDelete]);
 
   useEffect(() => {
-    if (completionState.kind === "grace-period") undoRef.current?.focus();
-  }, [completionState]);
-
-  useEffect(() => {
     return () => {
       clearCompletionTimer();
+      toast.dismiss(COMPLETION_TOAST_ID);
     };
   }, []);
 
@@ -162,10 +195,12 @@ export default function PlannedWorkoutSummary({ plan }: Props) {
 
       switch (classifyCompletionReconciliation(reconciliation, plan.id, plan.revision)) {
         case "completed":
-          window.location.assign("/dashboard?status=workout-completed");
+          setClientToastStatus("workout-completed");
+          window.location.assign("/dashboard");
           return;
         case "changed":
-          window.location.assign("/dashboard?status=workout-changed");
+          setClientToastStatus("workout-changed");
+          window.location.assign("/dashboard");
           return;
         case "unchanged":
           resetCompletion(
@@ -199,7 +234,7 @@ export default function PlannedWorkoutSummary({ plan }: Props) {
         }),
       });
       if (response.status === 204) {
-        window.location.assign("/dashboard?status=workout-completed");
+        window.location.assign("/dashboard");
         return;
       }
 
@@ -209,7 +244,8 @@ export default function PlannedWorkoutSummary({ plan }: Props) {
         return;
       }
       if (failure.code === "stale_plan") {
-        window.location.assign("/dashboard?status=workout-changed");
+        setClientToastStatus("workout-changed");
+        window.location.assign("/dashboard");
         return;
       }
       resetCompletion(COMPLETION_ERROR_MESSAGES[failure.code], failure.requestId);
@@ -235,13 +271,14 @@ export default function PlannedWorkoutSummary({ plan }: Props) {
         }),
       });
       if (response.status === 204) {
-        window.location.assign("/dashboard?status=workout-deleted");
+        window.location.assign("/dashboard");
         return;
       }
       const failure = await readApiFailure(response);
       if (!failure) throw new Error("UNEXPECTED_RESPONSE");
       if (failure.code === "stale_plan") {
-        window.location.assign("/dashboard?status=workout-changed");
+        setClientToastStatus("workout-changed");
+        window.location.assign("/dashboard");
         return;
       }
       setError(DELETE_ERROR_MESSAGES[failure.code]);
@@ -360,33 +397,6 @@ export default function PlannedWorkoutSummary({ plan }: Props) {
           </ol>
         </section>
       </div>
-
-      {completionState.kind === "grace-period" && (
-        <aside className="completion-toast" aria-label="Workout completion undo">
-          <div className="min-w-0">
-            <p className="font-semibold text-white">Workout will be marked done</p>
-            <p className="mt-1 text-sm leading-5 text-blue-100/75">Undo is available for five seconds.</p>
-            <div aria-hidden="true" className="completion-toast-progress" />
-          </div>
-          <button
-            ref={undoRef}
-            type="button"
-            onClick={() => {
-              dispatchCompletion({ type: "undo", now: Date.now() });
-            }}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-white/25 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-200"
-          >
-            Undo
-          </button>
-        </aside>
-      )}
-
-      {completionState.kind === "committing" && (
-        <aside className="completion-toast" aria-label="Workout completion in progress">
-          <LoaderCircle aria-hidden="true" className="size-5 shrink-0 animate-spin text-emerald-200" />
-          <p className="font-semibold text-white">Marking workout done…</p>
-        </aside>
-      )}
 
       <dialog
         ref={dialogRef}

@@ -2,6 +2,7 @@
 import PlannedWorkoutSummary from "@/components/workouts/PlannedWorkoutSummary.tsx";
 import AuthenticatedLayout from "@/layouts/AuthenticatedLayout.astro";
 import { loadCurrentPlannedWorkout } from "@/lib/planned-workouts";
+import { consumeToastStatus, getToastNotification, type ToastStatus } from "@/lib/toast-notifications";
 
 const { user, supabase } = Astro.locals;
 
@@ -11,91 +12,33 @@ if (!user || !supabase) {
 
 const planResult = await loadCurrentPlannedWorkout(supabase, user.id);
 const currentPlan = planResult.ok ? planResult.data : null;
-const showSavedStatus = Astro.url.searchParams.get("status") === "workout-saved" && currentPlan !== null;
-const showAiSavedStatus = Astro.url.searchParams.get("status") === "ai-workout-saved" && currentPlan?.origin === "ai";
-const showUpdatedStatus = Astro.url.searchParams.get("status") === "workout-updated" && currentPlan !== null;
-const showDeletedStatus = Astro.url.searchParams.get("status") === "workout-deleted" && currentPlan === null;
-const showChangedStatus = Astro.url.searchParams.get("status") === "workout-changed";
-const showCompletedStatus =
-  Astro.url.searchParams.get("status") === "workout-completed" && planResult.ok && currentPlan === null;
-const showAccountCreatedStatus = Astro.url.searchParams.get("status") === "account-created";
+const toastStatus = consumeToastStatus(Astro.cookies);
+
+function isVerifiedDashboardStatus(status: ToastStatus | null): status is ToastStatus {
+  switch (status) {
+    case "account-created":
+    case "workout-changed":
+      return true;
+    case "workout-saved":
+    case "workout-updated":
+      return currentPlan !== null;
+    case "ai-workout-saved":
+      return currentPlan?.origin === "ai";
+    case "workout-deleted":
+    case "workout-completed":
+      return planResult.ok && currentPlan === null;
+    default:
+      return false;
+  }
+}
+
+const notification = isVerifiedDashboardStatus(toastStatus) ? getToastNotification(toastStatus) : null;
 ---
 
-<AuthenticatedLayout title="Dashboard | Perfect Training Planner">
+<AuthenticatedLayout title="Dashboard | Perfect Training Planner" notification={notification}>
   <div class="mb-8">
     <h1 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">Dashboard</h1>
   </div>
-
-  {
-    showAccountCreatedStatus && (
-      <p
-        role="status"
-        class="mb-5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
-      >
-        Your account was created successfully.
-      </p>
-    )
-  }
-  {
-    showSavedStatus && (
-      <p
-        role="status"
-        class="mb-5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
-      >
-        Your manual workout was saved successfully.
-      </p>
-    )
-  }
-  {
-    showAiSavedStatus && (
-      <p
-        role="status"
-        class="mb-5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
-      >
-        Your AI-generated workout was saved successfully. You can still edit every exercise and prescription.
-      </p>
-    )
-  }
-  {
-    showUpdatedStatus && (
-      <p
-        role="status"
-        class="mb-5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
-      >
-        Your planned workout was updated successfully.
-      </p>
-    )
-  }
-  {
-    showDeletedStatus && (
-      <p
-        role="status"
-        class="mb-5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
-      >
-        Your planned workout was deleted.
-      </p>
-    )
-  }
-  {
-    showCompletedStatus && (
-      <p
-        role="status"
-        class="mb-5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
-      >
-        Your workout was marked done and moved to completed history.
-      </p>
-    )
-  }
-  {
-    showChangedStatus && (
-      <p
-        role="status"
-        class="mb-5 rounded-xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100"
-      >
-        Your planned workout changed elsewhere. The latest saved state is shown below.
-      </p>
-    )
-  }
 
   {
     !planResult.ok ? (

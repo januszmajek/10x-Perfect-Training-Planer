@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { createClient } from "@/lib/supabase";
+import { setToastStatus } from "@/lib/toast-notifications";
 
 export const POST: APIRoute = async (context) => {
   const form = await context.request.formData();
@@ -22,5 +23,6 @@ export const POST: APIRoute = async (context) => {
     );
   }
 
-  return context.redirect("/dashboard?status=account-created", 303);
+  setToastStatus(context.cookies, "account-created", context.url.protocol === "https:");
+  return context.redirect("/dashboard", 303);
 };

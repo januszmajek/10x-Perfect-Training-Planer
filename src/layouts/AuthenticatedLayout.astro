@@ -2,12 +2,15 @@
 import Layout from "@/layouts/Layout.astro";
 import MobileNavigation from "@/components/MobileNavigation";
 import SidebarNavigation from "@/components/SidebarNavigation";
+import StatusToast from "@/components/StatusToast";
+import type { ToastNotification } from "@/lib/toast-notifications";
 
 interface Props {
   title?: string;
+  notification?: ToastNotification | null;
 }
 
-const { title = "Perfect Training Planner" } = Astro.props;
+const { title = "Perfect Training Planner", notification = null } = Astro.props;
 const { user } = Astro.locals;
 
 if (!user) {
@@ -42,6 +45,8 @@ const navigation = [
     <main class="mx-auto w-full max-w-5xl px-4 py-8 sm:py-12">
       <slot />
     </main>
+
+    <StatusToast notification={notification} client:load />
   </div>
 </Layout>
 

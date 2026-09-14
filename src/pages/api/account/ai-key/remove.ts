@@ -1,11 +1,13 @@
 import type { APIRoute } from "astro";
 import { hasConfirmedAiProviderKeyRemoval, hasSameOrigin } from "@/lib/ai-provider-key-request";
 import { removeAiProviderKey } from "@/lib/ai-provider-keys";
+import { setToastStatus, type ToastStatus } from "@/lib/toast-notifications";
 
 const ACCOUNT_PATH = "/account";
 
-function redirectToAccount(context: Parameters<APIRoute>[0], status: string): Response {
-  return context.redirect(`${ACCOUNT_PATH}?status=${status}`, 303);
+function redirectToAccount(context: Parameters<APIRoute>[0], status: ToastStatus): Response {
+  setToastStatus(context.cookies, status, context.url.protocol === "https:");
+  return context.redirect(ACCOUNT_PATH, 303);
 }
 
 export const POST: APIRoute = async (context) => {
