@@ -33,3 +33,16 @@
 ## Findings
 
 No findings.
+
+## Supplemental review — CI repair (2026-09-14)
+
+Reviewed the uncommitted CI repair against the same frame brief because this change has no formal `plan.md`.
+
+- The shared signup fixture and workout journeys now assert both the canonical `/dashboard` URL and the corresponding
+  user-visible toast, directly covering the replacement of URL-backed status values.
+- The completion journey continues to assert the five-second grace-period message, then verifies that Undo receives
+  focus before the completion toast and history outcome.
+- The focus change waits only while the completion state is `grace-period`, retries until Sonner mounts the portalled
+  action, and cancels the pending animation frame when that state ends or the component unmounts.
+- Verification evidence: `pnpm lint`, `pnpm build`, and `pnpm test:e2e` all passed; the full E2E suite reported
+  10 passing tests.

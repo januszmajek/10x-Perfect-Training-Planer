@@ -17,7 +17,8 @@ export const test = base.extend<{ authenticatedPage: E2eUser }>({
     await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
     await page.getByLabel("Confirm password").fill(PASSWORD);
     await page.getByRole("button", { name: "Create account" }).click();
-    await expect(page).toHaveURL(/\/dashboard\?status=account-created/u);
+    await expect(page).toHaveURL("/dashboard");
+    await expect(page.getByText("Your account was created successfully.", { exact: true })).toBeVisible();
     // Playwright fixtures use a callback named `use`; it is not a React hook.
     // eslint-disable-next-line react-hooks/rules-of-hooks
     await use({ email, password: PASSWORD });

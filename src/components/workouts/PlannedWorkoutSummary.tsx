@@ -149,9 +149,6 @@ export default function PlannedWorkoutSummary({ plan }: Props) {
             },
           },
         );
-        window.requestAnimationFrame(() => {
-          document.querySelector<HTMLElement>(".completion-action-toast [data-action]")?.focus();
-        });
       }
     }
     if (transition.effect.type === "restore") restoreCard();
@@ -173,6 +170,25 @@ export default function PlannedWorkoutSummary({ plan }: Props) {
     if (confirmingDelete && !dialog.open) dialog.showModal();
     if (!confirmingDelete && dialog.open) dialog.close();
   }, [confirmingDelete]);
+
+  useEffect(() => {
+    if (completionState.kind !== "grace-period") return;
+
+    let animationFrame = 0;
+    const focusUndoAction = () => {
+      const undoAction = document.querySelector<HTMLElement>(".completion-action-toast [data-action]");
+      if (undoAction) {
+        undoAction.focus();
+        return;
+      }
+      animationFrame = window.requestAnimationFrame(focusUndoAction);
+    };
+    animationFrame = window.requestAnimationFrame(focusUndoAction);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+    };
+  }, [completionState.kind]);
 
   useEffect(() => {
     return () => {

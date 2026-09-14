@@ -1,21 +1,21 @@
 import { configureAiProviderKey, expect, loadWorkoutFixture, test } from "./fixtures";
 
-const COMPLETED_DASHBOARD_URL = /\/dashboard\?status=workout-completed/u;
-
 async function waitForHydration(page: import("@playwright/test").Page) {
   await page.waitForLoadState("networkidle");
   await expect(page.locator("astro-island[ssr]")).toHaveCount(0);
 }
 
+async function expectDashboardToast(page: import("@playwright/test").Page, message: string) {
+  await expect(page.getByText(message, { exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(page).toHaveURL("/dashboard");
+}
+
 async function completePlannedWorkout(page: import("@playwright/test").Page) {
   await waitForHydration(page);
-  const completion = page.waitForURL(COMPLETED_DASHBOARD_URL, { timeout: 10_000 });
   await page.getByRole("button", { name: "Mark done" }).click();
-  const gracePeriod = page.getByRole("complementary", { name: "Workout completion undo" });
-  await expect(gracePeriod).toBeVisible();
-  await expect(gracePeriod).toContainText("Undo is available for five seconds.");
-  await expect(gracePeriod.getByRole("button", { name: "Undo" })).toBeFocused();
-  await completion;
+  await expect(page.getByText("Workout will be marked done in five seconds.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Undo" })).toBeFocused();
+  await expectDashboardToast(page, "Your workout was marked done and moved to completed history.");
 }
 
 async function expectHistoryPrescription(
@@ -41,7 +41,7 @@ test("persists a manual workout through edit, completion, and History", async ({
   await page.getByRole("button", { name: "Add Barbell Bench Press" }).click();
   await expect(page.getByRole("list", { name: "Workout draft exercises" })).toContainText("Barbell Bench Press");
   await page.getByRole("button", { name: "Save workout" }).click();
-  await expect(page).toHaveURL(/\/dashboard\?status=workout-saved/u);
+  await expectDashboardToast(page, "Your manual workout was saved successfully.");
   await waitForHydration(page);
 
   await page.getByRole("link", { name: "Edit workout" }).click();
@@ -49,7 +49,7 @@ test("persists a manual workout through edit, completion, and History", async ({
   await waitForHydration(page);
   await page.getByLabel("Sets").fill("4");
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page).toHaveURL(/\/dashboard\?status=workout-updated/u);
+  await expectDashboardToast(page, "Your planned workout was updated successfully.");
   await waitForHydration(page);
   await expect(page.getByText("4 sets × 10 reps")).toBeVisible();
 
@@ -76,7 +76,7 @@ test("persists a routed AI proposal through edit, completion, and History", asyn
   await expect(page.getByRole("list", { name: "Workout draft exercises" })).toContainText(exercises[0].name);
   await page.getByLabel("Sets").first().fill("4");
   await page.getByRole("button", { name: "Save workout" }).click();
-  await expect(page).toHaveURL(/\/dashboard\?status=ai-workout-saved/u);
+  await expectDashboardToast(page, "Your AI-generated workout was saved successfully.");
   await waitForHydration(page);
 
   await page.getByRole("link", { name: "Edit workout" }).click();
@@ -84,7 +84,7 @@ test("persists a routed AI proposal through edit, completion, and History", asyn
   await waitForHydration(page);
   await page.getByLabel("Reps").first().fill("12");
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page).toHaveURL(/\/dashboard\?status=workout-updated/u);
+  await expectDashboardToast(page, "Your planned workout was updated successfully.");
   await completePlannedWorkout(page);
   await expectHistoryPrescription(page, "AI", exercises[0].name);
   await expect(page.getByText("4 sets × 12 reps")).toBeVisible();
