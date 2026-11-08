@@ -154,9 +154,29 @@ p_expected_workout_id uuid, p_expected_revision integer)` is the distinct, non-o
 
 ## S-07 cold-start generation seam
 
-- `POST /api/workouts/ai/generate` accepts only the versioned empty generation command. It authenticates and rechecks
-  cold-start eligibility on every request, returns only a validated browser-safe proposal, and uses a fixed
-  server-configured `OPENROUTER_MODEL`; no browser request can select a provider, model, credential, or prescription.
+- `POST /api/workouts/ai/generate` accepts the versioned generation command, optionally carrying `priorProposalId`,
+  `confirmationToken` and a `reroll` draft description (**additive contract change**, ai-partial-reroll). It
+  authenticates and rechecks cold-start eligibility on every request, returns only a validated browser-safe proposal,
+  and uses a fixed server-configured `OPENROUTER_MODEL`; no browser request can select a provider, model or
+  credential. On a re-roll the browser may supply kept prescriptions, which the server bounds-checks and echoes in the
+  merged proposal but never sends to the provider, and kept, marked and excluded ids are catalogue-validated.
+- The optional `reroll` field is `{ exercises, excludedExerciseIds? }`, parsed by an exact-key whitelist (any other
+  key → `validation_failed`). `exercises` is the ordered draft, 1–20 items with canonical unique UUIDs: a kept item is
+  exactly `{exerciseId, sets, reps}` (bounded integers), a marked item is exactly `{exerciseId, replace: true}`; at
+  least one item is marked and at most 6 are kept. `excludedExerciseIds` (0–20 canonical unique UUIDs, disjoint from
+  every item) lists exercises already replaced earlier in the same draft; it is allowed only on a partial request
+  (some items kept) and is held by the browser per draft, never persisted server-side. Every item and excluded id must
+  exist in the request's own catalogue load, else `validation_failed`, before any credential is decrypted.
+- A partial request (some kept) asks the model only for replacements: kept, marked and excluded ids are removed from
+  the candidate pool and the provider enum, kept exercises are sent as fixed context, and the server merges picks
+  positionally (kept exercises keep position and prescription; picks fill marked slots, extras are appended). The
+  merged workout must meet the normal 5–7 size (or a confirmed reduced size, below) and every feasible coverage
+  target (cold start: all four). When no merged workout can satisfy that, the route returns
+  `replacement_not_feasible` (HTTP 409) before decrypting the key or calling the provider.
+- An all-marked request is a full re-roll: cold start builds the prompt, provider enum and validator catalogue from
+  the catalogue minus the on-screen exercises when that remainder still has all four coverage categories and at least
+  five exercises (otherwise the full catalogue); history-aware lowers the rank of on-screen exercises by a fixed
+  deterministic penalty without changing eligibility, the candidate count or the reduced-path decision.
 - `POST /api/workouts/ai/save` is the distinct authenticated AI-origin persistence route. It retains the established
   confirmation and stale-plan contract while saving through `save_ai_planned_workout`.
 - S-07 is deliberately limited to accounts with no completed workouts. S-08 extends the same `/workouts/new` builder
@@ -190,6 +210,24 @@ p_expected_workout_id uuid, p_expected_revision integer)` is the distinct, non-o
   owner, candidate-fingerprint, count, expiry, and nonce capability; the database stores only a nonce digest and may
   not authorize a request without a valid Worker signature. Rotate this secret independently from
   `AI_KEY_ENCRYPTION_KEY_V1`; rotation invalidates only outstanding reduced confirmations.
+- A history-aware partial re-roll uses a domain-separated reduced-confirmation fingerprint
+  (`partial-reroll-v1`) over the remaining pool and the kept, marked and excluded ids, so a full-generation token
+  cannot authorise a partial request (or vice versa) and any change to selection or exclusions is
+  `stale_confirmation`. The partial reduced 3–4 merged size is offered only when fewer than five hard-eligible ready
+  exercises exist account-wide (counted before removing marked and excluded ids, per FR-017); otherwise an exhausted
+  partial pool is `replacement_not_feasible`. A token on a request that lands on the normal path is
+  `stale_confirmation`.
+- A history-aware re-roll (partial or all-marked) records the merged list as a new full proposal through
+  `record_ai_workout_proposal`: lineage-linked with `rerolled_from_proposal_id` only when the command carries
+  `priorProposalId`, and a new lineage for manual-origin or cold-start-origin drafts. Kept exercises, including
+  user-chosen ones from a manual draft, are therefore proposal members and count toward retention at save time,
+  consistent with the rule that a lineage marker does not attest AI selection. A partial re-roll on a manual draft
+  saves with `origin = 'ai'`, so retention and later completion of the user-chosen kept exercises are attributed to
+  the AI lineage.
+- No new event type exists for partial re-rolls (the existing `reroll` event is recorded on the prior proposal when
+  one is linked). Replaced ids are derivable offline by diffing the prior and new proposal's exercises **only when a
+  prior proposal exists**; a partial on a manual or cold-start draft is indistinguishable in the database from an
+  initial generation.
 
 ## Planned workout edit and delete RPCs
 

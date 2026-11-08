@@ -47,6 +47,9 @@ The end-to-end planning loop works:
 
 - ≥ 3 workouts/week generated per active user (planning frequency).
 - ≥ 75% of generated workouts use the AI proposer (vs manual builder).
+  > Measurement note (ai-partial-reroll): a partial re-roll on a manual draft saves the workout with
+  > `origin = 'ai'` and makes the user-chosen kept exercises members of the AI proposal, so their retention and
+  > later completion are attributed to the AI lineage and the workout counts toward the AI share.
 
 ### Guardrails
 
@@ -108,6 +111,13 @@ The end-to-end planning loop works:
 - FR-005: User can re-roll (re-request) the AI proposal if they don't like it. Priority: must-have
   > Socrates: stands as written. Cost-ceiling concern is real and is
   > captured under guardrails (NFR), not by limiting the UX.
+  >
+  > Note (ai-partial-reroll): On any non-empty draft the user marks the exercises to re-roll; 'Mark all'
+  > re-rolls the whole workout (deterministically deprioritising the exercises shown). Marking some exercises
+  > replaces only those: kept exercises and their sets/reps are preserved, exercises already replaced in the same
+  > draft are not offered again, and the merged workout must satisfy FR-004 and FR-017 (a reduced 3–4 merged
+  > workout is offered only when fewer than five ready exercises exist account-wide). On an empty draft the user
+  > generates a new proposal.
 
 ### Workout planning — manual builder
 

@@ -755,6 +755,15 @@ count; that no new event type exists and replaced ids are derivable by diffing *
 **Implementation Note**: After completing this phase and all automated verification passes, pause here for manual
 confirmation from the human that the manual testing was successful before proceeding to the next phase.
 
+**Implementation notes (Phase 5, as built)**:
+
+- PRD notes are added as blockquote notes under FR-005 (separate paragraph after the Socrates note) and under the
+  ≥ 75%-via-AI secondary metric; FR-017 and every other requirement text are untouched (PRD stays `status: locked`).
+- `contract-surfaces.md` also documents the Phase 4 Mark-all behavior (cold-start avoidance with its ≥ 5 /
+  four-coverage fallback, history-aware rank penalty) in S-07, since the generate route contract now depends on it.
+- 5.1 is scoped to the edited docs (`prd.md`, `contract-surfaces.md`), which are Prettier-clean. `plan.md` itself is
+  not Prettier-clean at HEAD in its read-only phase blocks; it was left unformatted to keep those blocks unchanged.
+
 ---
 
 ## Testing Strategy
@@ -895,10 +904,10 @@ and expire through the existing 90-day job.
 
 #### Automated
 
-- [x] 4.1 Recommender penalty tests pass with shortlist membership change asserted
-- [x] 4.2 Cold-start all-marked avoidance test passes
-- [x] 4.3 `pnpm test:node`, `pnpm test:ui`, `pnpm test:e2e` pass
-- [x] 4.4 `pnpm lint` and `pnpm build` pass
+- [x] 4.1 Recommender penalty tests pass with shortlist membership change asserted — 4be3794
+- [x] 4.2 Cold-start all-marked avoidance test passes — 4be3794
+- [x] 4.3 `pnpm test:node`, `pnpm test:ui`, `pnpm test:e2e` pass — 4be3794
+- [x] 4.4 `pnpm lint` and `pnpm build` pass — 4be3794
 
 #### Manual
 
@@ -909,8 +918,8 @@ and expire through the existing 90-day job.
 
 #### Automated
 
-- [ ] 5.1 `pnpm format` leaves no diff in edited Markdown files
-- [ ] 5.2 `pnpm lint` passes
+- [x] 5.1 `pnpm format` leaves no diff in edited Markdown files
+- [x] 5.2 `pnpm lint` passes
 
 #### Manual
 
