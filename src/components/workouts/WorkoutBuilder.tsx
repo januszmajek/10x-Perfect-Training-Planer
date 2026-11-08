@@ -198,6 +198,8 @@ export default function WorkoutBuilder({
         return;
       }
       if (transition.code) {
+        // A failed confirm leaves a spent token behind; close the modal so the inline alert is reachable.
+        if (command.confirmationToken) setReducedConfirmation(null);
         setGenerationError(transition.code);
         setRequestId(transition.requestId);
         if (transition.code !== "confirmation_required") notifyGenerationFailure(transition.code);
@@ -215,6 +217,7 @@ export default function WorkoutBuilder({
         setRequestId(null);
       }
     } catch {
+      if (command.confirmationToken) setReducedConfirmation(null);
       setGenerationError("provider_unavailable");
       notifyGenerationFailure("provider_unavailable");
     } finally {

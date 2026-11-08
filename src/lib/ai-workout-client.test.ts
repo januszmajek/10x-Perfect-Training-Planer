@@ -130,6 +130,16 @@ void test("rejects every malformed re-roll command", () => {
     ["empty exclusions on all-marked", { exercises: [marked(1), marked(2)], excludedExerciseIds: [] }],
     ["exclusions not an array", { exercises: [kept(1), marked(2)], excludedExerciseIds: uuid(9) }],
     ["reroll not an object", [kept(1), marked(2)]],
+    ["uppercase id", { exercises: [kept(1), { exerciseId: "00000000-0000-0000-0000-00000000000A", replace: true }] }],
+    ["NaN sets", { exercises: [kept(1, Number.NaN, 10), marked(2)] }],
+    ["infinite sets", { exercises: [kept(1, Number.POSITIVE_INFINITY, 10), marked(2)] }],
+    ["unsafe reps", { exercises: [kept(1, 3, Number.MAX_SAFE_INTEGER + 1), marked(2)] }],
+    ["null exclusions", { exercises: [kept(1), marked(2)], excludedExerciseIds: null }],
+    ["__proto__ reroll key", JSON.parse(`{"exercises":${JSON.stringify([kept(1), marked(2)])},"__proto__":{}}`)],
+    [
+      "__proto__ item key",
+      { exercises: [JSON.parse(`{"exerciseId":"${uuid(1)}","sets":3,"reps":10,"__proto__":{}}`), marked(2)] },
+    ],
   ];
   for (const [name, reroll] of cases) {
     assert.equal(parseAiWorkoutGenerationCommand({ version: 1, reroll }), null, name);
@@ -141,6 +151,10 @@ void test("rejects every malformed re-roll command", () => {
   assert.equal(parseAiWorkoutGenerationCommand({ version: 1, priorProposalId: "not-a-uuid" }), null);
   assert.equal(parseAiWorkoutGenerationCommand({ version: 1, confirmationToken: 7 }), null);
   assert.equal(parseAiWorkoutGenerationCommand({ version: 2, reroll: { exercises: [marked(1)] } }), null);
+  assert.equal(
+    parseAiWorkoutGenerationCommand(JSON.parse(`{"version":1,"__proto__":{"reroll":{"exercises":[]}}}`)),
+    null,
+  );
   assert.ok(
     parseAiWorkoutGenerationCommand({ version: 1, reroll: { exercises: [...sevenKept.slice(0, 6), marked(8)] } }),
   );

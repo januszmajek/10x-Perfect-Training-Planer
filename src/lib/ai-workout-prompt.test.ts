@@ -137,7 +137,7 @@ void test("builds deterministic partial re-roll prompts with kept exercises as f
   assert.doesNotMatch(first.data.user, /recoveryHours/);
 });
 
-void test("partial re-roll prompts never include marked, excluded or private history data", () => {
+void test("partial re-roll prompts carry only the supplied fixed and candidate exercises, never private history data", () => {
   const markedId = "00000000-0000-0000-0000-000000000099";
   const result = buildPartialRerollPrompt({
     mode: "history_aware",

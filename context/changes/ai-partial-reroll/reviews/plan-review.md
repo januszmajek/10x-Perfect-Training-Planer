@@ -1,4 +1,5 @@
 <!-- PLAN-REVIEW-REPORT -->
+
 # Plan Review: AI Partial Re-roll Implementation Plan
 
 - **Plan**: context/changes/ai-partial-reroll/plan.md
@@ -14,13 +15,13 @@
 
 ## Verdicts
 
-| Dimension | Verdict |
-|-----------|---------|
-| End-State Alignment | WARNING |
-| Lean Execution | PASS |
+| Dimension             | Verdict |
+| --------------------- | ------- |
+| End-State Alignment   | WARNING |
+| Lean Execution        | PASS    |
 | Architectural Fitness | WARNING |
-| Blind Spots | WARNING |
-| Plan Completeness | WARNING |
+| Blind Spots           | WARNING |
+| Plan Completeness     | WARNING |
 
 ## Grounding
 
@@ -77,7 +78,7 @@ derived from proposal ∩ saved exercises (`20260908110000_...sql:72-79`).
 - **Location**: Phase 1 §3 (reduced when `3 ≤ k + c ≤ 4`); Phase 5 §1 (only FR-005 is amended)
 - **Detail**: The pool `c` excludes marked ids and cumulative exclusions. Example: 2 ready kept exercises, 3 marked,
   5 other ready exercises of which 3 are the marked ones, so c = 2 and the merged size is 4. That triggers the reduced
-  dialog while 7 ready exercises exist. PRD FR-017 (`prd.md:106`) forbids this literally. Kept *recovering*
+  dialog while 7 ready exercises exist. PRD FR-017 (`prd.md:106`) forbids this literally. Kept _recovering_
   exercises also count toward "five" (3 recovering kept + 2 ready = normal, no dialog). The brief (Open Risks) calls
   this "treated like Don't suggest", but no PRD text records it. Cumulative exclusion itself is a settled user
   decision; only its FR-017 consequence is at issue.
@@ -199,7 +200,7 @@ derived from proposal ∩ saved exercises (`20260908110000_...sql:72-79`).
 - **Location**: Phase 4 §1–§2; Manual 4.5/4.6
 - **Detail**: Cold-start avoidance excludes only the ids currently on screen. Run 3 uses the prompt "catalogue − B"
   and can deterministically return A (an A→B→A two-cycle), so 4.5 ("three consecutive … different") may fail. The
-  history-aware penalty only changes shortlist *membership*: the prompt sorts the shortlist by id and carries no rank
+  history-aware penalty only changes shortlist _membership_: the prompt sorts the shortlist by id and carries no rank
   (`ai-workout-prompt.ts:52-69`). When the preferred pool is ≤ 7 the prompt is byte-identical and the output repeats.
 - **Fix**: Reword 4.5 to "each Mark-all result differs from the workout it replaced when alternatives exist". Add an
   automated assertion that shortlist membership changes in the penalty test. Note in Phase 4 that small-pool history

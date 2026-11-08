@@ -179,3 +179,38 @@ test("replaces a manual draft with Mark all", async ({ page, authenticatedPage }
     reroll: { exercises: [{ exerciseId: benchPress.id, replace: true }] },
   });
 });
+
+test("closes the reduced-size dialog when the confirmed partial re-roll fails", async ({ page, authenticatedPage }) => {
+  const [benchPress, pushUp] = loadCatalogueExercises(["barbell-bench-press", "push-up"]);
+  await configureAiProviderKey(authenticatedPage.email);
+  const bodies = await mockGeneration(page, [
+    (route) =>
+      route.fulfill({
+        status: 409,
+        json: {
+          code: "confirmation_required",
+          requestId: "e2e-confirm",
+          availableExerciseCount: 3,
+          confirmationToken: "e2e-token",
+        },
+      }),
+    (route) => route.fulfill({ status: 409, json: { code: "stale_confirmation", requestId: "e2e-stale" } }),
+  ]);
+
+  await page.goto("/workouts/new");
+  await waitForHydration(page);
+  await page.getByRole("button", { name: "Add Barbell Bench Press" }).click();
+  await page.getByRole("button", { name: `Add ${pushUp.name}` }).click();
+  await markCheckbox(page, pushUp).check();
+  await page.getByRole("button", { name: "Replace selected (1)" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Generate a smaller workout?" });
+  await expect(dialog).toContainText("including the ones you kept");
+  await dialog.getByRole("button", { name: "Generate smaller workout" }).click();
+
+  await expect(dialog).toBeHidden();
+  await expect(page.getByRole("alert")).toContainText("That reduced-workout confirmation is no longer valid");
+  await expectDraftNames(page, [benchPress, pushUp]);
+  await expect(markCheckbox(page, pushUp)).toBeChecked();
+  expect(bodies[1]).toEqual({ ...(bodies[0] as object), confirmationToken: "e2e-token" });
+});

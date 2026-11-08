@@ -1,3 +1,4 @@
+import type { AiWorkoutRerollItem } from "./ai-workout-client.ts";
 import type { AiWorkoutProposalResult } from "./ai-workout-contract.ts";
 import { MAX_AI_WORKOUT_EXERCISES, MIN_AI_WORKOUT_EXERCISES } from "./ai-workout-contract.ts";
 import { coverageOf, type RecommendationCoverage } from "./ai-workout-recommender.ts";
@@ -10,9 +11,7 @@ const MIN_REDUCED_WORKOUT_EXERCISES = 3;
 export type PartialRerollMode = "cold_start" | "history_aware";
 
 /** One ordered draft entry of a re-roll: kept with its prescription, or marked for replacement. */
-export type PartialRerollItem =
-  | { exerciseId: string; sets: number; reps: number }
-  | { exerciseId: string; replace: true };
+export type PartialRerollItem = AiWorkoutRerollItem;
 
 export interface PartialRerollPlanInput {
   mode: PartialRerollMode;

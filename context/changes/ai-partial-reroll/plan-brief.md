@@ -25,21 +25,21 @@ recorded as new proposals. Failures show the inline alert and a toast; Mark-all 
 
 ## Key Decisions Made
 
-| Decision | Choice | Why (1 sentence) | Source |
-| --- | --- | --- | --- |
-| Button gating | Empty → "Generate workout"; non-empty (AI or manual) → checkboxes + Mark all, "Replace selected (N)" disabled at N = 0 or when marked > 7 − kept; all marked = full re-roll | No implicit full re-roll; full re-roll stays one quick action (FR-005) | User |
-| Cumulative exclusion | Client keeps `excludedExerciseIds` per draft (`cap20(previous ∪ marked)`), sent with partial requests; server validates, hard-excludes, fingerprints them; reset on initial / Mark-all generation or empty draft | A→B then replacing B must never return A | User |
-| Failure toast | Visual-only sonner toast (fixed id, short headline, `aria-hidden` content) for every generation failure except the dialog; inline `role="alert"` stays the only announcement; Toaster already mounted | Visible when off-screen, announced once | User |
-| FR-017 reduced path | Partial 3–4 merged workout only when the account-wide ready count (before removing marked/excluded) is < 5; otherwise `replacement_not_feasible` suggesting fewer marks / Mark all | PRD is locked; keeps FR-017's letter | User (review F2) |
-| Command shape | Optional `reroll: { exercises, excludedExerciseIds? }`; whitelist parser, widened in Phase 2 with the service | Additive; no build silently ignores partial commands | Plan (auto) + review F10 |
-| Merge location | Server merges, returns the full merged proposal; response shape unchanged | Recorded order = what the user sees | Plan (auto) |
-| Kept exercises | Fixed context (any catalogue id); count toward size, coverage, exploration budget, MMR | User chose to keep them | Plan (auto) |
-| Pick count | One-for-one, widened only for coverage; `ceil = min(7 − k, shortlist)`; fixed-context shortlist ≥ min(c, max(5, 7 − k)); partial ignores `recommendation.decision` | Requested count always pickable | Plan (auto) + review F1 |
-| Exploration cap | Over-budget unseen excluded from fallback fill (unless sole coverage source); validator rejects over-budget picks | Makes FR-017's cap checkable | User (review F3) |
-| Infeasible | `replacement_not_feasible` (409), decided after each branch's catalogue load, before decrypt/provider | Correct copy; no wasted credential use | Plan (auto) + review F5 |
-| Lineage & events | Merged ids recorded as a new proposal; `rerolled_from` only with a prior id; empty-draft generation keeps `priorProposalId`; no migration or new events | Retention and FR-018 reroll event preserved | Plan (auto) + review F10 |
-| Mark-all variety | Phase 4: history penalty on on-screen ids; cold start excludes them when coverage stays feasible | Deterministic; droppable | Plan (auto) |
-| Docs | FR-005 note + success-metric note; contract-surfaces S-07 sentences rewritten (additive change) + S-08 | Contract really changes | Plan (auto) + review F4/F6 |
+| Decision             | Choice                                                                                                                                                                                                           | Why (1 sentence)                                                       | Source                     |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------------------------- |
+| Button gating        | Empty → "Generate workout"; non-empty (AI or manual) → checkboxes + Mark all, "Replace selected (N)" disabled at N = 0 or when marked > 7 − kept; all marked = full re-roll                                      | No implicit full re-roll; full re-roll stays one quick action (FR-005) | User                       |
+| Cumulative exclusion | Client keeps `excludedExerciseIds` per draft (`cap20(previous ∪ marked)`), sent with partial requests; server validates, hard-excludes, fingerprints them; reset on initial / Mark-all generation or empty draft | A→B then replacing B must never return A                               | User                       |
+| Failure toast        | Visual-only sonner toast (fixed id, short headline, `aria-hidden` content) for every generation failure except the dialog; inline `role="alert"` stays the only announcement; Toaster already mounted            | Visible when off-screen, announced once                                | User                       |
+| FR-017 reduced path  | Partial 3–4 merged workout only when the account-wide ready count (before removing marked/excluded) is < 5; otherwise `replacement_not_feasible` suggesting fewer marks / Mark all                               | PRD is locked; keeps FR-017's letter                                   | User (review F2)           |
+| Command shape        | Optional `reroll: { exercises, excludedExerciseIds? }`; whitelist parser, widened in Phase 2 with the service                                                                                                    | Additive; no build silently ignores partial commands                   | Plan (auto) + review F10   |
+| Merge location       | Server merges, returns the full merged proposal; response shape unchanged                                                                                                                                        | Recorded order = what the user sees                                    | Plan (auto)                |
+| Kept exercises       | Fixed context (any catalogue id); count toward size, coverage, exploration budget, MMR                                                                                                                           | User chose to keep them                                                | Plan (auto)                |
+| Pick count           | One-for-one, widened only for coverage; `ceil = min(7 − k, shortlist)`; fixed-context shortlist ≥ min(c, max(5, 7 − k)); partial ignores `recommendation.decision`                                               | Requested count always pickable                                        | Plan (auto) + review F1    |
+| Exploration cap      | Over-budget unseen excluded from fallback fill (unless sole coverage source); validator rejects over-budget picks                                                                                                | Makes FR-017's cap checkable                                           | User (review F3)           |
+| Infeasible           | `replacement_not_feasible` (409), decided after each branch's catalogue load, before decrypt/provider                                                                                                            | Correct copy; no wasted credential use                                 | Plan (auto) + review F5    |
+| Lineage & events     | Merged ids recorded as a new proposal; `rerolled_from` only with a prior id; empty-draft generation keeps `priorProposalId`; no migration or new events                                                          | Retention and FR-018 reroll event preserved                            | Plan (auto) + review F10   |
+| Mark-all variety     | Phase 4: history penalty on on-screen ids; cold start excludes them when coverage stays feasible                                                                                                                 | Deterministic; droppable                                               | Plan (auto)                |
+| Docs                 | FR-005 note + success-metric note; contract-surfaces S-07 sentences rewritten (additive change) + S-08                                                                                                           | Contract really changes                                                | Plan (auto) + review F4/F6 |
 
 ## Scope
 
@@ -59,13 +59,13 @@ validate picks (budget, coverage) → positional merge → record proposal (hist
 
 ## Phases at a Glance
 
-| Phase | What it delivers | Key risk |
-| --- | --- | --- |
-| 1. Domain core | Planner, validator/merge, recommender inputs, prompts, fingerprint, error code | Recommender regressions |
-| 2. Server orchestration | Command parser, partial branches both modes, confirmation, lineage | Reduced/token edge cases |
-| 3. Builder UI | Gating, checkboxes, Mark all, exclusions, toast, E2E updates (CI-proven) | Behavior change breaks journeys |
-| 4. Mark-all variety | Penalty / cold-start avoidance of on-screen ids | No change for small pools |
-| 5. Docs | PRD notes, contract-surfaces rewrite | Drift |
+| Phase                   | What it delivers                                                               | Key risk                        |
+| ----------------------- | ------------------------------------------------------------------------------ | ------------------------------- |
+| 1. Domain core          | Planner, validator/merge, recommender inputs, prompts, fingerprint, error code | Recommender regressions         |
+| 2. Server orchestration | Command parser, partial branches both modes, confirmation, lineage             | Reduced/token edge cases        |
+| 3. Builder UI           | Gating, checkboxes, Mark all, exclusions, toast, E2E updates (CI-proven)       | Behavior change breaks journeys |
+| 4. Mark-all variety     | Penalty / cold-start avoidance of on-screen ids                                | No change for small pools       |
+| 5. Docs                 | PRD notes, contract-surfaces rewrite                                           | Drift                           |
 
 **Prerequisites:** local Supabase + e2e harness; OpenRouter test key. **Estimated effort:** ~3–4 sessions.
 

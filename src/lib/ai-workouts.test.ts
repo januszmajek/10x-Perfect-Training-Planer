@@ -1068,6 +1068,7 @@ void test("history-aware partial re-roll passes fixed and excluded context and r
     );
     const [call] = harness.providerCalls;
     for (const removed of [P1, P2, L1, U1, C1, U2]) assert.equal(call.allowedExerciseIds.includes(removed.id), false);
+    for (const removed of [U1, C1, U2]) assert.equal(call.prompt.user.includes(removed.id), false);
     assert.deepEqual(call.requestedExerciseCount, { min: 2, max: 2 });
   }
   assert.deepEqual(recommenderInputs[0].fixedExerciseIds, [P1.id, L1.id, P2.id]);

@@ -1,7 +1,7 @@
 ---
 change_id: ai-partial-reroll
 title: Re-roll only selected exercises in an AI proposal
-status: implementing
+status: impl_reviewed
 created: 2026-11-08
 updated: 2026-11-08
 archived_at: null
