@@ -52,6 +52,8 @@ const GENERATION_MESSAGES: Record<AiGenerationErrorCode | "invalid_output", stri
   stale_confirmation: "That reduced-workout confirmation is no longer valid. Generate again to refresh it.",
   insufficient_recovered_candidates:
     "Fewer than three exercises are eligible after recovery and personalization filters. Keep planning manually.",
+  replacement_not_feasible:
+    "No eligible replacements fit the exercises you kept — exercises you already replaced in this draft are not offered again. Your draft is unchanged; mark fewer exercises, use Mark all to start over with a fresh workout (this clears earlier replacements), or edit manually.",
   stale_plan: "Your planned workout changed elsewhere. Refresh it before saving this draft.",
   history_aware_not_available:
     "Personalized AI planning is next. This balanced starter is available only before your first completed workout.",

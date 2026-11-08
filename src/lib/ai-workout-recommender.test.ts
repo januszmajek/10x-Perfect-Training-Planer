@@ -179,3 +179,115 @@ void test("offers the exact reduced count when only three hard-eligible exercise
   assert.equal(result.shortlist.length, 3);
   assert.deepEqual(result.decision, { kind: "reduced_confirmation_required", availableExerciseCount: 3 });
 });
+
+void test("without fixed-context inputs the recommendation is unchanged and reports account-wide counts", () => {
+  const input = {
+    catalogue,
+    completions: [completion(id(1)), completion(id(2))],
+    preferences: new Map(),
+    now: NOW,
+  };
+  const legacy = recommendHistoryAwareWorkout(input);
+  const explicit = recommendHistoryAwareWorkout({
+    ...input,
+    fixedExerciseIds: undefined,
+    excludedExerciseIds: undefined,
+  });
+  assert.deepEqual(explicit, legacy);
+  assert.deepEqual(legacy.fixedCoverage, []);
+  assert.equal(legacy.accountReadyCount, legacy.readyCandidates.length);
+  assert.equal(legacy.explorationBudget, 2);
+  assert.deepEqual([...legacy.neverCompletedIds].sort(), [id(3), id(4), id(5), id(6)]);
+});
+
+void test("fixed exercises contribute coverage regardless of eligibility and never appear as candidates", () => {
+  const result = recommendHistoryAwareWorkout({
+    catalogue,
+    completions: [completion(id(1), 1), completion(id(2)), completion(id(3)), completion(id(4))],
+    preferences: new Map([[id(4), "dont_suggest"]]),
+    now: NOW,
+    fixedExerciseIds: [id(1), id(4)],
+    excludedExerciseIds: [id(5)],
+  });
+  const emitted = [...result.shortlist, ...result.readyCandidates].map((candidate) => candidate.id);
+  for (const removed of [id(1), id(4), id(5)]) assert.equal(emitted.includes(removed), false);
+  assert.deepEqual(result.readyCandidates.map((candidate) => candidate.id).sort(), [id(2), id(3), id(6)]);
+  assert.equal(result.accountReadyCount, 4);
+  assert.deepEqual(result.fixedCoverage, ["core", "upper_body_push"]);
+  assert.deepEqual(result.feasibleCoverage, ["lower_body", "core", "upper_body_push", "upper_body_pull"]);
+});
+
+void test("fixed context sizes the shortlist so one kept exercise can still take six new picks", () => {
+  const pool = [
+    exercise(100, "upper_body", "push"),
+    exercise(1, "upper_body", "push"),
+    exercise(2, "upper_body", "pull"),
+    exercise(3, "lower_body"),
+    exercise(4, "core"),
+    exercise(5, "upper_body", "pull"),
+    exercise(20, "lower_body"),
+    exercise(21, "core"),
+    exercise(22, "lower_body"),
+    exercise(23, "core"),
+  ];
+  const completions = [100, 1, 2, 3, 4, 5].map((number) => completion(id(number)));
+  const legacy = recommendHistoryAwareWorkout({
+    catalogue: pool.slice(1),
+    completions,
+    preferences: new Map(),
+    now: NOW,
+  });
+  const result = recommendHistoryAwareWorkout({
+    catalogue: pool,
+    completions,
+    preferences: new Map(),
+    now: NOW,
+    fixedExerciseIds: [id(100)],
+    excludedExerciseIds: [],
+  });
+  assert.equal(legacy.shortlist.length, 5);
+  const poolCount = result.readyCandidates.length;
+  assert.equal(poolCount, 9);
+  assert.ok(result.shortlist.length >= Math.min(poolCount, 6));
+  assert.equal(
+    result.shortlist.some((candidate) => candidate.id === id(100)),
+    false,
+  );
+  assert.ok(
+    result.shortlist.filter((candidate) => candidate.reasons.includes("never_completed")).length <=
+      result.explorationBudget,
+  );
+});
+
+void test("kept never-completed exercises consume the exploration budget except for a sole coverage source", () => {
+  const pool = [
+    exercise(1, "upper_body", "push"),
+    exercise(2, "lower_body"),
+    exercise(30, "core"),
+    exercise(31, "lower_body"),
+    exercise(40, "lower_body"),
+    exercise(41, "core"),
+    exercise(42, "upper_body", "pull"),
+    exercise(43, "upper_body", "push"),
+  ];
+  const result = recommendHistoryAwareWorkout({
+    catalogue: pool,
+    completions: [completion(id(1)), completion(id(2))],
+    preferences: new Map(),
+    now: NOW,
+    fixedExerciseIds: [id(30), id(31)],
+    excludedExerciseIds: [],
+  });
+  const unseen = result.shortlist.filter((candidate) => candidate.reasons.includes("never_completed"));
+  assert.deepEqual(
+    unseen.map((candidate) => candidate.id),
+    [id(42)],
+  );
+  assert.equal(result.explorationBudget, 1);
+  assert.deepEqual(result.fixedCoverage, ["lower_body", "core"]);
+  assert.equal(
+    result.shortlist.some((candidate) => candidate.id === id(1)),
+    true,
+  );
+  assert.ok(result.neverCompletedIds.includes(id(42)));
+});

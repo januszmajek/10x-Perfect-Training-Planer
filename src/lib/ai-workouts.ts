@@ -41,6 +41,7 @@ export type AiGenerationErrorCode =
   | "confirmation_required"
   | "stale_confirmation"
   | "insufficient_recovered_candidates"
+  | "replacement_not_feasible"
   | "history_aware_not_available"
   | "stale_plan"
   | "key_not_configured"

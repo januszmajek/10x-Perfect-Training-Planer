@@ -53,6 +53,7 @@ const AI_GENERATION_ERROR_CODES = new Set<AiGenerationErrorCode>([
   "confirmation_required",
   "stale_confirmation",
   "insufficient_recovered_candidates",
+  "replacement_not_feasible",
   "stale_plan",
   "history_aware_not_available",
   "key_not_configured",

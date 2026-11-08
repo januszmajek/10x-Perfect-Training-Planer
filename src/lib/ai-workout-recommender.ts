@@ -39,6 +39,14 @@ export interface HistoryAwareRecommendation {
   readyCandidates: RecommendedExercise[];
   shortlist: RecommendedExercise[];
   feasibleCoverage: RecommendationCoverage[];
+  /** Coverage already provided by fixed (kept) exercises; empty without fixed context. */
+  fixedCoverage: RecommendationCoverage[];
+  /** Hard-eligible ready count before fixed/excluded ids are removed (what a full generation would use). */
+  accountReadyCount: number;
+  /** Maximum never-completed exercises the model may pick (already reduced by kept never-completed exercises). */
+  explorationBudget: number;
+  /** Ids of never-completed exercises among the returned ready candidates. */
+  neverCompletedIds: string[];
 }
 
 export interface RecommendHistoryAwareWorkoutInput {
@@ -47,7 +55,13 @@ export interface RecommendHistoryAwareWorkoutInput {
   preferences: ReadonlyMap<string, AiExercisePreference>;
   now?: Date;
   seed?: number;
+  /** Kept exercises in a partial re-roll: fixed context, never emitted as candidates. */
+  fixedExerciseIds?: readonly string[];
+  /** Marked and cumulatively excluded exercises in a partial re-roll: never emitted as candidates. */
+  excludedExerciseIds?: readonly string[];
 }
+
+export const RECOMMENDATION_COVERAGES = ["lower_body", "core", "upper_body_push", "upper_body_pull"] as const;
 
 interface Candidate extends RecommendedExercise {
   coverage: RecommendationCoverage[];
@@ -99,7 +113,7 @@ function structuredSimilarity(left: CatalogueExercise, right: CatalogueExercise)
   );
 }
 
-function exerciseCoverage(exercise: CatalogueExercise): RecommendationCoverage[] {
+export function coverageOf(exercise: CatalogueExercise): RecommendationCoverage[] {
   const primaryCategories = new Set(
     exercise.muscles.filter((muscle) => muscle.role === "primary").map((muscle) => muscle.category),
   );
@@ -136,15 +150,22 @@ function selectWithMmr(
   count: number,
   seed: number,
   selected: Candidate[] = [],
+  context: readonly CatalogueExercise[] = [],
+  admissible: (candidate: Candidate, chosen: readonly Candidate[]) => boolean = () => true,
 ): Candidate[] {
   const result = [...selected];
   const remaining = candidates.filter((candidate) => !result.some((chosen) => chosen.id === candidate.id));
   while (result.length < count && remaining.length > 0) {
+    const allowed = remaining.filter((candidate) => admissible(candidate, result));
+    if (allowed.length === 0) break;
     const ranked = ordered(
-      remaining,
+      allowed,
       (candidate) => {
+        const neighbours = [...result, ...context];
         const redundancy =
-          result.length === 0 ? 0 : Math.max(...result.map((chosen) => structuredSimilarity(candidate, chosen)));
+          neighbours.length === 0
+            ? 0
+            : Math.max(...neighbours.map((chosen) => structuredSimilarity(candidate, chosen)));
         return (
           candidate.rankScore * HISTORY_AWARE_RECOMMENDER_CONFIG.mmrRelevanceWeight -
           redundancy * (1 - HISTORY_AWARE_RECOMMENDER_CONFIG.mmrRelevanceWeight)
@@ -175,7 +196,12 @@ export function recommendHistoryAwareWorkout({
   preferences,
   now = new Date(),
   seed = 0,
+  fixedExerciseIds,
+  excludedExerciseIds,
 }: RecommendHistoryAwareWorkoutInput): HistoryAwareRecommendation {
+  const fixedMode = fixedExerciseIds !== undefined || excludedExerciseIds !== undefined;
+  const fixedIds = new Set(fixedExerciseIds ?? []);
+  const removedIds = new Set([...fixedIds, ...(excludedExerciseIds ?? [])]);
   const profile = new Map(completions.map((entry) => [entry.exerciseId, entry]));
   const deadlines = new Map<string, number>();
   for (const entry of completions) {
@@ -189,7 +215,7 @@ export function recommendHistoryAwareWorkout({
     }
   }
 
-  const candidates: Candidate[] = catalogue.flatMap((exercise) => {
+  const hardEligible: Candidate[] = catalogue.flatMap((exercise) => {
     if (preferences.get(exercise.id) === "dont_suggest") return [];
     const recoveringUntil = Math.max(
       0,
@@ -214,7 +240,7 @@ export function recommendHistoryAwareWorkout({
         familiarityScore,
         similarityScore,
         recovery: { state: "ready" as const, recoveringUntil: null },
-        coverage: exerciseCoverage(exercise),
+        coverage: coverageOf(exercise),
         rankScore:
           familiarityScore +
           (liked ? HISTORY_AWARE_RECOMMENDER_CONFIG.likedWeight : 0) +
@@ -222,6 +248,15 @@ export function recommendHistoryAwareWorkout({
       },
     ];
   });
+
+  const accountReadyCount = hardEligible.length;
+  const candidates = fixedMode ? hardEligible.filter((candidate) => !removedIds.has(candidate.id)) : hardEligible;
+  // Fixed exercises count for coverage and redundancy regardless of recovery or Don't-suggest.
+  const fixedExercises = catalogue.filter((exercise) => fixedIds.has(exercise.id));
+  const fixedCoverage = RECOMMENDATION_COVERAGES.filter((coverage) =>
+    fixedExercises.some((exercise) => coverageOf(exercise).includes(coverage)),
+  );
+  const isUnseen = (candidate: Candidate) => candidate.reasons.includes("never_completed");
 
   const decision = makeDecision(candidates.length);
   const maximum = Math.min(candidates.length, HISTORY_AWARE_RECOMMENDER_CONFIG.proposalCeiling);
@@ -232,6 +267,8 @@ export function recommendHistoryAwareWorkout({
       : familiarCount <= 2
         ? HISTORY_AWARE_RECOMMENDER_CONFIG.shortHistoryExplorationCap
         : HISTORY_AWARE_RECOMMENDER_CONFIG.establishedHistoryExplorationCap;
+  const fixedUnseenCount = fixedExercises.filter((exercise) => !profile.has(exercise.id)).length;
+  let explorationBudget = fixedMode ? Math.max(0, explorationCap - fixedUnseenCount) : explorationCap;
   const eligibleUnseen = candidates.filter(
     (candidate) =>
       candidate.reasons.includes("never_completed") &&
@@ -243,49 +280,87 @@ export function recommendHistoryAwareWorkout({
   );
   const ranked = ordered(candidates, (candidate) => candidate.rankScore, seed);
   const selected: Candidate[] = [];
-  const feasibleCoverage = (["lower_body", "core", "upper_body_push", "upper_body_pull"] as const).filter((coverage) =>
-    candidates.some((candidate) => candidate.coverage.includes(coverage)),
+  const feasibleCoverage = RECOMMENDATION_COVERAGES.filter(
+    (coverage) =>
+      candidates.some((candidate) => candidate.coverage.includes(coverage)) ||
+      (fixedMode && fixedCoverage.includes(coverage)),
   );
-  for (const coverage of feasibleCoverage) {
-    if (selected.length >= maximum) break;
-    const choice = ordered(
-      ranked.filter(
+  if (fixedMode) {
+    // Reserve only coverage the fixed exercises do not already provide, within the exploration budget unless an
+    // over-budget never-completed exercise is the sole source of that coverage (which then raises the budget).
+    for (const coverage of feasibleCoverage) {
+      if (selected.length >= maximum) break;
+      if (fixedCoverage.includes(coverage) || selected.some((item) => item.coverage.includes(coverage))) continue;
+      const sources = ranked.filter(
         (candidate) => candidate.coverage.includes(coverage) && !selected.some((item) => item.id === candidate.id),
-      ),
-      (candidate) => candidate.rankScore,
-      seed,
-    )[0];
-    selected.push(choice);
+      );
+      const usedUnseen = selected.filter(isUnseen).length;
+      const withinBudget = sources.filter((candidate) => !isUnseen(candidate) || usedUnseen < explorationBudget);
+      const choice = ordered(
+        withinBudget.length > 0 ? withinBudget : sources,
+        (candidate) => candidate.rankScore,
+        seed,
+      ).at(0);
+      if (!choice) continue;
+      if (withinBudget.length === 0) explorationBudget += 1;
+      selected.push(choice);
+    }
+  } else {
+    for (const coverage of feasibleCoverage) {
+      if (selected.length >= maximum) break;
+      const choice = ordered(
+        ranked.filter(
+          (candidate) => candidate.coverage.includes(coverage) && !selected.some((item) => item.id === candidate.id),
+        ),
+        (candidate) => candidate.rankScore,
+        seed,
+      )[0];
+      selected.push(choice);
+    }
   }
-  const selectedUnseen = selected.filter((candidate) => candidate.reasons.includes("never_completed")).length;
+  const selectedUnseen = selected.filter(isUnseen).length;
   const exploration = ordered(eligibleUnseen, (candidate) => candidate.rankScore, seed).slice(
     0,
-    Math.max(0, explorationCap - selectedUnseen),
+    Math.max(0, explorationBudget - selectedUnseen),
   );
   const preferredCandidates = ranked.filter(
     (candidate) =>
       preferredPool.some((item) => item.id === candidate.id) &&
       (!candidate.reasons.includes("never_completed") || exploration.some((item) => item.id === candidate.id)),
   );
+  const minimumTarget = fixedMode
+    ? Math.max(
+        HISTORY_AWARE_RECOMMENDER_CONFIG.normalProposalMinimumSize,
+        HISTORY_AWARE_RECOMMENDER_CONFIG.proposalCeiling - fixedExercises.length,
+      )
+    : decision.kind === "normal"
+      ? HISTORY_AWARE_RECOMMENDER_CONFIG.normalProposalMinimumSize
+      : maximum;
   const preferredTarget = Math.min(
     maximum,
-    Math.max(
-      decision.kind === "normal" ? HISTORY_AWARE_RECOMMENDER_CONFIG.normalProposalMinimumSize : maximum,
-      new Set([...selected, ...preferredCandidates].map(({ id }) => id)).size,
-    ),
+    Math.max(minimumTarget, new Set([...selected, ...preferredCandidates].map(({ id }) => id)).size),
   );
-  const preferredShortlist = selectWithMmr(preferredCandidates, preferredTarget, seed, selected);
+  const preferredShortlist = selectWithMmr(preferredCandidates, preferredTarget, seed, selected, fixedExercises);
+  const withinExplorationBudget = (candidate: Candidate, chosen: readonly Candidate[]) =>
+    !fixedMode || !isUnseen(candidate) || chosen.filter(isUnseen).length < explorationBudget;
   const shortlist = selectWithMmr(
     ranked.filter((candidate) => !preferredShortlist.some((item) => item.id === candidate.id)),
     preferredTarget,
     seed,
     preferredShortlist,
+    fixedExercises,
+    withinExplorationBudget,
   );
+  const readyCandidates = ordered(candidates, (candidate) => candidate.rankScore, seed);
 
   return {
     decision,
-    readyCandidates: ordered(candidates, (candidate) => candidate.rankScore, seed),
+    readyCandidates,
     shortlist,
     feasibleCoverage,
+    fixedCoverage,
+    accountReadyCount,
+    explorationBudget,
+    neverCompletedIds: readyCandidates.filter(isUnseen).map(({ id }) => id),
   };
 }

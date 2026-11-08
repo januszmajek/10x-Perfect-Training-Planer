@@ -11,6 +11,7 @@ function statusForAiGeneration(code: AiGenerationErrorCode): number {
     confirmation_required: 409,
     stale_confirmation: 409,
     insufficient_recovered_candidates: 409,
+    replacement_not_feasible: 409,
     history_aware_not_available: 409,
     stale_plan: 409,
     key_not_configured: 409,
@@ -37,7 +38,11 @@ function logAiGenerationFailure(
 ): void {
   // Diagnostics deliberately exclude payloads, identifiers, prompts, credentials, and provider responses.
   const diagnostic = JSON.stringify({ requestId, operation, layer, code, technicalCode, elapsedMs });
-  if (code === "confirmation_required" || code === "insufficient_recovered_candidates") {
+  if (
+    code === "confirmation_required" ||
+    code === "insufficient_recovered_candidates" ||
+    code === "replacement_not_feasible"
+  ) {
     // Expected planning decisions are not application errors.
     // eslint-disable-next-line no-console
     console.info(diagnostic);

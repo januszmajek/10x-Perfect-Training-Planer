@@ -41,6 +41,26 @@ export async function fingerprintCandidates(ids: readonly string[]): Promise<str
   return digestConfirmationNonce([...ids].sort().join("\n"));
 }
 
+export interface PartialRerollFingerprintInput {
+  candidateIds: readonly string[];
+  keptIds: readonly string[];
+  markedIds: readonly string[];
+  excludedIds: readonly string[];
+}
+
+/** Domain-separated fingerprint binding a reduced-size confirmation to one exact partial re-roll request. */
+export async function fingerprintPartialReroll({
+  candidateIds,
+  keptIds,
+  markedIds,
+  excludedIds,
+}: PartialRerollFingerprintInput): Promise<string> {
+  const list = (ids: readonly string[]) => [...ids].sort().join(",");
+  return digestConfirmationNonce(
+    `partial-reroll-v1\nC:${list(candidateIds)}\nK:${list(keptIds)}\nR:${list(markedIds)}\nX:${list(excludedIds)}`,
+  );
+}
+
 export async function createReducedGenerationConfirmation(
   payload: ReducedGenerationConfirmation,
   secret: string | undefined,
