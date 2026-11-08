@@ -5,9 +5,10 @@
 - **Plan**: context/changes/ai-partial-reroll/plan.md
 - **Scope**: Full plan — Phases 1–5 of 5 (Manual rows and row 3.5 pending by design)
 - **Date**: 2026-11-08
-- **Round**: 1
-- **Verdict**: NEEDS ATTENTION (before triage) → all findings triaged
-- **Findings**: 0 critical, 1 warning, 9 observations
+- **Rounds**: 2 (loop stopped: round 2 had zero CRITICAL and zero WARNING)
+- **Verdict**: APPROVED (round 2 fresh review)
+- **Findings (round 2)**: 0 critical, 0 warnings, 2 observations (both fixed)
+- **Findings (round 1)**: 0 critical, 1 warning, 9 observations (detailed below as F1–F10)
 
 > Unattended run, user pre-authorised. Triage decisions were taken automatically: CRITICAL/WARNING are fixed,
 > OBSERVATIONS fixed when trivial and beneficial, otherwise ACCEPTED or DISMISSED with a reason.
@@ -18,10 +19,13 @@
 | ------------------- | ------- |
 | Plan Adherence      | PASS    |
 | Scope Discipline    | PASS    |
-| Safety & Quality    | WARNING |
+| Safety & Quality    | PASS    |
 | Architecture        | PASS    |
 | Pattern Consistency | PASS    |
-| Success Criteria    | WARNING |
+| Success Criteria    | PASS    |
+
+Round 1 verdicts were Safety & Quality WARNING (F1) and Success Criteria WARNING (Prettier, test gaps); both are
+resolved. Success Criteria stays PASS with Manual rows and CI row 3.5 pending by design.
 
 ## Automated verification (round 1, before fixes)
 
@@ -152,6 +156,28 @@ manually; pushing not allowed). No Manual row is marked complete, so there is no
 - **Decision**: DISMISSED — documented as-built decision in plan Phase 2 notes (keeps the route dependencies object
   unchanged per contract item 5); F3 closes the test-observability gap.
 
+## Round 2 findings
+
+### R2-F1 — Stale failure toast stays visible behind the reduced-size dialog
+
+- **Severity**: 💬 OBSERVATION
+- **Impact**: 🏃 LOW — quick decision; fix is obvious and narrowly scoped
+- **Dimension**: Safety & Quality
+- **Location**: src/components/workouts/WorkoutBuilder.tsx:190
+- **Detail**: The `confirmation_required` branch returned without dismissing `ai-generation-failure`, so a headline
+  from an earlier failure could linger behind the dialog after the inline alert was cleared.
+- **Fix**: `toast.dismiss(AI_GENERATION_FAILURE_TOAST_ID)` in that branch.
+- **Decision**: FIXED (Fix)
+
+### R2-F2 — No test that `confirmation_required` produces no toast
+
+- **Severity**: 💬 OBSERVATION
+- **Impact**: 🏃 LOW — quick decision; fix is obvious and narrowly scoped
+- **Dimension**: Success Criteria
+- **Location**: e2e/ai-partial-reroll.spec.ts:183
+- **Fix**: Assert zero `[data-sonner-toast]` while the dialog is open and exactly one after the failed confirm.
+- **Decision**: FIXED (Fix)
+
 ## Iteration history
 
 ### Round 1 — 2026-11-08
@@ -165,3 +191,16 @@ manually; pushing not allowed). No Manual row is marked complete, so there is no
 - Post-fix checks: lint, test:node (180/180), test:ai-workout (120/120), test:ui (16/16), build, test:e2e (13/13)
   all PASS; Prettier clean on changed files (ex plan.md). Deliberate-break: reverting the F1 fix makes the new E2E
   case fail (`toBeHidden`).
+
+### Round 2 — 2026-11-08
+
+- Fresh review of HEAD 7e51f77: 0 critical, 0 warnings, 2 observations. Verified the round-1 F1 fix (token-only
+  guard; no new token can be issued on confirm; dialog close does not trigger cancel; selection survives).
+- Fixed: R2-F1 (dismiss stale toast on `confirmation_required`), R2-F2 (toast count assertions in the dialog E2E).
+- NEEDS-USER: none. Loop stopped (zero CRITICAL / WARNING).
+- Post-fix checks: lint, test:node (180/180), test:ai-workout (120/120), test:ui (16/16), build, test:e2e (13/13)
+  all PASS; Prettier clean on changed files (ex plan.md); `tsc --noEmit` errors only in files untouched by the branch.
+
+## Pending manual verification (not flipped by this review)
+
+2.11, 2.12, 2.13, 3.5 (GitHub Actions Linux CI run), 3.7, 3.8, 3.9, 3.10, 3.11, 4.5, 4.6, 5.3.

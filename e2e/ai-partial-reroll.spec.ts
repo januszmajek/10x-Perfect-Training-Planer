@@ -206,10 +206,12 @@ test("closes the reduced-size dialog when the confirmed partial re-roll fails", 
 
   const dialog = page.getByRole("dialog", { name: "Generate a smaller workout?" });
   await expect(dialog).toContainText("including the ones you kept");
+  await expect(page.locator("[data-sonner-toast]")).toHaveCount(0);
   await dialog.getByRole("button", { name: "Generate smaller workout" }).click();
 
   await expect(dialog).toBeHidden();
   await expect(page.getByRole("alert")).toContainText("That reduced-workout confirmation is no longer valid");
+  await expect(page.locator("[data-sonner-toast]")).toHaveCount(1);
   await expectDraftNames(page, [benchPress, pushUp]);
   await expect(markCheckbox(page, pushUp)).toBeChecked();
   expect(bodies[1]).toEqual({ ...(bodies[0] as object), confirmationToken: "e2e-token" });

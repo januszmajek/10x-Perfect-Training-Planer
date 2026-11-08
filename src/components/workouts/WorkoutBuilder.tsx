@@ -190,6 +190,7 @@ export default function WorkoutBuilder({
       if (!parsed?.ok && parsed?.code === "confirmation_required" && parsed.confirmationToken) {
         const triggeringCommand = { ...command };
         delete triggeringCommand.confirmationToken;
+        toast.dismiss(AI_GENERATION_FAILURE_TOAST_ID);
         setReducedConfirmation({
           count: parsed.availableExerciseCount ?? 3,
           token: parsed.confirmationToken,
