@@ -30,5 +30,6 @@ test-results/
 
 # local agent skills and tooling
 .agents/
+.claude/
 .10x-cli.json
 skills-lock.json
