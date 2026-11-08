@@ -17,6 +17,7 @@ export const HISTORY_AWARE_RECOMMENDER_CONFIG = {
   minimumProposalSize: 3,
   normalProposalMinimumSize: 5,
   proposalCeiling: 7,
+  rerollRepeatPenalty: 1,
 } as const;
 
 export type RecommendationReason = "liked" | "familiar" | "never_completed";
@@ -59,6 +60,11 @@ export interface RecommendHistoryAwareWorkoutInput {
   fixedExerciseIds?: readonly string[];
   /** Marked and cumulatively excluded exercises in a partial re-roll: never emitted as candidates. */
   excludedExerciseIds?: readonly string[];
+  /**
+   * Exercises currently on screen in a Mark-all re-roll: their rank score is lowered by `rerollRepeatPenalty` so
+   * comparable alternatives win. Eligibility, the candidate count, the decision and feasible coverage are unaffected.
+   */
+  penalizedExerciseIds?: readonly string[];
 }
 
 export const RECOMMENDATION_COVERAGES = ["lower_body", "core", "upper_body_push", "upper_body_pull"] as const;
@@ -198,7 +204,9 @@ export function recommendHistoryAwareWorkout({
   seed = 0,
   fixedExerciseIds,
   excludedExerciseIds,
+  penalizedExerciseIds,
 }: RecommendHistoryAwareWorkoutInput): HistoryAwareRecommendation {
+  const penalizedIds = new Set(penalizedExerciseIds ?? []);
   const fixedMode = fixedExerciseIds !== undefined || excludedExerciseIds !== undefined;
   const fixedIds = new Set(fixedExerciseIds ?? []);
   const removedIds = new Set([...fixedIds, ...(excludedExerciseIds ?? [])]);
@@ -244,7 +252,8 @@ export function recommendHistoryAwareWorkout({
         rankScore:
           familiarityScore +
           (liked ? HISTORY_AWARE_RECOMMENDER_CONFIG.likedWeight : 0) +
-          (completion ? 0 : similarityScore),
+          (completion ? 0 : similarityScore) -
+          (penalizedIds.has(exercise.id) ? HISTORY_AWARE_RECOMMENDER_CONFIG.rerollRepeatPenalty : 0),
       },
     ];
   });

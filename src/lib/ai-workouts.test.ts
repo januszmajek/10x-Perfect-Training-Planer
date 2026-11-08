@@ -896,17 +896,27 @@ void test("cold-start partial infeasibility and unknown ids short-circuit before
   }
 });
 
-void test("cold-start all-marked re-roll follows the unchanged full generation path", async () => {
+void test("cold-start all-marked re-roll avoids the on-screen exercises when coverage stays feasible", async () => {
   const harness = partialHarness([]);
+  const validatorCatalogues: (readonly CatalogueExercise[])[] = [];
+  const promptCatalogues: (readonly CatalogueExercise[])[] = [];
   const result = await generateColdStartAiWorkout(
     {} as never,
     USER_ID,
     "provider/model",
     dependencies({
       ...harness.overrides,
+      buildColdStartWorkoutPrompt: (exercises) => {
+        promptCatalogues.push(exercises);
+        return { ok: true, data: { system: "system", user: "catalogue" } };
+      },
       requestOpenRouterWorkout: (request: ProviderCall) => {
         harness.providerCalls.push(request);
         return Promise.resolve({ ok: true as const, data: { content: "provider-content" } });
+      },
+      parseAiWorkoutProposalJson: (_content, exercises) => {
+        validatorCatalogues.push(exercises);
+        return { ok: true, data: proposal };
       },
     }),
     { version: 1, reroll: { exercises: [mark(P1), mark(U1), mark(L1), mark(C1), mark(P2)] } },
@@ -916,11 +926,46 @@ void test("cold-start all-marked re-roll follows the unchanged full generation p
     data: { proposal, metadata: { kind: "cold_start", exerciseCount: proposal.exercises.length } },
   });
   assert.equal(harness.catalogueLoads, 1);
-  assert.deepEqual(
-    harness.providerCalls[0].allowedExerciseIds,
-    partialCatalogue.map(({ id }) => id),
-  );
+  const remainingIds = [P3, L2, C2, U2, U3].map(({ id }) => id);
+  assert.deepEqual(harness.providerCalls[0].allowedExerciseIds, remainingIds);
   assert.deepEqual(harness.providerCalls[0].requestedExerciseCount, { min: 5, max: 7 });
+  assert.deepEqual(
+    promptCatalogues[0].map(({ id }) => id),
+    remainingIds,
+  );
+  assert.deepEqual(
+    validatorCatalogues[0].map(({ id }) => id),
+    remainingIds,
+  );
+});
+
+void test("cold-start all-marked re-roll keeps the full catalogue when avoidance would lose coverage", async () => {
+  for (const exercises of [
+    // Removing both lower-body exercises leaves no lower-body coverage.
+    [mark(L1), mark(L2), mark(P1), mark(U1), mark(C1)],
+    // Removing six leaves four exercises: all coverage, but below the cold-start minimum of five.
+    [mark(P1), mark(P2), mark(L1), mark(C1), mark(U1), mark(U2)],
+  ]) {
+    const harness = partialHarness([]);
+    const result = await generateColdStartAiWorkout(
+      {} as never,
+      USER_ID,
+      "provider/model",
+      dependencies({
+        ...harness.overrides,
+        requestOpenRouterWorkout: (request: ProviderCall) => {
+          harness.providerCalls.push(request);
+          return Promise.resolve({ ok: true as const, data: { content: "provider-content" } });
+        },
+      }),
+      { version: 1, reroll: { exercises } },
+    );
+    assert.equal(result.ok, true);
+    assert.deepEqual(
+      harness.providerCalls[0].allowedExerciseIds,
+      partialCatalogue.map(({ id }) => id),
+    );
+  }
 });
 
 function historyProfile(ids: readonly string[] = partialCatalogue.map(({ id }) => id)) {
@@ -1258,4 +1303,40 @@ void test("a confirmation token on a normal-path partial re-roll is rejected bef
   });
   assert.equal(harness.decryptCalls, 0);
   assert.equal(harness.providerCalls.length, 0);
+});
+
+void test("history-aware all-marked re-roll penalises the on-screen exercises; other generations pass no penalty", async () => {
+  const recommenderInputs: Parameters<typeof recommendHistoryAwareWorkout>[0][] = [];
+  let lastShortlist: string[] = [];
+  const recommend: typeof recommendHistoryAwareWorkout = (input) => {
+    recommenderInputs.push(input);
+    const recommendation = recommendHistoryAwareWorkout(input);
+    lastShortlist = recommendation.shortlist.map(({ id }) => id);
+    return recommendation;
+  };
+  const onScreen = [P1, U1, L1, C1, P2];
+  for (const command of [
+    { version: 1 as const, priorProposalId: IDS[4], reroll: { exercises: onScreen.map(mark) } },
+    { version: 1 as const },
+  ]) {
+    const harness = partialHarness([]);
+    const { client } = recordingClient();
+    const result = await generateColdStartAiWorkout(
+      client as never,
+      USER_ID,
+      "provider/model",
+      historyDependencies(harness, recommend, {
+        parseHistoryAwareAiWorkoutProposalJson: () => ({ ok: true, data: proposalWith(lastShortlist.slice(0, 5)) }),
+      }),
+      command,
+    );
+    assert.equal(result.ok, true);
+  }
+  assert.deepEqual(
+    recommenderInputs[0].penalizedExerciseIds,
+    onScreen.map(({ id }) => id),
+  );
+  assert.equal(recommenderInputs[0].fixedExerciseIds, undefined);
+  assert.equal(recommenderInputs[0].excludedExerciseIds, undefined);
+  assert.equal("penalizedExerciseIds" in recommenderInputs[1], false);
 });

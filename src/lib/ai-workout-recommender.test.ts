@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { recommendHistoryAwareWorkout } from "./ai-workout-recommender.ts";
+import { coverageOf, recommendHistoryAwareWorkout } from "./ai-workout-recommender.ts";
 import type { CatalogueExercise } from "./manual-workout-builder.ts";
 
 const NOW = new Date("2026-09-07T12:00:00.000Z");
@@ -290,4 +290,54 @@ void test("kept never-completed exercises consume the exploration budget except 
     true,
   );
   assert.ok(result.neverCompletedIds.includes(id(42)));
+});
+
+const varietyCatalogue = [
+  exercise(11, "upper_body", "push"),
+  exercise(12, "upper_body", "push"),
+  exercise(13, "upper_body", "push"),
+  exercise(14, "upper_body", "pull"),
+  exercise(15, "upper_body", "pull"),
+  exercise(16, "upper_body", "pull"),
+  exercise(17, "lower_body"),
+  exercise(18, "lower_body"),
+  exercise(19, "lower_body"),
+  exercise(20, "core"),
+  exercise(21, "core"),
+  exercise(22, "core"),
+];
+const varietyInput = {
+  catalogue: varietyCatalogue,
+  completions: varietyCatalogue.map(({ id: exerciseId }) => completion(exerciseId)),
+  preferences: new Map(),
+  now: NOW,
+};
+const shortlistIds = (result: ReturnType<typeof recommendHistoryAwareWorkout>) =>
+  result.shortlist.map((candidate) => candidate.id).sort();
+
+void test("a Mark-all penalty swaps on-screen exercises out of the shortlist when same-coverage alternatives exist", () => {
+  const baseline = recommendHistoryAwareWorkout(varietyInput);
+  const penalized = [id(11), id(14), id(18), id(19), id(21)];
+  for (const penalizedId of penalized) assert.ok(shortlistIds(baseline).includes(penalizedId));
+
+  const result = recommendHistoryAwareWorkout({ ...varietyInput, penalizedExerciseIds: penalized });
+  assert.deepEqual(shortlistIds(result), [id(12), id(13), id(15), id(16), id(17), id(20), id(22)]);
+  assert.notDeepEqual(shortlistIds(result), shortlistIds(baseline));
+  assert.deepEqual(result.decision, baseline.decision);
+  assert.equal(result.readyCandidates.length, baseline.readyCandidates.length);
+  assert.equal(result.accountReadyCount, baseline.accountReadyCount);
+  assert.deepEqual(result.feasibleCoverage, baseline.feasibleCoverage);
+});
+
+void test("a penalised exercise stays in the shortlist when it is the only source of a coverage", () => {
+  const baseline = recommendHistoryAwareWorkout(varietyInput);
+  const result = recommendHistoryAwareWorkout({
+    ...varietyInput,
+    penalizedExerciseIds: [id(20), id(21), id(22)],
+  });
+  const core = result.shortlist.filter((candidate) => coverageOf(candidate).includes("core"));
+  assert.equal(core.length, 1);
+  assert.deepEqual(result.feasibleCoverage, ["lower_body", "core", "upper_body_push", "upper_body_pull"]);
+  assert.deepEqual(result.decision, baseline.decision);
+  assert.equal(result.readyCandidates.length, baseline.readyCandidates.length);
 });

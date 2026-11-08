@@ -683,6 +683,17 @@ reduced catalogue still contains all four coverage categories; otherwise use the
 **Implementation Note**: After completing this phase and all automated verification passes, pause here for manual
 confirmation from the human that the manual testing was successful before proceeding to the next phase.
 
+**Implementation notes (Phase 4, as built)**:
+
+- Cold-start avoidance additionally requires the reduced catalogue to hold at least five exercises (the cold-start
+  validator's minimum), not only all four coverage categories; otherwise the full catalogue is used. With the
+  58-exercise catalogue and at most 20 on-screen ids this never triggers in practice.
+- The penalty is applied to `rankScore` at candidate construction, so `readyCandidates` order also reflects it; the
+  candidate set, `decision`, `accountReadyCount` and `feasibleCoverage` are unchanged (asserted). The history-aware
+  full path passes `penalizedExerciseIds` only for an all-marked `reroll`; legacy commands pass no penalty.
+- `isPartialReroll` became a plain boolean helper (it was a type guard whose false branch narrowed `command.reroll`
+  to `undefined`, which hid the all-marked case from the type checker).
+
 ---
 
 ## Phase 5: Product and Contract Documentation
@@ -865,12 +876,12 @@ and expire through the existing 90-day job.
 
 #### Automated
 
-- [x] 3.1 Planner-state helper tests pass
-- [x] 3.2 `pnpm test:ui` passes including WorkoutDraftPanel tests
-- [x] 3.3 `pnpm test:node` passes
-- [x] 3.4 `pnpm test:e2e` passes including ai-partial-reroll spec, updated ai-safety journey and unchanged journeys
+- [x] 3.1 Planner-state helper tests pass — 485aafc
+- [x] 3.2 `pnpm test:ui` passes including WorkoutDraftPanel tests — 485aafc
+- [x] 3.3 `pnpm test:node` passes — 485aafc
+- [x] 3.4 `pnpm test:e2e` passes including ai-partial-reroll spec, updated ai-safety journey and unchanged journeys — 485aafc
 - [ ] 3.5 ai-partial-reroll spec passes in the GitHub Actions Linux CI run
-- [x] 3.6 `pnpm lint` and `pnpm build` pass
+- [x] 3.6 `pnpm lint` and `pnpm build` pass — 485aafc
 
 #### Manual
 
@@ -884,10 +895,10 @@ and expire through the existing 90-day job.
 
 #### Automated
 
-- [ ] 4.1 Recommender penalty tests pass with shortlist membership change asserted
-- [ ] 4.2 Cold-start all-marked avoidance test passes
-- [ ] 4.3 `pnpm test:node`, `pnpm test:ui`, `pnpm test:e2e` pass
-- [ ] 4.4 `pnpm lint` and `pnpm build` pass
+- [x] 4.1 Recommender penalty tests pass with shortlist membership change asserted
+- [x] 4.2 Cold-start all-marked avoidance test passes
+- [x] 4.3 `pnpm test:node`, `pnpm test:ui`, `pnpm test:e2e` pass
+- [x] 4.4 `pnpm lint` and `pnpm build` pass
 
 #### Manual
 

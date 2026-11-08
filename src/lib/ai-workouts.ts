@@ -52,6 +52,8 @@ import {
 import type { AiWorkoutSaveRequest } from "./ai-workout-save-request.ts";
 
 type WorkoutClient = SupabaseClient<Database>;
+/** Minimum cold-start proposal size (the cold-start validator requires 5–7 exercises). */
+const MIN_COLD_START_EXERCISES = 5;
 type SaveAiPlannedWorkoutReplacementArgs = Pick<
   Database["public"]["Functions"]["save_ai_planned_workout"]["Args"],
   "p_expected_revision" | "p_expected_workout_id" | "p_replace_existing"
@@ -243,8 +245,20 @@ function validateRerollCatalogue(
   return ids.every((id) => known.has(id)) ? null : failure("validation_failed", "service", "REROLL_UNKNOWN_EXERCISE");
 }
 
-function isPartialReroll(reroll: AiWorkoutReroll | undefined): reroll is AiWorkoutReroll {
-  return reroll !== undefined && !isFullReroll(reroll);
+/**
+ * Cold-start Mark-all variety: drop the on-screen exercises from the prompt, provider enum and validator catalogue when
+ * the remaining catalogue still offers every coverage category and a normal-size workout; otherwise keep it whole.
+ */
+function coldStartVarietyCatalogue(catalogue: CatalogueExercise[], reroll: AiWorkoutReroll): CatalogueExercise[] {
+  const onScreen = new Set(reroll.exercises.map(({ exerciseId }) => exerciseId));
+  const remaining = catalogue.filter(({ id }) => !onScreen.has(id));
+  const feasible =
+    remaining.length >= MIN_COLD_START_EXERCISES && coverageAvailable(RECOMMENDATION_COVERAGES, remaining);
+  return feasible ? remaining : catalogue;
+}
+
+function isPartialReroll(reroll: AiWorkoutReroll): boolean {
+  return !isFullReroll(reroll);
 }
 
 function notFeasible(plan: Extract<PartialRerollPlan, { kind: "not_feasible" }>): AiGenerationFailure {
@@ -438,6 +452,8 @@ export async function generateColdStartAiWorkout(
     if (!catalogue.ok) return mapWorkoutFailure(catalogue);
     catalogueData = catalogue.data;
   }
+  // A Mark-all re-roll avoids the exercises on screen whenever the rest of the catalogue can still form a workout.
+  if (command.reroll) catalogueData = coldStartVarietyCatalogue(catalogueData, command.reroll);
 
   const prompt = dependencies.buildColdStartWorkoutPrompt(catalogueData);
   if (!prompt.ok) return failure("catalogue_context_too_large", "service", "CATALOGUE_CONTEXT_TOO_LARGE");
@@ -572,6 +588,8 @@ export async function generateHistoryAwareAiWorkout(
     completions: profile.data.completions,
     preferences: profile.data.preferences,
     now: dependencies.now?.(),
+    // A Mark-all re-roll deprioritises the exercises on screen (variety without changing eligibility).
+    ...(command.reroll ? { penalizedExerciseIds: command.reroll.exercises.map(({ exerciseId }) => exerciseId) } : {}),
   });
   const ids = recommendation.readyCandidates.map(({ id }) => id);
   if (recommendation.decision.kind === "insufficient_recovered_candidates")
