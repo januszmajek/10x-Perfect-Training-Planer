@@ -918,8 +918,8 @@ and expire through the existing 90-day job.
 
 #### Automated
 
-- [x] 5.1 `pnpm format` leaves no diff in edited Markdown files
-- [x] 5.2 `pnpm lint` passes
+- [x] 5.1 `pnpm format` leaves no diff in edited Markdown files — 2ec662d
+- [x] 5.2 `pnpm lint` passes — 2ec662d
 
 #### Manual
 
