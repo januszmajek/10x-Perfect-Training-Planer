@@ -449,6 +449,19 @@ an unknown item key, one with seven kept items and one with an excluded id equal
 **Implementation Note**: After completing this phase and all automated verification passes, pause here for manual
 confirmation from the human that the manual testing was successful before proceeding to the next phase.
 
+**Implementation notes (Phase 2, as built)**:
+
+- History-aware `missingCoverageFeasible` is evaluated over the recommender's `shortlist` (what the model may pick),
+  not all ready candidates, so a coverage the shortlist cannot supply ends `replacement_not_feasible` pre-provider
+  instead of `invalid_output`.
+- `buildPartialRerollPrompt`, `parsePartialRerollPicksJson` and `mergePartialReroll` are imported directly by
+  `ai-workouts.ts` rather than injected, keeping the route's dependencies object unchanged (contract item 5).
+- Cold start keeps the existing order `eligibility → model check`; only re-roll commands then load the catalogue
+  before `decryptOwnedAiProviderKey` (legacy commands keep decrypt-then-catalogue). A cold-start partial ignores a
+  `confirmationToken`, matching today's cold-start full path, which has no reduced handshake.
+- The reduced-size register/verify/consume sequence was extracted into one helper shared by the full and partial
+  history-aware paths; technical codes are unchanged. The four legacy command shapes still parse identically.
+
 ---
 
 ## Phase 3: Builder UI — Mark, Replace, Exclude, Notify
@@ -800,28 +813,28 @@ and expire through the existing 90-day job.
 
 #### Automated
 
-- [x] 1.1 Planner boundary tests pass
-- [x] 1.2 Planner FR-017 reduced-path gate tests pass on both sides
-- [x] 1.3 Validator and merge tests pass including over-budget unseen picks
-- [x] 1.4 Recommender fixed-context tests pass and pre-existing recommender tests are unchanged
-- [x] 1.5 Prompt privacy/determinism and partial fingerprint tests pass
-- [x] 1.6 `pnpm test:node` passes
-- [x] 1.7 `pnpm lint` passes
+- [x] 1.1 Planner boundary tests pass — 5aa6620
+- [x] 1.2 Planner FR-017 reduced-path gate tests pass on both sides — 5aa6620
+- [x] 1.3 Validator and merge tests pass including over-budget unseen picks — 5aa6620
+- [x] 1.4 Recommender fixed-context tests pass and pre-existing recommender tests are unchanged — 5aa6620
+- [x] 1.5 Prompt privacy/determinism and partial fingerprint tests pass — 5aa6620
+- [x] 1.6 `pnpm test:node` passes — 5aa6620
+- [x] 1.7 `pnpm lint` passes — 5aa6620
 
 ### Phase 2: Server Orchestration for Partial Re-roll
 
 #### Automated
 
-- [ ] 2.1 Command parser tests pass for legacy, partial, exclusion and all-marked shapes and every rejection case
-- [ ] 2.2 Cold-start partial service tests pass
-- [ ] 2.3 History-aware partial service tests pass including new-lineage case
-- [ ] 2.4 Infeasible, reduced confirmation, cross-mode and stale token paths short-circuit before provider use
-- [ ] 2.5 Unknown ids and infeasible requests never call decrypt or the provider
-- [ ] 2.6 FR-017 gate service test returns replacement_not_feasible when five ready exist account-wide
-- [ ] 2.7 Existing full-generation and re-roll service tests remain green
-- [ ] 2.8 `pnpm test:node` passes
-- [ ] 2.9 `pnpm lint` and `pnpm build` pass
-- [ ] 2.10 `pnpm test:e2e` passes including malformed re-roll command cases
+- [x] 2.1 Command parser tests pass for legacy, partial, exclusion and all-marked shapes and every rejection case
+- [x] 2.2 Cold-start partial service tests pass
+- [x] 2.3 History-aware partial service tests pass including new-lineage case
+- [x] 2.4 Infeasible, reduced confirmation, cross-mode and stale token paths short-circuit before provider use
+- [x] 2.5 Unknown ids and infeasible requests never call decrypt or the provider
+- [x] 2.6 FR-017 gate service test returns replacement_not_feasible when five ready exist account-wide
+- [x] 2.7 Existing full-generation and re-roll service tests remain green
+- [x] 2.8 `pnpm test:node` passes
+- [x] 2.9 `pnpm lint` and `pnpm build` pass
+- [x] 2.10 `pnpm test:e2e` passes including malformed re-roll command cases
 
 #### Manual
 

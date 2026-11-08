@@ -99,6 +99,22 @@ test("authenticated AI routes reject non-exact generation and save commands befo
     expect(result.requestId).toBe(result.body.requestId);
     expect(JSON.stringify(result.body)).not.toContain(SUBMITTED_SECRET);
   }
+
+  const id = (number: number) => `00000000-0000-0000-0000-${String(number).padStart(12, "0")}`;
+  const keptItem = (number: number) => ({ exerciseId: id(number), sets: 3, reps: 10 });
+  const markedItem = (number: number) => ({ exerciseId: id(number), replace: true });
+  for (const reroll of [
+    { exercises: [{ ...keptItem(1), secret: SUBMITTED_SECRET }, markedItem(2)] },
+    { exercises: [...[1, 2, 3, 4, 5, 6, 7].map(keptItem), markedItem(8)] },
+    { exercises: [keptItem(1), markedItem(2)], excludedExerciseIds: [id(1)] },
+  ]) {
+    const result = await browserPost(page, GENERATE_PATH, { version: 1, reroll });
+    expect(result.status).toBe(400);
+    assertPublicFailure(result.body, "validation_failed");
+    expect(result.body).toEqual({ code: "validation_failed", requestId: expect.any(String) });
+    expect(result.requestId).toBe(result.body.requestId);
+    expect(JSON.stringify(result.body)).not.toContain(SUBMITTED_SECRET);
+  }
 });
 
 test("failed generation keeps an edited manual draft editable and saves it manually", async ({
