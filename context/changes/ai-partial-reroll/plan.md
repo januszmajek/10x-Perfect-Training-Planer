@@ -877,9 +877,9 @@ and expire through the existing 90-day job.
 
 #### Manual
 
-- [ ] 2.11 Real-key partial request returns merged workout with kept items and prescriptions unchanged
-- [ ] 2.12 Worker logs for partial requests contain no private generation data
-- [ ] 2.13 Manual-draft partial SQL shape is a new lineage containing user-chosen kept exercises
+- [x] 2.11 Real-key partial request returns merged workout with kept items and prescriptions unchanged
+- [x] 2.12 Worker logs for partial requests contain no private generation data
+- [x] 2.13 Manual-draft partial SQL shape is a new lineage containing user-chosen kept exercises
 
 ### Phase 3: Builder UI — Mark, Replace, Exclude, Notify
 
@@ -894,11 +894,11 @@ and expire through the existing 90-day job.
 
 #### Manual
 
-- [ ] 3.7 Mobile and desktop layout and keyboard behavior is correct
-- [ ] 3.8 Screen reader announces each failure once and the checkbox name correctly
-- [ ] 3.9 Partial reduced-size dialog and confirm work when fewer than five ready exist account-wide
-- [ ] 3.10 Cumulative exclusion holds and button count tracks remove/swap
-- [ ] 3.11 Preferences and telemetry still work on a merged proposal
+- [x] 3.7 Mobile and desktop layout and keyboard behavior is correct
+- [x] 3.8 Screen reader announces each failure once and the checkbox name correctly
+- [x] 3.9 Partial reduced-size dialog and confirm work when fewer than five ready exist account-wide
+- [x] 3.10 Cumulative exclusion holds and button count tracks remove/swap
+- [x] 3.11 Preferences and telemetry still work on a merged proposal
 
 ### Phase 4: Deterministic Variety for Mark-all Re-roll
 
@@ -911,8 +911,8 @@ and expire through the existing 90-day job.
 
 #### Manual
 
-- [ ] 4.5 Each cold-start Mark-all result differs from the workout it replaced
-- [ ] 4.6 History-aware Mark-all result differs when alternatives exist and still succeeds with a small pool
+- [x] 4.5 Each cold-start Mark-all result differs from the workout it replaced
+- [x] 4.6 History-aware Mark-all result differs when alternatives exist and still succeeds with a small pool
 
 ### Phase 5: Product and Contract Documentation
 
@@ -923,4 +923,4 @@ and expire through the existing 90-day job.
 
 #### Manual
 
-- [ ] 5.3 Reviewer confirms PRD notes and contract-surfaces text match implemented behavior
+- [x] 5.3 Reviewer confirms PRD notes and contract-surfaces text match implemented behavior
