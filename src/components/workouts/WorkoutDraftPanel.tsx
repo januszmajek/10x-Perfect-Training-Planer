@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp, Plus, Replace, Trash2, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   MAX_REPS,
   MAX_SETS,
@@ -9,6 +10,11 @@ import {
   type ManualWorkoutDraftItem,
 } from "@/lib/manual-workout-builder";
 
+export interface RerollSelectionControls {
+  selectedIds: ReadonlySet<string>;
+  onToggle: (exerciseId: string) => void;
+}
+
 interface Props {
   draft: ManualWorkoutDraftItem[];
   exercisesById: ReadonlyMap<string, CatalogueExercise>;
@@ -17,6 +23,7 @@ interface Props {
   pending: boolean;
   draftValid: boolean;
   saveLabel: string;
+  rerollSelection?: RerollSelectionControls;
   onCancelReplace: () => void;
   onToggleReplace: (index: number) => void;
   onUpdateItem: (index: number, update: Partial<ManualWorkoutDraftItem>) => void;
@@ -34,6 +41,7 @@ export default function WorkoutDraftPanel({
   pending,
   draftValid,
   saveLabel,
+  rerollSelection,
   onCancelReplace,
   onToggleReplace,
   onUpdateItem,
@@ -79,11 +87,41 @@ export default function WorkoutDraftPanel({
               Number.isSafeInteger(item.reps) &&
               item.reps >= MIN_REPS &&
               item.reps <= MAX_REPS;
+            const exerciseName = exercise?.name ?? "Unknown exercise";
+            const marked = rerollSelection?.selectedIds.has(item.exerciseId) ?? false;
             return (
-              <li key={item.exerciseId} className="rounded-xl border border-white/10 bg-black/15 p-4">
-                <h3 className="font-semibold break-words text-white">
-                  {index + 1}. {exercise?.name ?? "Unknown exercise"}
-                </h3>
+              <li
+                key={item.exerciseId}
+                className={cn(
+                  "rounded-xl border border-white/10 bg-black/15 p-4",
+                  marked && "border-purple-300/50 bg-purple-500/10",
+                )}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+                  <h3 className="min-w-0 font-semibold break-words text-white">
+                    {index + 1}. {exerciseName}
+                  </h3>
+                  {rerollSelection && (
+                    <label
+                      className={cn(
+                        "-my-2 inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 text-sm font-medium text-purple-100",
+                        pending && "cursor-not-allowed opacity-45",
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={marked}
+                        disabled={pending}
+                        aria-label={`Replace with AI: ${exerciseName}`}
+                        onChange={() => {
+                          rerollSelection.onToggle(item.exerciseId);
+                        }}
+                        className="size-5 cursor-pointer accent-purple-500 disabled:cursor-not-allowed"
+                      />
+                      Replace with AI
+                    </label>
+                  )}
+                </div>
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <label className="text-sm font-medium text-blue-50">
                     Sets
@@ -151,7 +189,10 @@ export default function WorkoutDraftPanel({
                       onClick={() => {
                         onToggleReplace(index);
                       }}
-                      className={`inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-white/20 text-white disabled:cursor-not-allowed disabled:opacity-35 ${replacingIndex === index ? "bg-white/10" : ""}`}
+                      className={cn(
+                        "inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-white/20 text-white disabled:cursor-not-allowed disabled:opacity-35",
+                        replacingIndex === index && "bg-white/10",
+                      )}
                       aria-label={`Replace ${exercise?.name ?? "exercise"}`}
                       aria-pressed={replacingIndex === index}
                       title={replacingIndex === index ? "Cancel replacement" : "Replace"}

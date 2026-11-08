@@ -150,14 +150,17 @@ test("failed generation keeps an edited manual draft editable and saves it manua
   await waitForHydration(page);
   await page.getByRole("button", { name: "Add Barbell Bench Press" }).click();
   await page.getByLabel("Sets").fill("4");
+  // A non-empty draft has no implicit full re-roll: mark every exercise once; the selection survives failures.
+  await page.getByRole("button", { name: "Mark all" }).click();
 
-  for (const alertText of [
-    "The AI response was not a valid balanced workout",
-    "The AI response was not a valid balanced workout",
-    "The AI provider is temporarily unavailable",
+  for (const [alertText, toastHeadline] of [
+    ["The AI response was not a valid balanced workout", "The AI returned an unbalanced workout"],
+    ["The AI response was not a valid balanced workout", "The AI returned an unbalanced workout"],
+    ["The AI provider is temporarily unavailable", "The AI provider is unavailable"],
   ]) {
-    await page.getByRole("button", { name: "Generate workout" }).click();
+    await page.getByRole("button", { name: "Replace selected (1)" }).click();
     await expect(page.getByRole("alert")).toContainText(alertText);
+    await expect(page.getByText(toastHeadline, { exact: true })).toBeVisible();
     await expect(page.getByRole("list", { name: "Workout draft exercises" })).toContainText("Barbell Bench Press");
     await expect(page.getByLabel("Sets")).toHaveValue("4");
   }
@@ -173,7 +176,7 @@ test("failed generation keeps an edited manual draft editable and saves it manua
   expect(manualSavePath).toBe("/api/workouts/manual");
   await expect(page.getByLabel("Reps")).toHaveValue("12");
 
-  await page.getByRole("button", { name: "Generate workout" }).click();
+  await page.getByRole("button", { name: "Replace selected (1)" }).click();
   await expect(page.getByRole("list", { name: "Workout draft exercises" })).toContainText(exercises[1].name);
   await expect(page.getByLabel("Reps").first()).toHaveValue("10");
 });

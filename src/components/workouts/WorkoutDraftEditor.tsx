@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import WorkoutCatalogueFilters from "@/components/workouts/WorkoutCatalogueFilters";
 import WorkoutCataloguePanel from "@/components/workouts/WorkoutCataloguePanel";
-import WorkoutDraftPanel from "@/components/workouts/WorkoutDraftPanel";
+import WorkoutDraftPanel, { type RerollSelectionControls } from "@/components/workouts/WorkoutDraftPanel";
 import { getAiWorkoutDraftInteraction, type AiWorkoutDraftInteraction } from "@/lib/ai-workout-planner-state";
 import {
   addDraftItem,
@@ -29,6 +29,7 @@ interface Props<T extends CatalogueExercise> {
   originalProposalExerciseIds?: readonly string[];
   feedback?: AiWorkoutFeedbackControls;
   preferenceError?: string | null;
+  rerollSelection?: RerollSelectionControls;
   initialCatalogueNavigation: WorkoutCatalogueNavigationState;
   onChange: (draft: ManualWorkoutDraftItem[]) => void;
   onInteraction?: (interaction: AiWorkoutDraftInteraction) => void;
@@ -45,6 +46,7 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
   originalProposalExerciseIds = [],
   feedback,
   preferenceError = null,
+  rerollSelection,
   initialCatalogueNavigation,
   onChange,
   onInteraction,
@@ -210,6 +212,7 @@ export default function WorkoutDraftEditor<T extends CatalogueExercise>({
           pending={pending}
           draftValid={draftValid}
           saveLabel={saveLabel}
+          rerollSelection={rerollSelection}
           onCancelReplace={() => {
             setReplacingIndex(null);
           }}

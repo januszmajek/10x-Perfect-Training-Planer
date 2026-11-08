@@ -613,6 +613,25 @@ the ones you kept (exercises you already replaced are not offered again)…" wit
 **Implementation Note**: After completing this phase and all automated verification passes, pause here for manual
 confirmation from the human that the manual testing was successful before proceeding to the next phase.
 
+**Implementation notes (Phase 3, as built)**:
+
+- Row 3.5 (GitHub Actions Linux run of `e2e/ai-partial-reroll.spec.ts`) stays pending: this unattended run may not
+  push, so the spec is proven locally only and must not be treated as a blocking gate until a CI run of the branch
+  passes (lessons.md). The spec asserts only visible state and request bodies; no screenshots or pixel baselines.
+- `getAiButtonState` also returns `keptCount` so the `marked_exceeds_slots` copy can name `k` and `7 − k`; without a
+  configured key the hint is `null` (the existing "Add an OpenRouter key" notice is shown instead).
+- `buildAiGenerationCommand` returns `null` for a non-empty draft with nothing marked (the button is disabled then),
+  so no implicit full re-roll command can be built. `nextRerollExclusions` additionally drops any id present in the
+  merged result (defensive; picks are never marked or excluded).
+- `useRerollSelection` prunes selection/exclusions by adjusting state during render when the draft identity changes
+  (React's recommended alternative), because `react-hooks/set-state-in-effect` rejects a syncing effect.
+- A successful generation dismisses the `ai-generation-failure` toast. `replacement_not_feasible` maps explicitly to
+  recovery action `manual`. The manual **Replace** button's class concatenation was converted to `cn()` while adding
+  the marked-card highlight.
+- E2E needed real catalogue ids beyond the five-exercise fixture, so `e2e/local-fixtures.ts` gained
+  `loadCatalogueExercises(slugs)` (re-exported with the `WorkoutFixtureExercise` type from `e2e/fixtures.ts`);
+  `loadWorkoutFixture` now delegates to it. The updated `ai-safety` journey asserts each failure's toast headline.
+
 ---
 
 ## Phase 4: Deterministic Variety for Mark-all Re-roll
@@ -825,16 +844,16 @@ and expire through the existing 90-day job.
 
 #### Automated
 
-- [x] 2.1 Command parser tests pass for legacy, partial, exclusion and all-marked shapes and every rejection case
-- [x] 2.2 Cold-start partial service tests pass
-- [x] 2.3 History-aware partial service tests pass including new-lineage case
-- [x] 2.4 Infeasible, reduced confirmation, cross-mode and stale token paths short-circuit before provider use
-- [x] 2.5 Unknown ids and infeasible requests never call decrypt or the provider
-- [x] 2.6 FR-017 gate service test returns replacement_not_feasible when five ready exist account-wide
-- [x] 2.7 Existing full-generation and re-roll service tests remain green
-- [x] 2.8 `pnpm test:node` passes
-- [x] 2.9 `pnpm lint` and `pnpm build` pass
-- [x] 2.10 `pnpm test:e2e` passes including malformed re-roll command cases
+- [x] 2.1 Command parser tests pass for legacy, partial, exclusion and all-marked shapes and every rejection case — 9d18ca2
+- [x] 2.2 Cold-start partial service tests pass — 9d18ca2
+- [x] 2.3 History-aware partial service tests pass including new-lineage case — 9d18ca2
+- [x] 2.4 Infeasible, reduced confirmation, cross-mode and stale token paths short-circuit before provider use — 9d18ca2
+- [x] 2.5 Unknown ids and infeasible requests never call decrypt or the provider — 9d18ca2
+- [x] 2.6 FR-017 gate service test returns replacement_not_feasible when five ready exist account-wide — 9d18ca2
+- [x] 2.7 Existing full-generation and re-roll service tests remain green — 9d18ca2
+- [x] 2.8 `pnpm test:node` passes — 9d18ca2
+- [x] 2.9 `pnpm lint` and `pnpm build` pass — 9d18ca2
+- [x] 2.10 `pnpm test:e2e` passes including malformed re-roll command cases — 9d18ca2
 
 #### Manual
 
@@ -846,12 +865,12 @@ and expire through the existing 90-day job.
 
 #### Automated
 
-- [ ] 3.1 Planner-state helper tests pass
-- [ ] 3.2 `pnpm test:ui` passes including WorkoutDraftPanel tests
-- [ ] 3.3 `pnpm test:node` passes
-- [ ] 3.4 `pnpm test:e2e` passes including ai-partial-reroll spec, updated ai-safety journey and unchanged journeys
+- [x] 3.1 Planner-state helper tests pass
+- [x] 3.2 `pnpm test:ui` passes including WorkoutDraftPanel tests
+- [x] 3.3 `pnpm test:node` passes
+- [x] 3.4 `pnpm test:e2e` passes including ai-partial-reroll spec, updated ai-safety journey and unchanged journeys
 - [ ] 3.5 ai-partial-reroll spec passes in the GitHub Actions Linux CI run
-- [ ] 3.6 `pnpm lint` and `pnpm build` pass
+- [x] 3.6 `pnpm lint` and `pnpm build` pass
 
 #### Manual
 

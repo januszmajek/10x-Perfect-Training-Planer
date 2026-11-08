@@ -48,7 +48,7 @@ export async function configureAiProviderKey(email: string) {
   );
 }
 
-export function loadWorkoutFixture(): WorkoutFixtureExercise[] {
+export function loadCatalogueExercises(slugs: readonly string[]): WorkoutFixtureExercise[] {
   const databaseUrl = required("SUPABASE_DB_URL");
   const output = execFileSync(
     "psql",
@@ -57,7 +57,7 @@ export function loadWorkoutFixture(): WorkoutFixtureExercise[] {
       "-AtF",
       "|",
       "-c",
-      `select slug, id, name from public.exercises where slug in (${WORKOUT_FIXTURE_SLUGS.map((slug) => `'${slug}'`).join(", ")});`,
+      `select slug, id, name from public.exercises where slug in (${slugs.map((slug) => `'${slug}'`).join(", ")});`,
     ],
     { encoding: "utf8" },
   );
@@ -69,11 +69,15 @@ export function loadWorkoutFixture(): WorkoutFixtureExercise[] {
       .map((line) => line.split("|"))
       .map(([slug, id, name]) => [slug, { id, name }] as const),
   );
-  const exercises = WORKOUT_FIXTURE_SLUGS.map((slug) => bySlug.get(slug));
+  const exercises = slugs.map((slug) => bySlug.get(slug));
   if (exercises.some((exercise) => !exercise)) {
     throw new Error("The local E2E catalogue fixture is incomplete.");
   }
   return exercises as WorkoutFixtureExercise[];
+}
+
+export function loadWorkoutFixture(): WorkoutFixtureExercise[] {
+  return loadCatalogueExercises(WORKOUT_FIXTURE_SLUGS);
 }
 
 export function seedCompletedHistoryFixture(email: string, exercise: WorkoutFixtureExercise) {

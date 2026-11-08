@@ -3,11 +3,18 @@ import { useEffect, useRef } from "react";
 interface Props {
   confirmation: { count: 3 | 4; token: string } | null;
   pending: boolean;
+  variant?: "full" | "partial";
   onCancel: () => void;
   onConfirm: (token: string) => void;
 }
 
-export default function ReducedWorkoutConfirmationDialog({ confirmation, pending, onCancel, onConfirm }: Props) {
+export default function ReducedWorkoutConfirmationDialog({
+  confirmation,
+  pending,
+  variant = "full",
+  onCancel,
+  onConfirm,
+}: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -31,10 +38,18 @@ export default function ReducedWorkoutConfirmationDialog({ confirmation, pending
         <h2 id="reduced-confirmation-title" className="text-lg font-semibold">
           Generate a smaller workout?
         </h2>
-        <p className="text-sm leading-6 text-blue-100/75">
-          Only {confirmation?.count ?? 0} recovery-compatible exercises are available right now. You can keep planning
-          manually, or generate a workout with exactly that many exercises.
-        </p>
+        {variant === "partial" ? (
+          <p className="text-sm leading-6 text-blue-100/75">
+            Only {confirmation?.count ?? 0} exercises fit right now, including the ones you kept (exercises you already
+            replaced are not offered again). You can keep planning manually, or generate a workout with exactly that
+            many exercises.
+          </p>
+        ) : (
+          <p className="text-sm leading-6 text-blue-100/75">
+            Only {confirmation?.count ?? 0} recovery-compatible exercises are available right now. You can keep planning
+            manually, or generate a workout with exactly that many exercises.
+          </p>
+        )}
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
           <button
             type="button"

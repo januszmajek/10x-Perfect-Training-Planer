@@ -1,8 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { useRerollSelection } from "@/components/hooks/useRerollSelection";
 import PlanReplacementDialog from "@/components/workouts/PlanReplacementDialog";
 import ReducedWorkoutConfirmationDialog from "@/components/workouts/ReducedWorkoutConfirmationDialog";
 import WorkoutDraftEditor from "@/components/workouts/WorkoutDraftEditor";
-import { applyAiGenerationResponse, getAiPlannerRecoveryAction } from "@/lib/ai-workout-planner-state";
+import {
+  AI_GENERATION_FAILURE_TOAST_ID,
+  applyAiGenerationResponse,
+  buildAiGenerationCommand,
+  getAiButtonState,
+  getAiPlannerRecoveryAction,
+  getGenerationFailureHeadline,
+  type AiButtonState,
+} from "@/lib/ai-workout-planner-state";
 import {
   AI_WORKOUT_FEEDBACK_VERSION,
   acknowledgeAiWorkoutFeedbackEvent,
@@ -12,7 +22,7 @@ import {
   type AiWorkoutPreferenceState,
 } from "@/lib/ai-workout-feedback-client";
 import {
-  AI_WORKOUT_GENERATION_VERSION,
+  isFullReroll,
   parseAiWorkoutGenerationResponse,
   type AiWorkoutGenerationCommand,
   type AiWorkoutGenerationResponse,
@@ -42,6 +52,36 @@ interface Props {
 type DraftOrigin = "manual" | "ai";
 type PendingOperation = "generate" | "save" | null;
 type ActiveProposal = Extract<AiWorkoutGenerationMetadata, { kind: "history_aware" }>;
+
+interface ReducedConfirmationState {
+  count: 3 | 4;
+  token: string;
+  /** The command that triggered `confirmation_required`; confirming resends it with the token. */
+  command: AiWorkoutGenerationCommand;
+}
+
+function aiButtonHintText(state: AiButtonState): string | null {
+  switch (state.hint) {
+    case "mark_to_replace":
+      return "Mark exercises to replace them, or use Mark all for a new workout.";
+    case "too_many_kept":
+      return "Keep at most 6 exercises when replacing.";
+    case "marked_exceeds_slots":
+      return `AI workouts hold at most 7 exercises — with ${state.keptCount} kept, mark at most ${7 - state.keptCount}.`;
+    case "invalid_kept_prescription":
+      return "Fix the highlighted sets/reps before replacing.";
+    default:
+      return null;
+  }
+}
+
+function notifyGenerationFailure(code: AiGenerationErrorCode | "invalid_output") {
+  // Visual-only: the inline role="alert" already announces the full message, so the toast content is hidden from
+  // assistive technology to avoid a second announcement from Sonner's polite live region.
+  toast.error(<span aria-hidden="true">{getGenerationFailureHeadline(code)}</span>, {
+    id: AI_GENERATION_FAILURE_TOAST_ID,
+  });
+}
 
 const GENERATION_MESSAGES: Record<AiGenerationErrorCode | "invalid_output", string> = {
   validation_failed: "The generation request could not be validated. Reload the page and try again.",
@@ -97,7 +137,7 @@ export default function WorkoutBuilder({
   const [requestId, setRequestId] = useState<string | null>(null);
   const [replacementPlan, setReplacementPlan] = useState<CurrentPlannedWorkout | null>(null);
   const [replacementDialogOpen, setReplacementDialogOpen] = useState(false);
-  const [reducedConfirmation, setReducedConfirmation] = useState<{ count: 3 | 4; token: string } | null>(null);
+  const [reducedConfirmation, setReducedConfirmation] = useState<ReducedConfirmationState | null>(null);
   const [activeProposal, setActiveProposal] = useState<ActiveProposal | null>(null);
   const [cataloguePreferences, setCataloguePreferences] = useState<Record<string, AiWorkoutPreferenceState>>(
     initialPreferences ?? {},
@@ -108,6 +148,11 @@ export default function WorkoutBuilder({
   const draftValid = validateDraftItems(draft, knownExerciseIds);
   const operationsPending = pending !== null;
   const activeProposalId = activeProposal?.proposalId ?? null;
+  const reroll = useRerollSelection(draft);
+  const aiButton = getAiButtonState({ draft, selectedIds: reroll.selected, credentialConfigured });
+  const aiButtonHint = aiButtonHintText(aiButton);
+  const allMarked = draft.length > 0 && reroll.selected.size === draft.length;
+  const selectionEnabled = draft.length > 0 && credentialConfigured;
   const preferenceLoadError =
     initialPreferences === null
       ? "Your recommendation preferences could not be loaded. Reload the page to try again."
@@ -122,14 +167,8 @@ export default function WorkoutBuilder({
     });
   }, [activeProposalId]);
 
-  function generationCommand(): AiWorkoutGenerationCommand {
-    return activeProposal
-      ? { version: AI_WORKOUT_GENERATION_VERSION, priorProposalId: activeProposal.proposalId }
-      : { version: AI_WORKOUT_GENERATION_VERSION };
-  }
-
-  async function generateWorkout(command: AiWorkoutGenerationCommand = generationCommand()) {
-    if (operationsPending || !credentialConfigured) return;
+  async function generateWorkout(command: AiWorkoutGenerationCommand | null) {
+    if (operationsPending || !credentialConfigured || !command) return;
     setPending("generate");
     setGenerationError(null);
     setSaveError(null);
@@ -149,15 +188,27 @@ export default function WorkoutBuilder({
       }
       const transition = applyAiGenerationResponse(draft, parsed, activeProposal);
       if (!parsed?.ok && parsed?.code === "confirmation_required" && parsed.confirmationToken) {
-        setReducedConfirmation({ count: parsed.availableExerciseCount ?? 3, token: parsed.confirmationToken });
+        const triggeringCommand = { ...command };
+        delete triggeringCommand.confirmationToken;
+        setReducedConfirmation({
+          count: parsed.availableExerciseCount ?? 3,
+          token: parsed.confirmationToken,
+          command: triggeringCommand,
+        });
         return;
       }
       if (transition.code) {
         setGenerationError(transition.code);
         setRequestId(transition.requestId);
+        if (transition.code !== "confirmation_required") notifyGenerationFailure(transition.code);
       } else if (transition.draft) {
+        toast.dismiss(AI_GENERATION_FAILURE_TOAST_ID);
         setDraft(transition.draft);
         setDraftOrigin("ai");
+        reroll.applySuccess(
+          command,
+          transition.draft.map(({ exerciseId }) => exerciseId),
+        );
         setActiveProposal(transition.activeProposal);
         setPreferenceError(null);
         setReducedConfirmation(null);
@@ -165,6 +216,7 @@ export default function WorkoutBuilder({
       }
     } catch {
       setGenerationError("provider_unavailable");
+      notifyGenerationFailure("provider_unavailable");
     } finally {
       setPending(null);
     }
@@ -316,15 +368,40 @@ export default function WorkoutBuilder({
               Generate a balanced full-body proposal, then adjust every exercise and prescription before saving.
             </p>
           </div>
-          <button
-            type="button"
-            disabled={operationsPending || !credentialConfigured}
-            onClick={() => void generateWorkout()}
-            className="min-h-11 shrink-0 rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            {pending === "generate" ? "Generating…" : "Generate workout"}
-          </button>
+          <div className="flex shrink-0 flex-wrap gap-3">
+            {selectionEnabled && (
+              <button
+                type="button"
+                disabled={operationsPending}
+                onClick={() => {
+                  if (allMarked) reroll.clearSelection();
+                  else reroll.markAll(draft);
+                }}
+                className="min-h-11 rounded-lg border border-white/20 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {allMarked ? "Unmark all" : "Mark all"}
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={operationsPending || !aiButton.enabled}
+              onClick={() =>
+                void generateWorkout(
+                  buildAiGenerationCommand({
+                    draft,
+                    selectedIds: reroll.selected,
+                    excludedIds: reroll.excluded,
+                    activeProposal,
+                  }),
+                )
+              }
+              className="min-h-11 rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {pending === "generate" ? "Generating…" : aiButton.label}
+            </button>
+          </div>
         </div>
+        {aiButtonHint && <p className="mt-3 text-sm text-blue-100/70">{aiButtonHint}</p>}
         {!credentialConfigured && (
           <p className="mt-4 text-sm text-amber-100">
             Add an OpenRouter key in{" "}
@@ -353,14 +430,15 @@ export default function WorkoutBuilder({
       <ReducedWorkoutConfirmationDialog
         confirmation={reducedConfirmation}
         pending={operationsPending}
+        variant={
+          reducedConfirmation?.command.reroll && !isFullReroll(reducedConfirmation.command.reroll) ? "partial" : "full"
+        }
         onCancel={() => {
           if (!operationsPending) setReducedConfirmation(null);
         }}
         onConfirm={(confirmationToken) => {
-          const command: AiWorkoutGenerationCommand = activeProposal
-            ? { version: AI_WORKOUT_GENERATION_VERSION, confirmationToken, priorProposalId: activeProposal.proposalId }
-            : { version: AI_WORKOUT_GENERATION_VERSION, confirmationToken };
-          void generateWorkout(command);
+          if (!reducedConfirmation) return;
+          void generateWorkout({ ...reducedConfirmation.command, confirmationToken });
         }}
       />
 
@@ -373,6 +451,7 @@ export default function WorkoutBuilder({
         originalProposalExerciseIds={activeProposal?.originalExerciseIds}
         feedback={feedback}
         preferenceError={preferenceLoadError ?? preferenceError}
+        rerollSelection={selectionEnabled ? { selectedIds: reroll.selected, onToggle: reroll.toggle } : undefined}
         initialCatalogueNavigation={initialCatalogueNavigation}
         onChange={(nextDraft) => {
           setDraft(nextDraft);
